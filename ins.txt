@@ -1,7 +1,3 @@
-# cer
-# cer
-
-
 Use this exact message on the other laptop:
 
 Hi, continue development for my cer project.
