@@ -1,0 +1,127 @@
+[
+  {
+    "id": "example-template-001",
+    "name": "قالب تكريم كلاسيكي",
+    "orientation": "landscape",
+    "width": 1123,
+    "height": 794,
+    "background": {
+      "type": "solid",
+      "color": "#f8f4ea",
+      "accentColor": "#0f4a3c"
+    },
+    "elements": [
+      {
+        "id": "school-name",
+        "type": "text",
+        "text": "دار الإتقان العالي",
+        "x": 560,
+        "y": 96,
+        "fontSize": 42,
+        "fontFamily": "Amiri",
+        "fontWeight": "700",
+        "fill": "#0f4a3c",
+        "align": "center",
+        "width": 900
+      },
+      {
+        "id": "title",
+        "type": "text",
+        "text": "شهادة تقدير",
+        "x": 560,
+        "y": 180,
+        "fontSize": 58,
+        "fontFamily": "Amiri",
+        "fontWeight": "700",
+        "fill": "#a37a2a",
+        "align": "center",
+        "width": 900
+      },
+      {
+        "id": "student-label",
+        "type": "text",
+        "text": "تمنح هذه الشهادة للطالب/ـة",
+        "x": 560,
+        "y": 286,
+        "fontSize": 30,
+        "fontFamily": "Cairo",
+        "fontWeight": "500",
+        "fill": "#1f2937",
+        "align": "center",
+        "width": 900
+      },
+      {
+        "id": "student-name",
+        "type": "dynamicText",
+        "field": "studentName",
+        "x": 560,
+        "y": 366,
+        "fontSize": 50,
+        "fontFamily": "Amiri",
+        "fontWeight": "700",
+        "fill": "#0f4a3c",
+        "align": "center",
+        "width": 900
+      },
+      {
+        "id": "footer-text",
+        "type": "text",
+        "text": "تقديراً لاجتهاده وتميزه في حفظ كتاب الله",
+        "x": 560,
+        "y": 446,
+        "fontSize": 28,
+        "fontFamily": "Cairo",
+        "fontWeight": "500",
+        "fill": "#374151",
+        "align": "center",
+        "width": 900
+      },
+      {
+        "id": "date-field",
+        "type": "dynamicText",
+        "field": "date",
+        "x": 930,
+        "y": 680,
+        "fontSize": 24,
+        "fontFamily": "Cairo",
+        "fontWeight": "500",
+        "fill": "#111827",
+        "align": "center",
+        "width": 240
+      },
+      {
+        "id": "signature-label",
+        "type": "text",
+        "text": "إدارة المدرسة",
+        "x": 230,
+        "y": 680,
+        "fontSize": 24,
+        "fontFamily": "Cairo",
+        "fontWeight": "500",
+        "fill": "#111827",
+        "align": "center",
+        "width": 260
+      },
+      {
+        "id": "logo",
+        "type": "dynamicImage",
+        "field": "logo",
+        "x": 100,
+        "y": 85,
+        "width": 110,
+        "height": 110
+      },
+      {
+        "id": "signature",
+        "type": "dynamicImage",
+        "field": "signature",
+        "x": 180,
+        "y": 590,
+        "width": 170,
+        "height": 70
+      }
+    ],
+    "createdAt": "2026-04-13T00:00:00.000Z",
+    "updatedAt": "2026-04-13T00:00:00.000Z"
+  }
+]
