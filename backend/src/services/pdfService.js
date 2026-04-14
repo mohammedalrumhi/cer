@@ -1,6 +1,11 @@
 const fs = require('fs');
 const path = require('path');
+const arabicReshaper = require('arabic-reshaper');
+const bidiFactory = require('bidi-js/dist/bidi');
+const fontkit = require('@pdf-lib/fontkit');
 const { PDFDocument, StandardFonts, rgb } = require('pdf-lib');
+
+const bidi = bidiFactory();
 
 function hexToRgb(hex) {
 	const safeHex = (hex || '#000000').replace('#', '');
@@ -14,6 +19,27 @@ function hexToRgb(hex) {
 	const b = (intVal & 255) / 255;
 
 	return rgb(Number.isFinite(r) ? r : 0, Number.isFinite(g) ? g : 0, Number.isFinite(b) ? b : 0);
+}
+
+function findArabicFontPath() {
+	const candidates = [
+		'/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+		'/usr/share/fonts/truetype/noto/NotoSansArabic-Regular.ttf',
+		'/usr/share/fonts/truetype/noto/NotoNaskhArabic-Regular.ttf',
+	];
+
+	return candidates.find((candidate) => fs.existsSync(candidate));
+}
+
+function shapeArabicText(sourceText) {
+	if (!sourceText || typeof sourceText !== 'string') return '';
+	if (!/[\u0600-\u06FF]/.test(sourceText)) {
+		return sourceText;
+	}
+
+	const reshaped = arabicReshaper.convertArabic(sourceText);
+	const embedding = bidi.getEmbeddingLevels(reshaped, 'rtl');
+	return bidi.getReorderedString(reshaped, embedding);
 }
 
 function resolveFieldValue(field, studentName, branding) {
@@ -72,6 +98,14 @@ function drawBackground(page, template) {
 	});
 
 	page.drawRectangle({
+		x: 0,
+		y: height - 96,
+		width,
+		height: 96,
+		color: accentColor,
+	});
+
+	page.drawRectangle({
 		x: 24,
 		y: 24,
 		width: width - 48,
@@ -81,19 +115,38 @@ function drawBackground(page, template) {
 	});
 
 	page.drawRectangle({
+		x: 40,
+		y: height - 116,
+		width: width - 80,
+		height: 12,
+		color: hexToRgb('#ffffff'),
+	});
+
+	page.drawRectangle({
 		x: 44,
-		y: 44,
-		width: width - 88,
-		height: height - 88,
-		borderWidth: 1,
-		borderColor: hexToRgb('#d6b66f'),
+		y: 84,
+		width: 120,
+		height: 8,
+		color: accentColor,
+	});
+
+	page.drawRectangle({
+		x: width - 164,
+		y: 84,
+		width: 120,
+		height: 8,
+		color: accentColor,
 	});
 }
 
 async function buildCertificatesPdf({ template, students, branding }) {
 	const pdfDoc = await PDFDocument.create();
+	pdfDoc.registerFontkit(fontkit);
 	const regularFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
 	const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+	const arabicFontPath = findArabicFontPath();
+	const arabicFont = arabicFontPath ? await pdfDoc.embedFont(fs.readFileSync(arabicFontPath)) : null;
 
 	const logoImage = await embedImageIfExists(pdfDoc, branding.logoPath);
 	const signatureImage = await embedImageIfExists(pdfDoc, branding.signaturePath);
@@ -108,13 +161,13 @@ async function buildCertificatesPdf({ template, students, branding }) {
 					? resolveFieldValue(element.field, student, branding)
 					: element.text || '';
 
+				const shapedText = shapeArabicText(sourceText);
 				const maxWidth = element.width || 900;
 				const baseSize = element.fontSize || 26;
-				const finalSize = smartFontSize(sourceText, baseSize, maxWidth);
+				const finalSize = smartFontSize(shapedText, baseSize, maxWidth);
 
-				const isBold = (element.fontWeight || '').toString().includes('7');
-				const chosenFont = isBold ? boldFont : regularFont;
-				const textWidth = chosenFont.widthOfTextAtSize(sourceText, finalSize);
+				const chosenFont = arabicFont || ((element.fontWeight || '').toString().includes('7') ? boldFont : regularFont);
+				const textWidth = chosenFont.widthOfTextAtSize(shapedText, finalSize);
 
 				let x = (element.x || 120) - textWidth / 2;
 				if (element.align === 'left') {
@@ -124,7 +177,7 @@ async function buildCertificatesPdf({ template, students, branding }) {
 					x = (element.x || 120) - textWidth;
 				}
 
-				page.drawText(sourceText, {
+				page.drawText(shapedText, {
 					x,
 					y: (template.height || 794) - (element.y || 120),
 					size: finalSize,

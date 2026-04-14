@@ -59,8 +59,34 @@ export async function parseExcel(file) {
   return data.students || [];
 }
 
+export async function fetchStudents() {
+  const { data } = await api.get('/students');
+  return data;
+}
+
+export async function saveStudents(students) {
+  const { data } = await api.post('/students', { students });
+  return data.students || [];
+}
+
+export async function updateStudent(id, payload) {
+  const { data } = await api.put(`/students/${id}`, payload);
+  return data;
+}
+
+export async function deleteStudent(id) {
+  await api.delete(`/students/${id}`);
+}
+
 export async function generateCertificates(payload) {
   const response = await api.post('/certificates/generate', payload, {
+    responseType: 'blob',
+  });
+  return response.data;
+}
+
+export async function previewTemplate(payload) {
+  const response = await api.post('/certificates/preview', payload, {
     responseType: 'blob',
   });
   return response.data;
