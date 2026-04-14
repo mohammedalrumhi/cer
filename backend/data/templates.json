@@ -219,8 +219,8 @@
         "id": "title",
         "type": "text",
         "text": "شهادة تقدير",
-        "x": 280,
-        "y": 120,
+        "x": 228,
+        "y": 96,
         "width": 560,
         "fontSize": 56,
         "fontWeight": "800",
@@ -231,8 +231,8 @@
         "id": "name-dynamic",
         "type": "dynamicText",
         "field": "studentName",
-        "x": 180,
-        "y": 320,
+        "x": 201,
+        "y": 384,
         "width": 760,
         "fontSize": 48,
         "fontWeight": "700",
@@ -242,7 +242,7 @@
       {
         "id": "signature",
         "type": "dynamicImage",
-        "field": "signature",
+        "field": "logo",
         "x": 720,
         "y": 620,
         "width": 240,
@@ -252,17 +252,17 @@
         "id": "date-dynamic",
         "type": "dynamicText",
         "field": "date",
-        "x": 180,
-        "y": 540,
+        "x": 132,
+        "y": 668,
         "width": 760,
         "fontSize": 24,
         "fontWeight": "500",
-        "fill": "#334155",
+        "fill": "#714747",
         "align": "center"
       }
     ],
     "createdAt": "2026-04-14T05:29:28.946Z",
-    "updatedAt": "2026-04-14T05:29:28.946Z"
+    "updatedAt": "2026-04-14T09:23:58.182Z"
   },
   {
     "id": "85cf5dde-1b8e-43b7-932a-32ce586d3c5a",
@@ -345,5 +345,227 @@
     ],
     "createdAt": "2026-04-14T05:30:13.156Z",
     "updatedAt": "2026-04-14T05:30:26.096Z"
+  },
+  {
+    "id": "48d4b848-8fb7-4108-bc93-7d3238d5103b",
+    "name": "قالب جديدf",
+    "orientation": "landscape",
+    "width": 1122,
+    "height": 794,
+    "background": {
+      "type": "solid",
+      "color": "#ffffff",
+      "accentColor": "#2cdd79"
+    },
+    "elements": [
+      {
+        "id": "logo",
+        "type": "dynamicImage",
+        "field": "logo",
+        "x": 80,
+        "y": 80,
+        "width": 180,
+        "height": 70
+      },
+      {
+        "id": "subtitle",
+        "type": "text",
+        "text": "تُمنح هذه الشهادة إلى",
+        "x": 220,
+        "y": 190,
+        "width": 680,
+        "fontSize": 30,
+        "fontWeight": "600",
+        "fill": "#0f4a3c",
+        "align": "center"
+      },
+      {
+        "id": "name-dynamic",
+        "type": "dynamicText",
+        "field": "studentName",
+        "x": 180,
+        "y": 320,
+        "width": 760,
+        "fontSize": 44,
+        "fontWeight": "700",
+        "fill": "#134e3f",
+        "align": "center"
+      },
+      {
+        "id": "details",
+        "type": "text",
+        "text": "تقديراً للتميز والمثابرة",
+        "x": 220,
+        "y": 420,
+        "width": 680,
+        "fontSize": 24,
+        "fontWeight": "500",
+        "fill": "#1f4f3c",
+        "align": "center"
+      },
+      {
+        "id": "signature",
+        "type": "dynamicImage",
+        "field": "signature",
+        "x": 720,
+        "y": 620,
+        "width": 240,
+        "height": 60
+      },
+      {
+        "id": "date-dynamic",
+        "type": "dynamicText",
+        "field": "date",
+        "x": 180,
+        "y": 620,
+        "width": 360,
+        "fontSize": 22,
+        "fontWeight": "500",
+        "fill": "#334155",
+        "align": "left"
+      }
+    ],
+    "createdAt": "2026-04-14T09:21:58.922Z",
+    "updatedAt": "2026-04-14T09:22:31.206Z"
+  },
+  {
+    "id": "06914781-9d5b-44f4-84d2-41f92a4aa0ff",
+    "name": "قالب جديد",
+    "orientation": "landscape",
+    "width": 1123,
+    "height": 794,
+    "background": {
+      "type": "solid",
+      "color": "#f8f4ea",
+      "accentColor": "#0f4a3c"
+    },
+    "elements": [
+      {
+        "id": "logo",
+        "type": "dynamicImage",
+        "field": "logo",
+        "x": 80,
+        "y": 80,
+        "width": 180,
+        "height": 70
+      },
+      {
+        "id": "title",
+        "type": "text",
+        "text": "شهادة تقدير",
+        "x": 280,
+        "y": 120,
+        "width": 560,
+        "fontSize": 56,
+        "fontWeight": "800",
+        "fill": "#0f4a3c",
+        "align": "center"
+      },
+      {
+        "id": "name-dynamic",
+        "type": "dynamicText",
+        "field": "studentName",
+        "x": 180,
+        "y": 320,
+        "width": 760,
+        "fontSize": 48,
+        "fontWeight": "700",
+        "fill": "#1f2937",
+        "align": "center"
+      },
+      {
+        "id": "signature",
+        "type": "dynamicImage",
+        "field": "signature",
+        "x": 720,
+        "y": 620,
+        "width": 240,
+        "height": 60
+      },
+      {
+        "id": "date-dynamic",
+        "type": "dynamicText",
+        "field": "date",
+        "x": 180,
+        "y": 540,
+        "width": 760,
+        "fontSize": 24,
+        "fontWeight": "500",
+        "fill": "#334155",
+        "align": "center"
+      }
+    ],
+    "createdAt": "2026-04-14T09:22:19.351Z",
+    "updatedAt": "2026-04-14T09:22:19.351Z"
+  },
+  {
+    "id": "11001170-de1f-49b5-9e8f-48b64c9ca0b6",
+    "name": "قالب جديد",
+    "orientation": "portrait",
+    "width": 1123,
+    "height": 794,
+    "background": {
+      "type": "solid",
+      "color": "#f8f4ea",
+      "accentColor": "#0f4a3c"
+    },
+    "elements": [
+      {
+        "id": "logo",
+        "type": "dynamicImage",
+        "field": "logo",
+        "x": 80,
+        "y": 80,
+        "width": 180,
+        "height": 70
+      },
+      {
+        "id": "title",
+        "type": "text",
+        "text": "شهادة تقدير",
+        "x": 324,
+        "y": 100,
+        "width": 560,
+        "fontSize": 56,
+        "fontWeight": "800",
+        "fill": "#0f4a3c",
+        "align": "center"
+      },
+      {
+        "id": "name-dynamic",
+        "type": "dynamicText",
+        "field": "studentName",
+        "x": 180,
+        "y": 320,
+        "width": 760,
+        "fontSize": 48,
+        "fontWeight": "700",
+        "fill": "#1f2937",
+        "align": "center"
+      },
+      {
+        "id": "signature",
+        "type": "dynamicImage",
+        "field": "signature",
+        "x": 720,
+        "y": 620,
+        "width": 240,
+        "height": 60
+      },
+      {
+        "id": "date-dynamic",
+        "type": "dynamicText",
+        "field": "date",
+        "x": 180,
+        "y": 540,
+        "width": 760,
+        "fontSize": 24,
+        "fontWeight": "500",
+        "fill": "#334155",
+        "align": "center"
+      }
+    ],
+    "createdAt": "2026-04-14T09:32:28.824Z",
+    "updatedAt": "2026-04-14T09:41:03.136Z"
   }
 ]

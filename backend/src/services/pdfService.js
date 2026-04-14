@@ -1,208 +1,172 @@
 const fs = require('fs');
 const path = require('path');
-const arabicReshaper = require('arabic-reshaper');
-const bidiFactory = require('bidi-js/dist/bidi');
-const fontkit = require('@pdf-lib/fontkit');
-const { PDFDocument, StandardFonts, rgb } = require('pdf-lib');
+const PDFDocument = require('pdfkit');
 
-const bidi = bidiFactory();
-
-function hexToRgb(hex) {
-	const safeHex = (hex || '#000000').replace('#', '');
-	const normalized = safeHex.length === 3
-		? safeHex.split('').map((c) => `${c}${c}`).join('')
-		: safeHex;
-
-	const intVal = Number.parseInt(normalized, 16);
-	const r = ((intVal >> 16) & 255) / 255;
-	const g = ((intVal >> 8) & 255) / 255;
-	const b = (intVal & 255) / 255;
-
-	return rgb(Number.isFinite(r) ? r : 0, Number.isFinite(g) ? g : 0, Number.isFinite(b) ? b : 0);
-}
-
-function findArabicFontPath() {
-	const candidates = [
-		'/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
-		'/usr/share/fonts/truetype/noto/NotoSansArabic-Regular.ttf',
-		'/usr/share/fonts/truetype/noto/NotoNaskhArabic-Regular.ttf',
-	];
-
-	return candidates.find((candidate) => fs.existsSync(candidate));
-}
-
-function shapeArabicText(sourceText) {
-	if (!sourceText || typeof sourceText !== 'string') return '';
-	if (!/[\u0600-\u06FF]/.test(sourceText)) {
-		return sourceText;
-	}
-
-	const reshaped = arabicReshaper.convertArabic(sourceText);
-	const embedding = bidi.getEmbeddingLevels(reshaped, 'rtl');
-	return bidi.getReorderedString(reshaped, embedding);
+function normalizeUtf8(value) {
+  if (value === null || value === undefined) return '';
+  return Buffer.from(String(value), 'utf8').toString('utf8');
 }
 
 function resolveFieldValue(field, studentName, branding) {
-	if (field === 'studentName') return studentName;
-	if (field === 'date') return new Date().toLocaleDateString('ar-SA');
-	if (field === 'schoolName') return branding.schoolName || 'دار الإتقان العالي';
-	return '';
+  if (field === 'studentName') return normalizeUtf8(studentName);
+  if (field === 'date') {
+    return new Intl.DateTimeFormat('ar-SA-u-nu-arab', {
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+    }).format(new Date());
+  }
+  if (field === 'schoolName') return normalizeUtf8(branding.schoolName || 'دار الإتقان العالي');
+  return '';
 }
 
-function estimateTextWidth(text = '', fontSize = 24) {
-	return Math.max(1, text.length) * fontSize * 0.52;
+function findArabicFontPath() {
+  const candidates = [
+    path.resolve(__dirname, '../../assets/fonts/Amiri-Regular.ttf'),
+    '/usr/share/fonts/truetype/noto/NotoNaskhArabic-Regular.ttf',
+    '/usr/share/fonts/truetype/noto/NotoSansArabic-Regular.ttf',
+    '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+  ];
+
+  return candidates.find((candidate) => fs.existsSync(candidate)) || null;
 }
 
-function smartFontSize(text, baseFontSize, maxWidth) {
-	const estimated = estimateTextWidth(text, baseFontSize);
-	if (!maxWidth || estimated <= maxWidth) {
-		return baseFontSize;
-	}
-
-	const ratio = maxWidth / estimated;
-	return Math.max(20, Math.floor(baseFontSize * ratio));
+function resolveImagePath(imagePath) {
+  if (!imagePath) return null;
+  const resolved = path.resolve(__dirname, '../../', String(imagePath).replace(/^\//, ''));
+  return fs.existsSync(resolved) ? resolved : null;
 }
 
-async function embedImageIfExists(pdfDoc, imagePath) {
-	if (!imagePath) return null;
+function drawBackground(doc, template) {
+  const width = Number(template.width) || 1123;
+  const height = Number(template.height) || 794;
+  const bgColor = template.background?.color || '#f8f4ea';
+  const accentColor = template.background?.accentColor || '#0f4a3c';
 
-	const resolved = path.resolve(__dirname, '../../', imagePath.replace(/^\//, ''));
-	if (!fs.existsSync(resolved)) return null;
+  doc.save();
+  doc.rect(0, 0, width, height).fill(bgColor);
+  doc.rect(0, 0, width, 96).fill(accentColor);
 
-	const data = fs.readFileSync(resolved);
-	const ext = path.extname(resolved).toLowerCase();
+  doc.lineWidth(2);
+  doc.strokeColor(accentColor);
+  doc.rect(24, 24, width - 48, height - 48).stroke();
 
-	if (ext === '.png') {
-		return pdfDoc.embedPng(data);
-	}
+  doc.fillColor('#ffffff');
+  doc.rect(40, 104, width - 80, 12).fill();
 
-	if (ext === '.jpg' || ext === '.jpeg') {
-		return pdfDoc.embedJpg(data);
-	}
-
-	return null;
+  doc.fillColor(accentColor);
+  doc.rect(44, height - 92, 120, 8).fill();
+  doc.rect(width - 164, height - 92, 120, 8).fill();
+  doc.restore();
 }
 
-function drawBackground(page, template) {
-	const width = template.width || 1123;
-	const height = template.height || 794;
-	const bgColor = hexToRgb(template.background?.color || '#f8f4ea');
-	const accentColor = hexToRgb(template.background?.accentColor || '#0f4a3c');
+function getTextX(element) {
+  const width = Number(element.width) || 900;
+  const x = Number(element.x) || 120;
 
-	page.drawRectangle({
-		x: 0,
-		y: 0,
-		width,
-		height,
-		color: bgColor,
-	});
+  if (element.align === 'left') return x;
+  if (element.align === 'right') return x - width;
+  return x - width / 2;
+}
 
-	page.drawRectangle({
-		x: 0,
-		y: height - 96,
-		width,
-		height: 96,
-		color: accentColor,
-	});
+function drawTemplateElement(doc, template, element, student, branding, imageAssets, arabicFontPath) {
+  const pageHeight = Number(template.height) || 794;
 
-	page.drawRectangle({
-		x: 24,
-		y: 24,
-		width: width - 48,
-		height: height - 48,
-		borderWidth: 2,
-		borderColor: accentColor,
-	});
+  if (element.type === 'text' || element.type === 'dynamicText') {
+    const sourceText = element.type === 'dynamicText'
+      ? resolveFieldValue(element.field, student, branding)
+      : normalizeUtf8(element.text || '');
 
-	page.drawRectangle({
-		x: 40,
-		y: height - 116,
-		width: width - 80,
-		height: 12,
-		color: hexToRgb('#ffffff'),
-	});
+    if (!sourceText) return;
 
-	page.drawRectangle({
-		x: 44,
-		y: 84,
-		width: 120,
-		height: 8,
-		color: accentColor,
-	});
+    const fontSize = Number(element.fontSize) || 26;
+    const color = element.fill || '#0f172a';
+    const width = Number(element.width) || 900;
+    const x = getTextX(element);
+    const y = Number(element.y) || 120;
 
-	page.drawRectangle({
-		x: width - 164,
-		y: 84,
-		width: 120,
-		height: 8,
-		color: accentColor,
-	});
+    if (arabicFontPath) {
+      doc.font(arabicFontPath);
+    } else {
+      doc.font('Helvetica');
+    }
+
+    doc
+      .fontSize(fontSize)
+      .fillColor(color)
+      .text(sourceText, x, y, {
+        width,
+        align: element.align || 'center',
+        lineBreak: false,
+        features: ['rtla', 'rlig', 'calt'],
+      });
+
+    return;
+  }
+
+  if (element.type === 'dynamicImage') {
+    const imagePath = element.field === 'logo' ? imageAssets.logo : imageAssets.signature;
+    if (!imagePath) return;
+
+    const x = Number(element.x) || 80;
+    const y = Number(element.y) || 120;
+    const width = Number(element.width) || 120;
+    const height = Number(element.height) || 60;
+
+    try {
+      doc.image(imagePath, x, y, { width, height });
+    } catch (error) {
+      // Ignore unsupported images and continue rendering the PDF.
+    }
+
+    return;
+  }
+
+  // Keep lint/no-unused-vars clean for possible future template element types.
+  void pageHeight;
 }
 
 async function buildCertificatesPdf({ template, students, branding }) {
-	const pdfDoc = await PDFDocument.create();
-	pdfDoc.registerFontkit(fontkit);
-	const regularFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
-	const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  const pageWidth = Number(template.width) || 1123;
+  const pageHeight = Number(template.height) || 794;
+  const arabicFontPath = findArabicFontPath();
 
-	const arabicFontPath = findArabicFontPath();
-	const arabicFont = arabicFontPath ? await pdfDoc.embedFont(fs.readFileSync(arabicFontPath)) : null;
+  const doc = new PDFDocument({
+    autoFirstPage: false,
+    margin: 0,
+    size: [pageWidth, pageHeight],
+    bufferPages: true,
+    info: {
+      Title: normalizeUtf8(template.name || 'Certificates'),
+      Author: 'Certificate System',
+      Subject: 'Arabic Certificates UTF-8',
+    },
+  });
 
-	const logoImage = await embedImageIfExists(pdfDoc, branding.logoPath);
-	const signatureImage = await embedImageIfExists(pdfDoc, branding.signaturePath);
+  const chunks = [];
+  doc.on('data', (chunk) => chunks.push(chunk));
 
-	for (const student of students) {
-		const page = pdfDoc.addPage([template.width || 1123, template.height || 794]);
-		drawBackground(page, template);
+  const imageAssets = {
+    logo: resolveImagePath(branding.logoPath),
+    signature: resolveImagePath(branding.signaturePath),
+  };
 
-		for (const element of template.elements || []) {
-			if (element.type === 'text' || element.type === 'dynamicText') {
-				const sourceText = element.type === 'dynamicText'
-					? resolveFieldValue(element.field, student, branding)
-					: element.text || '';
+  for (const student of students) {
+    doc.addPage({ size: [pageWidth, pageHeight], margin: 0 });
+    drawBackground(doc, template);
 
-				const shapedText = shapeArabicText(sourceText);
-				const maxWidth = element.width || 900;
-				const baseSize = element.fontSize || 26;
-				const finalSize = smartFontSize(shapedText, baseSize, maxWidth);
+    for (const element of template.elements || []) {
+      drawTemplateElement(doc, template, element, student, branding, imageAssets, arabicFontPath);
+    }
+  }
 
-				const chosenFont = arabicFont || ((element.fontWeight || '').toString().includes('7') ? boldFont : regularFont);
-				const textWidth = chosenFont.widthOfTextAtSize(shapedText, finalSize);
-
-				let x = (element.x || 120) - textWidth / 2;
-				if (element.align === 'left') {
-					x = element.x || 120;
-				}
-				if (element.align === 'right') {
-					x = (element.x || 120) - textWidth;
-				}
-
-				page.drawText(shapedText, {
-					x,
-					y: (template.height || 794) - (element.y || 120),
-					size: finalSize,
-					font: chosenFont,
-					color: hexToRgb(element.fill || '#0f172a'),
-				});
-			}
-
-			if (element.type === 'dynamicImage') {
-				const image = element.field === 'logo' ? logoImage : signatureImage;
-				if (!image) continue;
-
-				page.drawImage(image, {
-					x: element.x || 80,
-					y: (template.height || 794) - (element.y || 120) - (element.height || 60),
-					width: element.width || 120,
-					height: element.height || 60,
-				});
-			}
-		}
-	}
-
-	return pdfDoc.save();
+  return new Promise((resolve, reject) => {
+    doc.on('end', () => resolve(Buffer.concat(chunks)));
+    doc.on('error', reject);
+    doc.end();
+  });
 }
 
 module.exports = {
-	buildCertificatesPdf,
+  buildCertificatesPdf,
 };

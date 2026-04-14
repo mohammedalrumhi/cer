@@ -1,32 +1,35 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, PenTool, Users, FileDown } from 'lucide-react';
+import { LayoutDashboard, PenTool, Users, FileText } from 'lucide-react';
 
 const links = [
   { to: '/', label: 'لوحة التحكم', icon: LayoutDashboard },
   { to: '/students', label: 'الطلاب', icon: Users },
-  { to: '/generate', label: 'توليد الشهادات', icon: FileDown },
+  { to: '/generate', label: 'الشهادات', icon: FileText },
 ];
 
 export function Layout({ children }) {
   return (
-    <div className="min-h-screen bg-app-pattern text-slate-800" dir="rtl">
-      <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 lg:grid-cols-[230px_1fr] lg:px-8">
-        <aside className="rounded-3xl border border-emerald-100 bg-white/90 p-4 shadow-soft backdrop-blur">
-          <div className="mb-6 rounded-2xl bg-emerald-900 p-4 text-white">
-            <p className="text-xs text-emerald-100">Dar Al-Itqan Al-Aali</p>
-            <h1 className="mt-2 text-xl font-bold">دار الإتقان العالي</h1>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-emerald-50" dir="rtl">
+      <div className="mx-auto flex max-w-7xl gap-6 px-4 py-6 lg:px-8">
+        {/* Sidebar */}
+        <aside className="w-full rounded-2xl border border-white/60 bg-white/80 p-5 shadow-lg backdrop-blur-md sm:w-80 lg:h-fit lg:sticky lg:top-6">
+          {/* Logo/Header */}
+          <div className="mb-8 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 p-5 text-white shadow-md">
+            <p className="text-xs font-medium text-emerald-100">دار الإتقان العالي</p>
+            <h1 className="mt-2 text-lg font-bold leading-tight">نظام الشهادات</h1>
           </div>
 
-          <nav className="space-y-2">
+          {/* Main Navigation */}
+          <nav className="mb-8 space-y-2">
             {links.map(({ to, label, icon: Icon }) => (
               <NavLink
                 key={to}
                 to={to}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition ${
+                  `group relative flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-all ${
                     isActive
-                      ? 'bg-emerald-800 text-white'
-                      : 'text-slate-700 hover:bg-amber-50'
+                      ? 'bg-emerald-600 text-white shadow-md'
+                      : 'text-slate-600 hover:bg-slate-100'
                   }`
                 }
               >
@@ -34,18 +37,25 @@ export function Layout({ children }) {
                 {label}
               </NavLink>
             ))}
-
-            <NavLink
-              to="/templates/new"
-              className="mt-3 flex items-center gap-3 rounded-xl bg-amber-200 px-3 py-2 text-sm font-semibold text-emerald-900 transition hover:bg-amber-300"
-            >
-              <PenTool size={18} />
-              قالب جديد
-            </NavLink>
           </nav>
+
+          {/* New Template Button */}
+          <NavLink
+            to="/templates/new"
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-amber-400 to-amber-500 px-4 py-3 text-sm font-semibold text-amber-900 shadow-md transition-all hover:shadow-lg hover:from-amber-500 hover:to-amber-600"
+          >
+            <PenTool size={18} />
+            قالب جديد
+          </NavLink>
+
+          {/* Footer Info */}
+          <div className="mt-8 border-t border-slate-200 pt-4 text-xs text-slate-500">
+            <p>v1.0 • نظام إدارة الشهادات</p>
+          </div>
         </aside>
 
-        <main className="rounded-3xl border border-amber-100 bg-white/90 p-5 shadow-soft backdrop-blur md:p-8">
+        {/* Main Content */}
+        <main className="flex-1 rounded-2xl border border-white/60 bg-white/90 p-6 shadow-lg backdrop-blur-md md:p-8">
           {children}
         </main>
       </div>
