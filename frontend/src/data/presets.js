@@ -62,6 +62,15 @@ export const templatePresets = [
           height: 60,
         },
         {
+          id: 'stamp',
+          type: 'dynamicImage',
+          field: 'stamp',
+          x: 120,
+          y: 620,
+          width: 120,
+          height: 120,
+        },
+        {
           id: 'date-dynamic',
           type: 'dynamicText',
           field: 'date',

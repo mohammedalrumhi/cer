@@ -31,7 +31,13 @@ function findArabicFontPath() {
   return candidates.find((candidate) => fs.existsSync(candidate)) || null;
 }
 
-function resolveImagePath(imagePath) {
+
+function resolveImagePath(imagePath, fallbackAsset) {
+  if (!imagePath && fallbackAsset) {
+    // fallbackAsset is a path relative to project root
+    const fallback = path.resolve(__dirname, '../../frontend/public/assets', fallbackAsset);
+    return fs.existsSync(fallback) ? fallback : null;
+  }
   if (!imagePath) return null;
   const resolved = path.resolve(__dirname, '../../', String(imagePath).replace(/^\//, ''));
   return fs.existsSync(resolved) ? resolved : null;
@@ -85,11 +91,20 @@ function drawTemplateElement(doc, template, element, student, branding, imageAss
     const x = getTextX(element);
     const y = Number(element.y) || 120;
 
-    if (arabicFontPath) {
-      doc.font(arabicFontPath);
-    } else {
-      doc.font('Helvetica');
+
+    // Multi-font support
+    let fontPath = null;
+    if (element.fontFamily) {
+      // Try to resolve font from assets/fonts
+      const candidate = path.resolve(__dirname, '../../assets/fonts', `${element.fontFamily}-Regular.ttf`);
+      if (fs.existsSync(candidate)) {
+        fontPath = candidate;
+      }
     }
+    if (!fontPath && arabicFontPath) {
+      fontPath = arabicFontPath;
+    }
+    doc.font(fontPath || 'Helvetica');
 
     doc
       .fontSize(fontSize)
@@ -105,7 +120,10 @@ function drawTemplateElement(doc, template, element, student, branding, imageAss
   }
 
   if (element.type === 'dynamicImage') {
-    const imagePath = element.field === 'logo' ? imageAssets.logo : imageAssets.signature;
+    let imagePath = null;
+    if (element.field === 'logo') imagePath = imageAssets.logo;
+    else if (element.field === 'signature') imagePath = imageAssets.signature;
+    else if (element.field === 'stamp') imagePath = imageAssets.stamp;
     if (!imagePath) return;
 
     const x = Number(element.x) || 80;
@@ -146,9 +164,11 @@ async function buildCertificatesPdf({ template, students, branding }) {
   const chunks = [];
   doc.on('data', (chunk) => chunks.push(chunk));
 
+  // Use default assets if branding fields are missing
   const imageAssets = {
-    logo: resolveImagePath(branding.logoPath),
-    signature: resolveImagePath(branding.signaturePath),
+    logo: resolveImagePath(branding.logoPath, 'logo.png'),
+    signature: resolveImagePath(branding.signaturePath, 'signture.jpeg'),
+    stamp: resolveImagePath(branding.stampPath, 'stamp.jpeg'),
   };
 
   for (const student of students) {

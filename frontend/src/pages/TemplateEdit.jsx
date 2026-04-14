@@ -4,6 +4,14 @@ import { Stage, Layer, Rect, Text, Image as KonvaImage } from 'react-konva';
 import { fetchBranding, fetchTemplate, previewTemplate, updateTemplate } from '../api/client';
 import { TemplateElementEditor } from '../components/TemplateElementEditor';
 
+// Example font list (expand as needed)
+const FONT_OPTIONS = [
+  { value: 'Amiri', label: 'Amiri (Arabic)' },
+  { value: 'Cairo', label: 'Cairo (Arabic)' },
+  { value: 'Arial', label: 'Arial' },
+  { value: 'Tahoma', label: 'Tahoma' },
+];
+
 function useLoadedImage(src, setter) {
   useEffect(() => {
     if (!src) {
@@ -125,107 +133,123 @@ export default function TemplateEdit() {
   useEffect(() => {
     if (!template) {
       return;
-    }
+    return (
+      <div className="flex flex-row gap-8">
+        {/* Canvas Area */}
+        <div className="flex-1 flex flex-col items-center justify-center min-h-[80vh] bg-slate-50 rounded-3xl border border-emerald-100 shadow-inner p-4">
+          <Stage
+            width={template.width}
+            height={template.height}
+            scale={{ x: previewScale, y: previewScale }}
+            onMouseDown={handleStageMouseDown}
+            className="border border-emerald-200 bg-white rounded-xl shadow"
+            style={{ direction: 'rtl', margin: '0 auto' }}
+          >
+            <Layer>
+              {/* Render elements */}
+              {template.elements?.map((element) => {
+                if (element.type === 'text' || element.type === 'dynamicText') {
+                  return (
+                    <Text
+                      key={element.id}
+                      x={element.x}
+                      y={element.y}
+                      width={element.width}
+                      text={element.text || getDynamicFieldLabel(element.field)}
+                      fontSize={element.fontSize}
+                      fontFamily={element.fontFamily || 'Amiri'}
+                      fontStyle={element.fontWeight === '700' ? 'bold' : 'normal'}
+                      fill={element.fill}
+                      align={element.align}
+                      draggable
+                      onClick={() => setSelectedElementId(element.id)}
+                      onTap={() => setSelectedElementId(element.id)}
+                      onDragMove={handleDragMove(element.id)}
+                      shadowBlur={selectedElementId === element.id ? 8 : 0}
+                    </div>
+                  </div>
+                ); // <-- Close the main return block properly
 
-    const scale = Math.min(280 / template.width, 1);
-    setPreviewScale(scale);
-  }, [template]);
+              // Functions below are outside the return block
+              function updateField(field, value) {
+                revokePreviewUrl();
+                setTemplate((prev) => ({
+                  ...prev,
+                  [field]: value,
+                }));
+                      height={element.height}
+                      image={img}
+                      draggable
+                      onClick={() => setSelectedElementId(element.id)}
+                      onTap={() => setSelectedElementId(element.id)}
+                      onDragMove={handleDragMove(element.id)}
+                      shadowBlur={selectedElementId === element.id ? 8 : 0}
+                    />
+                  );
+                }
+                return null;
+              })}
+            </Layer>
+          </Stage>
+        </div>
 
-  const revokePreviewUrl = () => {
-    if (previewUrl) {
-      window.URL.revokeObjectURL(previewUrl);
-      setPreviewUrl('');
-    }
-  };
+        {/* Side Panel */}
+        <div className="w-85 shrink-0">
+          <div className="mb-6">
+            <p className="text-sm text-slate-500">تحرير قالب الشهادة</p>
+            <h1 className="text-2xl font-bold text-slate-900">{template.name}</h1>
+          </div>
 
-  useEffect(() => {
-    return () => {
-      revokePreviewUrl();
-      if (autosaveTimer.current) {
-        clearTimeout(autosaveTimer.current);
-      }
-    };
-  }, [previewUrl]);
+          {error && <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{error}</div>}
+          {success && <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">{success}</div>}
 
-  useEffect(() => {
-    if (!template || loading || saving) {
-      return;
-    }
+          {/* Element Editor */}
+          {selectedElement && (
+            <div className="mb-6">
+              <TemplateElementEditor
+                element={selectedElement}
+                onChange={updateElement}
+                onRemove={removeElement}
+                fontOptions={FONT_OPTIONS}
+              />
+            </div>
+          )}
 
-    if (!dirty) {
-      return;
-    }
+          {/* Add Elements */}
+          <div className="mb-6">
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => addElement('text')}
+                className="rounded-2xl border border-emerald-700 bg-emerald-700 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-600"
+              >
+                إضافة نص ثابت
+              </button>
+              <button
+                type="button"
+                onClick={() => addElement('dynamicText')}
+                className="rounded-2xl border border-amber-700 bg-amber-200 px-3 py-2 text-xs font-semibold text-amber-900 transition hover:bg-amber-300"
+              >
+                إضافة نص ديناميكي
+              </button>
+              <button
+                type="button"
+                onClick={() => addElement('dynamicImage')}
+                className="rounded-2xl border border-blue-700 bg-blue-100 px-3 py-2 text-xs font-semibold text-blue-900 transition hover:bg-blue-200"
+              >
+                إضافة صورة ديناميكية
+              </button>
+            </div>
+          </div>
 
-    if (autosaveTimer.current) {
-      clearTimeout(autosaveTimer.current);
-    }
 
-    autosaveTimer.current = setTimeout(async () => {
-      try {
-        setSaving(true);
-        await updateTemplate(template.id, template);
-        setSuccess('تم حفظ التغييرات تلقائيًا.');
-        setDirty(false);
-      } catch {
-        setError('فشل الحفظ التلقائي. حاول الحفظ يدويًا.');
-      } finally {
-        setSaving(false);
-      }
-    }, 1500);
 
-    return () => clearTimeout(autosaveTimer.current);
-  }, [template, dirty, loading, saving]);
-
-  async function handleSubmit(event) {
-    event.preventDefault();
-    if (!template) return;
-
-    if (autosaveTimer.current) {
-      clearTimeout(autosaveTimer.current);
-    }
-
-    try {
-      setSaving(true);
-      setError('');
-      setSuccess('');
-      await updateTemplate(template.id, template);
-      setSuccess('تم حفظ التغييرات بنجاح.');
-      setDirty(false);
-    } catch (err) {
-      setError('حدث خطأ أثناء حفظ القالب. حاول مرة أخرى.');
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function handlePreview() {
-    if (!template) return;
-
-    try {
-      setPreviewError('');
-      setPreviewLoading(true);
-      setSuccess('');
-
-      const previewBlob = await previewTemplate({
-        template,
-        branding,
-        students: ['طالب تجريبي'],
-      });
-
-      if (previewUrl) {
-        window.URL.revokeObjectURL(previewUrl);
-      }
-
-      const url = window.URL.createObjectURL(previewBlob);
-      setPreviewUrl(url);
-    } catch (err) {
-      setPreviewError('فشل إنشاء المعاينة. حاول مرة أخرى.');
-    } finally {
-      setPreviewLoading(false);
-    }
-  }
+          {/* Template Settings */}
+          <form onSubmit={handleSubmit} className="rounded-3xl border border-emerald-100 bg-white p-6 shadow-sm">
 
   function updateField(field, value) {
+        </div>
+      </div>
     revokePreviewUrl();
     setTemplate((prev) => ({
       ...prev,
@@ -477,7 +501,7 @@ export default function TemplateEdit() {
               <iframe
                 title="معاينة الشهادة"
                 src={previewUrl}
-                className="h-[420px] w-full rounded-3xl border border-slate-200"
+                className="h-105 w-full rounded-3xl border border-slate-200"
               />
             </section>
           ) : (

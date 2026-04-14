@@ -18,7 +18,7 @@ const alignOptions = [
   { value: 'right', label: 'يمين' },
 ];
 
-export function TemplateElementEditor({ element, onChange, onRemove }) {
+export function TemplateElementEditor({ element, onChange, onRemove, fontOptions = [] }) {
   return (
     <div className="rounded-3xl border border-amber-200 bg-amber-50 p-4">
       <div className="mb-4 flex items-center justify-between gap-3">
@@ -36,6 +36,21 @@ export function TemplateElementEditor({ element, onChange, onRemove }) {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
+        {element.type !== 'dynamicImage' && fontOptions.length > 0 && (
+          <label className="block text-sm font-semibold text-slate-700">
+            الخط
+            <select
+              value={element.fontFamily || fontOptions[0].value}
+              onChange={e => onChange(element.id, { fontFamily: e.target.value })}
+              className="mt-2 w-full rounded-2xl border border-amber-200 bg-white px-3 py-2 text-sm outline-none ring-emerald-300 focus:ring"
+            >
+              {fontOptions.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </label>
+        )}
+
         {element.type !== 'dynamicImage' && (
           <label className="block text-sm font-semibold text-slate-700">
             {element.type === 'text' ? 'النص الثابت' : 'الحقل الديناميكي'}

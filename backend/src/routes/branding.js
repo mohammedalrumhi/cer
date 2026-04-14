@@ -5,7 +5,19 @@ const { imageUpload } = require('../utils/uploads');
 
 const router = express.Router();
 const FILE_NAME = 'branding.json';
-const EMPTY = { schoolName: 'دار الإتقان العالي', logoPath: '', signaturePath: '' };
+const EMPTY = { schoolName: 'دار الإتقان العالي', logoPath: '', signaturePath: '', stampPath: '' };
+// Upload stamp
+router.post('/stamp', imageUpload.single('file'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ message: 'No stamp uploaded' });
+  }
+
+  const branding = readJson(FILE_NAME, EMPTY);
+  branding.stampPath = path.join('uploads', req.file.filename).replace(/\\/g, '/');
+  writeJson(FILE_NAME, branding, EMPTY);
+
+  return res.json(branding);
+});
 
 router.get('/', (_req, res) => {
   const branding = readJson(FILE_NAME, EMPTY);
