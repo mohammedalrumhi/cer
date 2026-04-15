@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Edit3, Trash2 } from 'lucide-react';
+import { buildAssetUrl } from '../api/client';
 
 function renderElementPreview(element) {
   if (!element) return null;
@@ -21,8 +22,7 @@ function renderElementPreview(element) {
 
 export function TemplateCard({ template, onDelete }) {
   const previewElements = template.elements?.slice(0, 2) || [];
-  const apiOrigin = import.meta.env.VITE_API_BASE || 'http://localhost:4000';
-  const backgroundImage = template.background?.imagePath ? `${apiOrigin}/${template.background.imagePath}` : '';
+  const backgroundImage = buildAssetUrl(template.background?.imagePath);
 
   return (
     <article className="flex h-full flex-col rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm">

@@ -1,15 +1,15 @@
 import { useRef } from 'react';
 import { ImagePlus, PenSquare, Stamp } from 'lucide-react';
+import { buildAssetUrl } from '../api/client';
 
 export function BrandingPanel({ branding, onSchoolNameChange, onUploadLogo, onUploadSignature, onUploadStamp }) {
   const logoRef = useRef(null);
   const signatureRef = useRef(null);
   const stampRef = useRef(null);
-  const apiOrigin = import.meta.env.VITE_API_BASE || 'http://localhost:4000';
 
-  const logoSrc = branding?.logoPath ? `${apiOrigin}/${branding.logoPath}` : '';
-  const signatureSrc = branding?.signaturePath ? `${apiOrigin}/${branding.signaturePath}` : '';
-  const stampSrc = branding?.stampPath ? `${apiOrigin}/${branding.stampPath}` : '';
+  const logoSrc = buildAssetUrl(branding?.logoPath);
+  const signatureSrc = buildAssetUrl(branding?.signaturePath);
+  const stampSrc = buildAssetUrl(branding?.stampPath);
 
   function AssetPreview({ title, src, emptyText, mode = 'contain' }) {
     const uploaded = Boolean(src);

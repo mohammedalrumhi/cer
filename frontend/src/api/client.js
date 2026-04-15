@@ -1,6 +1,17 @@
 import axios from 'axios';
 
 const AUTH_TOKEN_KEY = 'auth_token';
+const rawApiBase = import.meta.env.VITE_API_BASE || 'http://localhost:4000';
+const normalizedApiBase = String(rawApiBase).replace(/\/+$/, '');
+export const API_BASE = /\/api$/i.test(normalizedApiBase) ? normalizedApiBase : `${normalizedApiBase}/api`;
+export const API_ORIGIN = API_BASE.replace(/\/api\/?$/, '');
+
+export function buildAssetUrl(assetPath) {
+  if (!assetPath) return '';
+  if (/^https?:\/\//i.test(assetPath)) return assetPath;
+  const cleanPath = String(assetPath).replace(/^\/+/, '');
+  return `${API_ORIGIN}/${cleanPath}`;
+}
 
 function getFilenameFromDisposition(contentDisposition, fallbackName) {
   if (!contentDisposition) return fallbackName;
@@ -19,7 +30,7 @@ function getFilenameFromDisposition(contentDisposition, fallbackName) {
 }
 
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE || 'http://localhost:4000/api',
+  baseURL: API_BASE,
 });
 
 function getAuthToken() {

@@ -1,6 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fetchFonts, previewTemplate, updateTemplate, uploadFontFile, uploadTemplateDesign } from '../../api/client';
+import {
+  API_ORIGIN,
+  buildAssetUrl,
+  fetchFonts,
+  previewTemplate,
+  updateTemplate,
+  uploadFontFile,
+  uploadTemplateDesign,
+} from '../../api/client';
 import CanvasStage from './CanvasStage';
 import PropertiesPanel from './PropertiesPanel';
 import ToolsSidebar from './ToolsSidebar';
@@ -25,14 +33,15 @@ function readImageDimensions(file) {
   });
 }
 
-async function registerFontFace(font, apiOrigin) {
+async function registerFontFace(font) {
   const alreadyLoaded = Array.from(document.fonts).some((face) =>
     face.family.replace(/['"]/g, '') === font.value
   );
 
   if (alreadyLoaded) return;
 
-  const face = new FontFace(font.value, `url(${apiOrigin}${font.url})`, {
+  const fontUrl = buildAssetUrl(font.url);
+  const face = new FontFace(font.value, `url(${fontUrl})`, {
     style: 'normal',
     weight: '400',
   });
@@ -79,7 +88,7 @@ function makeElement(type, extra = {}) {
 }
 
 /* ── image loader hook ────────────────────────────────────────────────── */
-function useBrandingImages(branding, apiOrigin) {
+function useBrandingImages(branding) {
   const [logoImg, setLogoImg] = useState(null);
   const [signatureImg, setSignatureImg] = useState(null);
   const [stampImg, setStampImg] = useState(null);
@@ -93,9 +102,9 @@ function useBrandingImages(branding, apiOrigin) {
     const img = new window.Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => { if (alive) setLogoImg(img); };
-    img.src = `${apiOrigin}/${branding.logoPath}`;
+    img.src = buildAssetUrl(branding.logoPath);
     return () => { alive = false; };
-  }, [branding?.logoPath, apiOrigin]);
+  }, [branding?.logoPath]);
 
   useEffect(() => {
     let alive = true;
@@ -106,20 +115,20 @@ function useBrandingImages(branding, apiOrigin) {
     const img = new window.Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => { if (alive) setSignatureImg(img); };
-    img.src = `${apiOrigin}/${branding.signaturePath}`;
+    img.src = buildAssetUrl(branding.signaturePath);
     return () => { alive = false; };
-  }, [branding?.signaturePath, apiOrigin]);
+  }, [branding?.signaturePath]);
 
   useEffect(() => {
     let alive = true;
-    const stampSrc = branding?.stampPath ? `${apiOrigin}/${branding.stampPath}` : '/assets/stamp.jpeg';
+    const stampSrc = branding?.stampPath ? buildAssetUrl(branding.stampPath) : '/assets/stamp.jpeg';
     const img = new window.Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => { if (alive) setStampImg(img); };
     img.onerror = () => { if (alive) setStampImg(null); };
     img.src = stampSrc;
     return () => { alive = false; };
-  }, [branding?.stampPath, apiOrigin]);
+  }, [branding?.stampPath]);
 
   return { logoImg, signatureImg, stampImg };
 }
@@ -128,7 +137,6 @@ function useBrandingImages(branding, apiOrigin) {
 export default function CanvasEditor({ templateId, initialTemplate, initialBranding }) {
   const navigate = useNavigate();
   const stageRef = useRef();
-  const apiOrigin = import.meta.env.VITE_API_BASE || 'http://localhost:4000';
 
   // Template meta (name, size, background) separate from elements
   const [meta, setMeta] = useState({
@@ -156,8 +164,8 @@ export default function CanvasEditor({ templateId, initialTemplate, initialBrand
   const [success, setSuccess] = useState('');
   const [fontOptions, setFontOptions] = useState(DEFAULT_FONT_OPTIONS);
 
-  const { logoImg, signatureImg, stampImg } = useBrandingImages(initialBranding, apiOrigin);
-  const backgroundImageSrc = meta.background?.imagePath ? `${apiOrigin}/${meta.background.imagePath}` : '';
+  const { logoImg, signatureImg, stampImg } = useBrandingImages(initialBranding);
+  const backgroundImageSrc = buildAssetUrl(meta.background?.imagePath);
 
   useEffect(() => {
     let alive = true;
@@ -168,7 +176,7 @@ export default function CanvasEditor({ templateId, initialTemplate, initialBrand
         if (!alive || fonts.length === 0) return;
 
         await Promise.allSettled(
-          fonts.map((font) => registerFontFace(font, apiOrigin))
+          fonts.map((font) => registerFontFace(font))
         );
 
         if (alive) {
@@ -183,7 +191,7 @@ export default function CanvasEditor({ templateId, initialTemplate, initialBrand
 
     loadFonts();
     return () => { alive = false; };
-  }, [apiOrigin]);
+  }, []);
 
   const selectedElement = elements.find((el) => el.id === selectedIds[0]) || null;
 
@@ -361,7 +369,7 @@ export default function CanvasEditor({ templateId, initialTemplate, initialBrand
 
     try {
       const uploadedFont = await uploadFontFile(file);
-      await registerFontFace(uploadedFont, apiOrigin);
+      await registerFontFace(uploadedFont);
       setFontOptions((prev) => {
         const next = [...prev.filter((font) => font.value !== uploadedFont.value), uploadedFont]
           .map((font) => ({ value: font.value, label: font.label }))
