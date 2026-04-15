@@ -2,9 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
 const { v4: uuidv4 } = require('uuid');
-
-const uploadDir = path.resolve(__dirname, '../../uploads');
-const fontsDir = path.resolve(__dirname, '../../assets/fonts');
+const { uploadsDir: uploadDir, fontsDir } = require('./storagePaths');
 
 fs.mkdirSync(uploadDir, { recursive: true });
 fs.mkdirSync(fontsDir, { recursive: true });

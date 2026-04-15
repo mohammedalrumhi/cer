@@ -1757,5 +1757,87 @@
     ],
     "createdAt": "2026-04-15T12:20:00.000Z",
     "updatedAt": "2026-04-15T08:23:40.043Z"
+  },
+  {
+    "id": "b892ebe8-ea24-4db2-9b69-79c79505e0ad",
+    "name": "جديد ب",
+    "orientation": "landscape",
+    "width": 1123,
+    "height": 794,
+    "background": {
+      "type": "solid",
+      "color": "#eff6f0",
+      "accentColor": "#0f6634"
+    },
+    "elements": [
+      {
+        "id": "logo",
+        "type": "dynamicImage",
+        "field": "logo",
+        "x": 80,
+        "y": 80,
+        "width": 180,
+        "height": 70
+      },
+      {
+        "id": "subtitle",
+        "type": "text",
+        "text": "تُمنح هذه الشهادة إلى",
+        "x": 220,
+        "y": 190,
+        "width": 680,
+        "fontSize": 30,
+        "fontWeight": "600",
+        "fill": "#0f4a3c",
+        "align": "center"
+      },
+      {
+        "id": "name-dynamic",
+        "type": "dynamicText",
+        "field": "studentName",
+        "x": 180,
+        "y": 320,
+        "width": 760,
+        "fontSize": 44,
+        "fontWeight": "700",
+        "fill": "#134e3f",
+        "align": "center"
+      },
+      {
+        "id": "details",
+        "type": "text",
+        "text": "تقديراً للتميز والمثابرة",
+        "x": 220,
+        "y": 420,
+        "width": 680,
+        "fontSize": 24,
+        "fontWeight": "500",
+        "fill": "#1f4f3c",
+        "align": "center"
+      },
+      {
+        "id": "signature",
+        "type": "dynamicImage",
+        "field": "signature",
+        "x": 720,
+        "y": 620,
+        "width": 240,
+        "height": 60
+      },
+      {
+        "id": "date-dynamic",
+        "type": "dynamicText",
+        "field": "date",
+        "x": 180,
+        "y": 620,
+        "width": 360,
+        "fontSize": 22,
+        "fontWeight": "500",
+        "fill": "#334155",
+        "align": "left"
+      }
+    ],
+    "createdAt": "2026-04-15T14:08:22.337Z",
+    "updatedAt": "2026-04-15T14:08:22.337Z"
   }
 ]

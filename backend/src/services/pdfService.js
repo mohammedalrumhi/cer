@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const PDFDocument = require('pdfkit');
 const { convertArabicBack } = require('arabic-reshaper');
+const { fontsDir, resolveBackendAssetPath } = require('../utils/storagePaths');
 
 function normalizeUtf8(value) {
   if (value === null || value === undefined) return '';
@@ -117,10 +118,10 @@ function getFontCandidates(fontFamily, isBold, isItalic) {
   if (family) {
     for (const style of styles) {
       const suffix = style ? `-${style}` : '';
-      add(path.resolve(__dirname, '../../assets/fonts', `${family}${suffix}.ttf`));
-      add(path.resolve(__dirname, '../../assets/fonts', `${family}${suffix}.otf`));
-      add(path.resolve(__dirname, '../../assets/fonts', `${family} ${style}.ttf`));
-      add(path.resolve(__dirname, '../../assets/fonts', `${family} ${style}.otf`));
+      add(path.join(fontsDir, `${family}${suffix}.ttf`));
+      add(path.join(fontsDir, `${family}${suffix}.otf`));
+      add(path.join(fontsDir, `${family} ${style}.ttf`));
+      add(path.join(fontsDir, `${family} ${style}.otf`));
     }
   }
 
@@ -153,7 +154,7 @@ function resolveImagePath(imagePath, fallbackAsset) {
     return fs.existsSync(fallback) ? fallback : null;
   }
   if (!imagePath) return null;
-  const resolved = path.resolve(__dirname, '../../', String(imagePath).replace(/^\//, ''));
+  const resolved = resolveBackendAssetPath(imagePath);
   return fs.existsSync(resolved) ? resolved : null;
 }
 
@@ -179,7 +180,7 @@ function resolveElementImageSource(element, imageAssets) {
   if (element.type === 'image') {
     if (typeof element.src !== 'string' || !element.src) return null;
     if (element.src.startsWith('data:image/')) return decodeDataUrl(element.src);
-    const resolved = path.resolve(__dirname, '../../', element.src.replace(/^\//, ''));
+    const resolved = resolveBackendAssetPath(element.src);
     return fs.existsSync(resolved) ? resolved : null;
   }
 

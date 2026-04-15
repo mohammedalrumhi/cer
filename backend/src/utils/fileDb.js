@@ -1,7 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-
-const dataDir = path.resolve(__dirname, '../../data');
+const { dataDir } = require('./storagePaths');
 
 function ensureFile(fileName, fallbackValue) {
   if (!fs.existsSync(dataDir)) {

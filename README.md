@@ -1,6 +1,29 @@
 # cer
 # cer
 
+## Render persistence
+
+This app writes runtime files to disk:
+
+- uploaded images such as logo, signature, stamp, and template backgrounds
+- JSON data under the backend data store
+
+On Render, the container filesystem is ephemeral. If you keep using the default local paths, uploaded files can disappear after a restart or redeploy and old branding URLs will return `404`.
+
+Configure a persistent disk and point the backend at it:
+
+1. In Render, add a persistent disk to the backend service.
+2. Mount it at a path such as `/var/data`.
+3. Set environment variable `PERSISTENT_STORAGE_DIR=/var/data`.
+
+Optional overrides if you want separate locations:
+
+- `DATA_DIR=/var/data/data`
+- `UPLOADS_DIR=/var/data/uploads`
+- `FONTS_DIR=/var/data/fonts`
+
+After redeploying with a persistent disk, re-upload the branding files once so the missing URLs are recreated on the persistent storage.
+
 
 Use this exact message on the other laptop:
 
