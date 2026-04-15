@@ -39,7 +39,7 @@ export default function Login() {
               </p>
               <div className="mt-10 rounded-2xl border border-white/20 bg-white/10 p-5 backdrop-blur-sm">
                 <p className="text-sm text-emerald-100">نصيحة:</p>
-                <p className="mt-2 text-lg font-semibold">يمكنك تغيير المستخدمين من ملف backend/data/users.json</p>
+                <p className="mt-2 text-lg font-semibold">لا تشارك كلمة المرور مع أي شخص، وسجّل الخروج بعد الانتهاء.</p>
               </div>
             </div>
           </section>

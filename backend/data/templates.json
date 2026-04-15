@@ -1,77 +1,7 @@
 [
   {
-    "id": "4984b08a-0704-47a2-a113-14390693cc9c",
-    "name": "قالب جديد",
-    "orientation": "landscape",
-    "width": 1123,
-    "height": 794,
-    "background": {
-      "type": "solid",
-      "color": "#f8f4ea",
-      "accentColor": "#0f4a3c"
-    },
-    "elements": [
-      {
-        "id": "logo",
-        "type": "dynamicImage",
-        "field": "logo",
-        "x": 80,
-        "y": 80,
-        "width": 180,
-        "height": 70
-      },
-      {
-        "id": "title",
-        "type": "text",
-        "text": "شهادة تقدير",
-        "x": 228,
-        "y": 96,
-        "width": 560,
-        "fontSize": 56,
-        "fontWeight": "800",
-        "fill": "#0f4a3c",
-        "align": "center"
-      },
-      {
-        "id": "name-dynamic",
-        "type": "dynamicText",
-        "field": "studentName",
-        "x": 201,
-        "y": 384,
-        "width": 760,
-        "fontSize": 48,
-        "fontWeight": "700",
-        "fill": "#1f2937",
-        "align": "center"
-      },
-      {
-        "id": "signature",
-        "type": "dynamicImage",
-        "field": "logo",
-        "x": 720,
-        "y": 620,
-        "width": 240,
-        "height": 60
-      },
-      {
-        "id": "date-dynamic",
-        "type": "dynamicText",
-        "field": "date",
-        "x": 132,
-        "y": 668,
-        "width": 760,
-        "fontSize": 24,
-        "fontWeight": "500",
-        "fill": "#714747",
-        "align": "center"
-      }
-    ],
-    "createdAt": "2026-04-14T05:29:28.946Z",
-    "updatedAt": "2026-04-14T09:23:58.182Z"
-  },
-  {
     "id": "06914781-9d5b-44f4-84d2-41f92a4aa0ff",
-    "name": "قالب الكانفا",
+    "name": "قالب قرآني",
     "orientation": "landscape",
     "width": 2000,
     "height": 1414,
@@ -243,238 +173,7 @@
       }
     ],
     "createdAt": "2026-04-14T09:22:19.351Z",
-    "updatedAt": "2026-04-15T07:50:19.508Z"
-  },
-  {
-    "id": "11001170-de1f-49b5-9e8f-48b64c9ca0b6",
-    "name": "قالب جديد",
-    "orientation": "portrait",
-    "width": 1123,
-    "height": 794,
-    "background": {
-      "type": "solid",
-      "color": "#f8f4ea",
-      "accentColor": "#0f4a3c"
-    },
-    "elements": [
-      {
-        "id": "logo",
-        "type": "dynamicImage",
-        "field": "logo",
-        "x": 80,
-        "y": 80,
-        "width": 180,
-        "height": 70
-      },
-      {
-        "id": "title",
-        "type": "text",
-        "text": "شهادة تقدير",
-        "x": 324,
-        "y": 100,
-        "width": 560,
-        "fontSize": 56,
-        "fontWeight": "800",
-        "fill": "#0f4a3c",
-        "align": "center"
-      },
-      {
-        "id": "name-dynamic",
-        "type": "dynamicText",
-        "field": "studentName",
-        "x": 180,
-        "y": 320,
-        "width": 760,
-        "fontSize": 48,
-        "fontWeight": "700",
-        "fill": "#1f2937",
-        "align": "center"
-      },
-      {
-        "id": "signature",
-        "type": "dynamicImage",
-        "field": "signature",
-        "x": 720,
-        "y": 620,
-        "width": 240,
-        "height": 60
-      },
-      {
-        "id": "date-dynamic",
-        "type": "dynamicText",
-        "field": "date",
-        "x": 180,
-        "y": 540,
-        "width": 760,
-        "fontSize": 24,
-        "fontWeight": "500",
-        "fill": "#334155",
-        "align": "center"
-      }
-    ],
-    "createdAt": "2026-04-14T09:32:28.824Z",
-    "updatedAt": "2026-04-14T09:41:03.136Z"
-  },
-  {
-    "id": "8a24ad82-fdd3-4a05-bb2e-c9b7e8b79249",
-    "name": "قالب جديد",
-    "orientation": "landscape",
-    "width": 1123,
-    "height": 794,
-    "background": {
-      "type": "solid",
-      "color": "#f8f4ea",
-      "accentColor": "#0f4a3c"
-    },
-    "elements": [
-      {
-        "id": "logo",
-        "type": "dynamicImage",
-        "field": "logo",
-        "x": 80,
-        "y": 80,
-        "width": 180,
-        "height": 70
-      },
-      {
-        "id": "title",
-        "type": "text",
-        "text": "شهادة تقدير",
-        "x": 280,
-        "y": 120,
-        "width": 560,
-        "fontSize": 56,
-        "fontWeight": "800",
-        "fill": "#0f4a3c",
-        "align": "center"
-      },
-      {
-        "id": "name-dynamic",
-        "type": "dynamicText",
-        "field": "studentName",
-        "x": 180,
-        "y": 320,
-        "width": 760,
-        "fontSize": 48,
-        "fontWeight": "700",
-        "fill": "#1f2937",
-        "align": "center"
-      },
-      {
-        "id": "signature",
-        "type": "dynamicImage",
-        "field": "signature",
-        "x": 720,
-        "y": 620,
-        "width": 240,
-        "height": 60
-      },
-      {
-        "id": "stamp",
-        "type": "dynamicImage",
-        "field": "stamp",
-        "x": 120,
-        "y": 620,
-        "width": 120,
-        "height": 120
-      },
-      {
-        "id": "date-dynamic",
-        "type": "dynamicText",
-        "field": "date",
-        "x": 180,
-        "y": 540,
-        "width": 760,
-        "fontSize": 24,
-        "fontWeight": "500",
-        "fill": "#334155",
-        "align": "center"
-      }
-    ],
-    "createdAt": "2026-04-15T03:58:25.537Z",
-    "updatedAt": "2026-04-15T03:58:25.537Z"
-  },
-  {
-    "id": "7917fef7-2e44-4b41-bd3e-f27a35859e5d",
-    "name": "قالب جديدerer",
-    "orientation": "portrait",
-    "width": 794,
-    "height": 1123,
-    "background": {
-      "type": "solid",
-      "color": "#ffffff",
-      "accentColor": "#334155"
-    },
-    "elements": [
-      {
-        "id": "logo",
-        "type": "dynamicImage",
-        "field": "logo",
-        "x": 110,
-        "y": 80,
-        "width": 160,
-        "height": 60
-      },
-      {
-        "id": "award-title",
-        "type": "text",
-        "text": "شهادة حضور",
-        "x": 140,
-        "y": 180,
-        "width": 514,
-        "fontSize": 42,
-        "fontWeight": "700",
-        "fill": "#0f172a",
-        "align": "center"
-      },
-      {
-        "id": "name-dynamic",
-        "type": "dynamicText",
-        "field": "studentName",
-        "x": 120,
-        "y": 340,
-        "width": 554,
-        "fontSize": 40,
-        "fontWeight": "700",
-        "fill": "#111827",
-        "align": "center"
-      },
-      {
-        "id": "subtitle",
-        "type": "text",
-        "text": "لمشاركته المميزة في البرنامج",
-        "x": 120,
-        "y": 420,
-        "width": 554,
-        "fontSize": 22,
-        "fontWeight": "500",
-        "fill": "#475569",
-        "align": "center"
-      },
-      {
-        "id": "signature",
-        "type": "dynamicImage",
-        "field": "signature",
-        "x": 450,
-        "y": 980,
-        "width": 220,
-        "height": 55
-      },
-      {
-        "id": "date-dynamic",
-        "type": "dynamicText",
-        "field": "date",
-        "x": 120,
-        "y": 980,
-        "width": 220,
-        "fontSize": 20,
-        "fontWeight": "500",
-        "fill": "#475569",
-        "align": "left"
-      }
-    ],
-    "createdAt": "2026-04-15T04:03:02.849Z",
-    "updatedAt": "2026-04-15T04:03:02.849Z"
+    "updatedAt": "2026-04-15T08:13:30.902Z"
   },
   {
     "id": "quran-achievement-001",
@@ -1700,5 +1399,363 @@
     ],
     "createdAt": "2026-04-15T12:00:00.000Z",
     "updatedAt": "2026-04-15T12:00:00.000Z"
+  },
+  {
+    "id": "8f5816bb-b031-4723-bb59-b57f397f44f2",
+    "name": "قالب عمودي ذهبي",
+    "orientation": "portrait",
+    "width": 794,
+    "height": 1123,
+    "background": {
+      "type": "solid",
+      "color": "#f8f3ea",
+      "accentColor": "#b8893c",
+      "customLayout": true
+    },
+    "elements": [
+      {
+        "id": "frame-outer",
+        "type": "rect",
+        "x": 12,
+        "y": 12,
+        "width": 770,
+        "height": 1099,
+        "fill": null,
+        "stroke": "#b8893c",
+        "strokeWidth": 3
+      },
+      {
+        "id": "frame-inner",
+        "type": "rect",
+        "x": 24,
+        "y": 24,
+        "width": 746,
+        "height": 1075,
+        "fill": null,
+        "stroke": "#d1a760",
+        "strokeWidth": 1
+      },
+      {
+        "id": "basmala",
+        "type": "text",
+        "text": "بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيمِ",
+        "x": 181.43274818572107,
+        "y": 66.85799471845984,
+        "width": 454,
+        "fontSize": 42,
+        "fontFamily": "Amiri-Regular",
+        "fontStyle": "bold",
+        "fill": "#7a5531",
+        "align": "center"
+      },
+      {
+        "id": "verse",
+        "type": "text",
+        "text": "﴿ وَقُلْ رَبِّ زِدْنِي عِلْمًا ﴾",
+        "x": 146.59416251661898,
+        "y": 215.13723485816567,
+        "width": 497.9534879203321,
+        "fontSize": 56,
+        "fontFamily": "Amiri-Regular",
+        "fontStyle": "bold",
+        "fill": "#7a5531",
+        "align": "center",
+        "height": 156.8000000000004,
+        "rotation": 0
+      },
+      {
+        "id": "logo",
+        "type": "dynamicImage",
+        "field": "logo",
+        "x": 28.457611939099625,
+        "y": 22.889002470397813,
+        "width": 113,
+        "height": 113
+      },
+      {
+        "id": "school",
+        "type": "dynamicText",
+        "field": "schoolName",
+        "x": 196,
+        "y": 414,
+        "width": 402,
+        "fontSize": 48,
+        "fontFamily": "Amiri-Regular",
+        "fontStyle": "bold",
+        "fill": "#6e522f",
+        "align": "center"
+      },
+      {
+        "id": "line-1",
+        "type": "text",
+        "text": "يسعدنا تقديم هذه الشهادة لـ",
+        "x": 184,
+        "y": 484,
+        "width": 426,
+        "fontSize": 36,
+        "fontFamily": "Amiri-Regular",
+        "fill": "#5f4d3e",
+        "align": "center"
+      },
+      {
+        "id": "student",
+        "type": "dynamicText",
+        "field": "studentName",
+        "x": 150,
+        "y": 542,
+        "width": 494,
+        "fontSize": 64,
+        "fontFamily": "Amiri-Regular",
+        "fontStyle": "bold",
+        "fill": "#80532a",
+        "align": "center"
+      },
+      {
+        "id": "line-2",
+        "type": "text",
+        "text": "أسأل الله أن يجعل كل ما تقدمه في ميزان حسناتك وأن يمنحك السعادة والراحة في الدنيا والآخرة.",
+        "x": 110,
+        "y": 642,
+        "width": 574,
+        "fontSize": 28,
+        "fontFamily": "Amiri-Regular",
+        "fill": "#5d4a39",
+        "align": "center",
+        "lineHeight": 1.7
+      },
+      {
+        "id": "line-3",
+        "type": "text",
+        "text": "بما جعلت كتاب الله نورًا لقلبك، هنيئًا لك هذا الفوز الحقيقي.",
+        "x": 111.42909352321519,
+        "y": 746.5680211261606,
+        "width": 574,
+        "fontSize": 28,
+        "fontFamily": "Amiri-Regular",
+        "fill": "#5d4a39",
+        "align": "center",
+        "lineHeight": 1.7
+      },
+      {
+        "id": "line-4",
+        "type": "text",
+        "text": "هنيئًا لك الأجر والثواب",
+        "x": 205,
+        "y": 812,
+        "width": 384,
+        "fontSize": 44,
+        "fontFamily": "Amiri-Regular",
+        "fontStyle": "bold",
+        "fill": "#6f4f2f",
+        "align": "center"
+      },
+      {
+        "id": "date",
+        "type": "dynamicText",
+        "field": "date",
+        "x": 240,
+        "y": 884,
+        "width": 314,
+        "fontSize": 24,
+        "fontFamily": "Amiri-Regular",
+        "fill": "#6d6258",
+        "align": "center"
+      },
+      {
+        "id": "signature",
+        "type": "dynamicImage",
+        "field": "signature",
+        "x": 340,
+        "y": 936,
+        "width": 113,
+        "height": 60
+      },
+      {
+        "id": "stamp",
+        "type": "dynamicImage",
+        "field": "stamp",
+        "x": 342.8581870464303,
+        "y": 983.7171820427634,
+        "width": 113,
+        "height": 113
+      }
+    ],
+    "createdAt": "2026-04-15T12:20:00.000Z",
+    "updatedAt": "2026-04-15T08:25:19.029Z"
+  },
+  {
+    "id": "e6e8324c-3f6b-4fb3-af95-93de551465f0",
+    "name": "نموذج بسيط آخر",
+    "orientation": "landscape",
+    "width": 1123,
+    "height": 794,
+    "background": {
+      "type": "solid",
+      "color": "#f7f7f7",
+      "accentColor": "#d2ab52",
+      "customLayout": true
+    },
+    "elements": [
+      {
+        "id": "frame-outer",
+        "type": "rect",
+        "x": 16,
+        "y": 16,
+        "width": 1091,
+        "height": 762,
+        "fill": null,
+        "stroke": "#d2ab52",
+        "strokeWidth": 3
+      },
+      {
+        "id": "frame-inner",
+        "type": "rect",
+        "x": 30,
+        "y": 30,
+        "width": 1063,
+        "height": 734,
+        "fill": null,
+        "stroke": "#ead7a8",
+        "strokeWidth": 1
+      },
+      {
+        "id": "title",
+        "type": "text",
+        "text": "شهادة تقدير",
+        "x": 419.2756623221739,
+        "y": 55.985381349976095,
+        "width": 287,
+        "fontSize": 74,
+        "fontFamily": "Amiri-Regular",
+        "fontStyle": "bold",
+        "fill": "#1a1a1a",
+        "align": "center"
+      },
+      {
+        "id": "subtitle",
+        "type": "text",
+        "text": "",
+        "x": 370,
+        "y": 176,
+        "width": 60,
+        "fontSize": 34,
+        "fontFamily": "Amiri-Regular",
+        "fill": "#2b2b2b",
+        "align": "center"
+      },
+      {
+        "id": "presented",
+        "type": "text",
+        "text": "هنا نص",
+        "x": 512.5370133742226,
+        "y": 221.1345036285578,
+        "width": 130,
+        "fontSize": 44,
+        "fontFamily": "Amiri-Regular",
+        "fill": "#222222",
+        "align": "center"
+      },
+      {
+        "id": "student",
+        "type": "dynamicText",
+        "field": "studentName",
+        "x": 201.71479683107586,
+        "y": 301.1345036285578,
+        "width": 711,
+        "fontSize": 72,
+        "fontFamily": "Amiri-Regular",
+        "fontStyle": "italic",
+        "fill": "#1d1d1d",
+        "align": "center"
+      },
+      {
+        "id": "name-line",
+        "type": "line",
+        "x": 134,
+        "y": 418,
+        "width": 855,
+        "stroke": "#2b2b2b",
+        "strokeWidth": 4
+      },
+      {
+        "id": "ribbon-bg",
+        "type": "rect",
+        "x": 168,
+        "y": 468,
+        "width": 787,
+        "height": 58,
+        "fill": "#151515",
+        "stroke": null,
+        "strokeWidth": 0
+      },
+      {
+        "id": "ribbon-text",
+        "type": "dynamicText",
+        "field": "schoolName",
+        "x": 190,
+        "y": 480,
+        "width": 743,
+        "fontSize": 30,
+        "fontFamily": "Amiri-Regular",
+        "fill": "#ffffff",
+        "align": "center"
+      },
+      {
+        "id": "body",
+        "type": "text",
+        "text": "هنا نص",
+        "x": 223.30388709247114,
+        "y": 555.7127194303567,
+        "width": 649.3039729826195,
+        "fontSize": 30,
+        "fontFamily": "Amiri-Regular",
+        "fill": "#2d2d2d",
+        "align": "center",
+        "lineHeight": 1.5,
+        "height": 90.00000000000044,
+        "rotation": 0
+      },
+      {
+        "id": "date-line",
+        "type": "line",
+        "x": 70,
+        "y": 748,
+        "width": 250,
+        "stroke": "#2d2d2d",
+        "strokeWidth": 2
+      },
+      {
+        "id": "sign-line",
+        "type": "line",
+        "x": 804,
+        "y": 748,
+        "width": 250,
+        "stroke": "#2d2d2d",
+        "strokeWidth": 2
+      },
+      {
+        "id": "date",
+        "type": "dynamicText",
+        "field": "date",
+        "x": 66.571598943692,
+        "y": 711.9853813499761,
+        "width": 254,
+        "fontSize": 18,
+        "fontFamily": "Amiri-Regular",
+        "fill": "#565656",
+        "align": "center"
+      },
+      {
+        "id": "signature",
+        "type": "dynamicImage",
+        "field": "signature",
+        "x": 885,
+        "y": 686,
+        "width": 113,
+        "height": 60
+      }
+    ],
+    "createdAt": "2026-04-15T12:20:00.000Z",
+    "updatedAt": "2026-04-15T08:23:40.043Z"
   }
 ]

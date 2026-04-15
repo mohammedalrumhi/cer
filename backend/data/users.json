@@ -4,5 +4,13 @@
     "username": "admin",
     "password": "admin123",
     "name": "مدير النظام"
+  },
+
+    {
+    "id": "admin-2",
+    "username": "faisal",
+    "password": "admin123",
+    "name": "مدير النظام"
   }
+
 ]

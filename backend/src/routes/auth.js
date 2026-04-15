@@ -11,14 +11,14 @@ router.post('/login', (req, res) => {
   const password = String(req.body?.password || '');
 
   if (!username || !password) {
-    return res.status(400).json({ message: 'Username and password are required' });
+    return res.status(400).json({ message: 'اسم المستخدم وكلمة المرور مطلوبان' });
   }
 
   const users = readJson(USERS_FILE, EMPTY);
   const user = users.find((item) => item.username === username && item.password === password);
 
   if (!user) {
-    return res.status(401).json({ message: 'Invalid username or password' });
+    return res.status(401).json({ message: 'اسم المستخدم أو كلمة المرور غير صحيحة' });
   }
 
   const token = createAuthToken(user);

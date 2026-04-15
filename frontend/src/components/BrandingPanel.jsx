@@ -5,6 +5,38 @@ export function BrandingPanel({ branding, onSchoolNameChange, onUploadLogo, onUp
   const logoRef = useRef(null);
   const signatureRef = useRef(null);
   const stampRef = useRef(null);
+  const apiOrigin = import.meta.env.VITE_API_BASE || 'http://localhost:4000';
+
+  const logoSrc = branding?.logoPath ? `${apiOrigin}/${branding.logoPath}` : '';
+  const signatureSrc = branding?.signaturePath ? `${apiOrigin}/${branding.signaturePath}` : '';
+  const stampSrc = branding?.stampPath ? `${apiOrigin}/${branding.stampPath}` : '';
+
+  function AssetPreview({ title, src, emptyText, mode = 'contain' }) {
+    const uploaded = Boolean(src);
+
+    return (
+      <div className="rounded-xl border border-amber-200 bg-white p-3">
+        <div className="mb-2 flex items-center justify-between">
+          <p className="text-xs font-semibold text-slate-700">{title}</p>
+          <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${uploaded ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+            {uploaded ? 'مرفوع' : 'غير مرفوع'}
+          </span>
+        </div>
+
+        <div className="flex h-20 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+          {uploaded ? (
+            <img
+              src={src}
+              alt={title}
+              className={`h-full w-full ${mode === 'cover' ? 'object-cover' : 'object-contain'}`}
+            />
+          ) : (
+            <span className="px-2 text-center text-[11px] text-slate-400">{emptyText}</span>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <section className="rounded-2xl border border-amber-100 bg-amber-50/60 p-4">
@@ -44,6 +76,12 @@ export function BrandingPanel({ branding, onSchoolNameChange, onUploadLogo, onUp
           <Stamp size={16} />
           رفع الختم
         </button>
+      </div>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+        <AssetPreview title="الشعار الحالي" src={logoSrc} emptyText="لم يتم رفع شعار بعد" mode="contain" />
+        <AssetPreview title="التوقيع الحالي" src={signatureSrc} emptyText="لم يتم رفع توقيع بعد" mode="contain" />
+        <AssetPreview title="الختم الحالي" src={stampSrc} emptyText="لم يتم رفع ختم بعد" mode="contain" />
       </div>
 
       <input
