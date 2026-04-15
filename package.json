@@ -1,0 +1,7 @@
+{
+  "name": "certificate-workspace",
+  "private": true,
+  "scripts": {
+    "dev": "sh -c 'npm --prefix backend run dev & npm --prefix frontend run dev -- --host 0.0.0.0'"
+  }
+}

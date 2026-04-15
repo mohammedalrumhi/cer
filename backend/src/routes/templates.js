@@ -1,10 +1,31 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const { readJson, writeJson } = require('../utils/fileDb');
+const { imageUpload } = require('../utils/uploads');
 
 const router = express.Router();
 const FILE_NAME = 'templates.json';
 const EMPTY = [];
+
+const uploadOneImage = imageUpload.single('file');
+
+router.post('/design-upload', (req, res) => {
+  uploadOneImage(req, res, (error) => {
+    if (error) {
+      return res.status(400).json({ message: error.message || 'Image upload failed' });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ message: 'No design image uploaded' });
+    }
+
+    return res.json({
+      path: `uploads/${req.file.filename}`,
+      url: `/uploads/${encodeURIComponent(req.file.filename)}`,
+      fileName: req.file.originalname,
+    });
+  });
+});
 
 router.get('/', (_req, res) => {
   const templates = readJson(FILE_NAME, EMPTY);

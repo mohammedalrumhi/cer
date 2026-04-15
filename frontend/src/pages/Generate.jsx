@@ -95,16 +95,30 @@ export default function Generate() {
     try {
       setProcessing(true);
       setError('');
-      const pdfBlob = await generateCertificates({ templateId: selectedTemplateId, students: effectiveStudents });
-      const url = window.URL.createObjectURL(pdfBlob);
+      const { blob, filename, contentType } = await generateCertificates({
+        templateId: selectedTemplateId,
+        students: effectiveStudents,
+      });
+
+      const isZip = contentType.includes('zip') || effectiveStudents.length > 1;
+      const downloadName = filename || (isZip ? 'certificates.zip' : 'certificates.pdf');
+      const safeName = isZip && !downloadName.toLowerCase().endsWith('.zip')
+        ? 'certificates.zip'
+        : downloadName;
+
+      const url = window.URL.createObjectURL(blob);
       const anchor = document.createElement('a');
       anchor.href = url;
-      anchor.download = 'شهادات.pdf';
+      anchor.download = safeName;
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
-      window.URL.revokeObjectURL(url);
-      setMessage('تم إنشاء الشهادات بنجاح. انقر لتنزيل الملف.');
+      setTimeout(() => window.URL.revokeObjectURL(url), 30000);
+      setMessage(
+        effectiveStudents.length > 1
+          ? 'تم إنشاء ملف ZIP يحتوي على شهادة مستقلة لكل طالب.'
+          : 'تم إنشاء الشهادة بنجاح.'
+      );
     } catch (err) {
       setError('حدث خطأ أثناء إنشاء الشهادات. حاول مرة أخرى.');
     } finally {

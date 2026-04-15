@@ -1,9 +1,10 @@
 import { useRef } from 'react';
-import { ImagePlus, PenSquare } from 'lucide-react';
+import { ImagePlus, PenSquare, Stamp } from 'lucide-react';
 
-export function BrandingPanel({ branding, onSchoolNameChange, onUploadLogo, onUploadSignature }) {
+export function BrandingPanel({ branding, onSchoolNameChange, onUploadLogo, onUploadSignature, onUploadStamp }) {
   const logoRef = useRef(null);
   const signatureRef = useRef(null);
+  const stampRef = useRef(null);
 
   return (
     <section className="rounded-2xl border border-amber-100 bg-amber-50/60 p-4">
@@ -18,7 +19,7 @@ export function BrandingPanel({ branding, onSchoolNameChange, onUploadLogo, onUp
         placeholder="دار الإتقان العالي"
       />
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-3 sm:grid-cols-3">
         <button
           type="button"
           onClick={() => logoRef.current?.click()}
@@ -34,6 +35,14 @@ export function BrandingPanel({ branding, onSchoolNameChange, onUploadLogo, onUp
         >
           <PenSquare size={16} />
           رفع التوقيع
+        </button>
+        <button
+          type="button"
+          onClick={() => stampRef.current?.click()}
+          className="flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700"
+        >
+          <Stamp size={16} />
+          رفع الختم
         </button>
       </div>
 
@@ -51,6 +60,14 @@ export function BrandingPanel({ branding, onSchoolNameChange, onUploadLogo, onUp
         accept="image/*"
         className="hidden"
         onChange={(event) => event.target.files?.[0] && onUploadSignature(event.target.files[0])}
+      />
+
+      <input
+        ref={stampRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(event) => event.target.files?.[0] && onUploadStamp(event.target.files[0])}
       />
 
       <p className="mt-4 text-xs text-slate-500">الشعار والتوقيع سيظهران تلقائياً في القوالب الديناميكية.</p>

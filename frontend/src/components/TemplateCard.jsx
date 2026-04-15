@@ -21,6 +21,8 @@ function renderElementPreview(element) {
 
 export function TemplateCard({ template, onDelete }) {
   const previewElements = template.elements?.slice(0, 2) || [];
+  const apiOrigin = import.meta.env.VITE_API_BASE || 'http://localhost:4000';
+  const backgroundImage = template.background?.imagePath ? `${apiOrigin}/${template.background.imagePath}` : '';
 
   return (
     <article className="rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm">
@@ -33,7 +35,12 @@ export function TemplateCard({ template, onDelete }) {
 
       <div
         className="mb-4 overflow-hidden rounded-3xl border border-slate-200"
-        style={{ background: template.background?.color || '#f8f4ea' }}
+        style={{
+          backgroundColor: template.background?.color || '#f8f4ea',
+          backgroundImage: backgroundImage ? `url(${backgroundImage})` : 'none',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
       >
         <div className="h-24 p-3">
           <div className="mb-2 h-1 rounded-full" style={{ background: template.background?.accentColor || '#0f4a3c' }} />

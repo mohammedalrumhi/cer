@@ -7,6 +7,7 @@ import {
   removeTemplate,
   updateBranding,
   uploadLogo,
+  uploadStamp,
   uploadSignature,
 } from '../api/client';
 
@@ -17,6 +18,10 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [savingBranding, setSavingBranding] = useState(false);
   const [error, setError] = useState('');
+
+  function getUploadErrorMessage(err, fallback) {
+    return err?.response?.data?.message || fallback;
+  }
 
   useEffect(() => {
     async function loadData() {
@@ -69,7 +74,7 @@ export default function Dashboard() {
       setSchoolName(updated.schoolName || '');
       setError('');
     } catch (err) {
-      setError('فشل رفع الشعار. تأكد من نوع الملف وحاول مرة أخرى.');
+      setError(getUploadErrorMessage(err, 'فشل رفع الشعار. تأكد من نوع الملف وحاول مرة أخرى.'));
     }
   }
 
@@ -79,7 +84,17 @@ export default function Dashboard() {
       setBranding(updated);
       setError('');
     } catch (err) {
-      setError('فشل رفع التوقيع. تأكد من نوع الملف وحاول مرة أخرى.');
+      setError(getUploadErrorMessage(err, 'فشل رفع التوقيع. تأكد من نوع الملف وحاول مرة أخرى.'));
+    }
+  }
+
+  async function handleUploadStamp(file) {
+    try {
+      const updated = await uploadStamp(file);
+      setBranding(updated);
+      setError('');
+    } catch (err) {
+      setError(getUploadErrorMessage(err, 'فشل رفع الختم. تأكد من نوع الملف وحاول مرة أخرى.'));
     }
   }
 
@@ -108,6 +123,7 @@ export default function Dashboard() {
           onSchoolNameChange={setSchoolName}
           onUploadLogo={handleUploadLogo}
           onUploadSignature={handleUploadSignature}
+          onUploadStamp={handleUploadStamp}
         />
 
         <section className="rounded-3xl border border-emerald-100 bg-white p-6 shadow-sm">

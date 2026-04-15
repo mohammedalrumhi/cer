@@ -6,18 +6,37 @@ const { imageUpload } = require('../utils/uploads');
 const router = express.Router();
 const FILE_NAME = 'branding.json';
 const EMPTY = { schoolName: 'دار الإتقان العالي', logoPath: '', signaturePath: '', stampPath: '' };
-// Upload stamp
-router.post('/stamp', imageUpload.single('file'), (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ message: 'No stamp uploaded' });
-  }
 
-  const branding = readJson(FILE_NAME, EMPTY);
-  branding.stampPath = path.join('uploads', req.file.filename).replace(/\\/g, '/');
-  writeJson(FILE_NAME, branding, EMPTY);
+function buildUploadHandler(fieldKey, emptyMessage) {
+  return (req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ message: emptyMessage });
+    }
 
-  return res.json(branding);
-});
+    const branding = readJson(FILE_NAME, EMPTY);
+    branding[fieldKey] = path.join('uploads', req.file.filename).replace(/\\/g, '/');
+    writeJson(FILE_NAME, branding, EMPTY);
+
+    return res.json(branding);
+  };
+}
+
+const uploadOneImage = imageUpload.single('file');
+function imageUploadRoute(fieldKey, emptyMessage) {
+  return [
+    (req, res, next) => {
+      uploadOneImage(req, res, (error) => {
+        if (!error) return next();
+        return res.status(400).json({
+          message: error.message || 'Image upload failed',
+        });
+      });
+    },
+    buildUploadHandler(fieldKey, emptyMessage),
+  ];
+}
+
+router.post('/stamp', ...imageUploadRoute('stampPath', 'No stamp uploaded'));
 
 router.get('/', (_req, res) => {
   const branding = readJson(FILE_NAME, EMPTY);
@@ -34,28 +53,8 @@ router.put('/', (req, res) => {
   res.json(next);
 });
 
-router.post('/logo', imageUpload.single('file'), (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ message: 'No logo uploaded' });
-  }
+router.post('/logo', ...imageUploadRoute('logoPath', 'No logo uploaded'));
 
-  const branding = readJson(FILE_NAME, EMPTY);
-  branding.logoPath = path.join('uploads', req.file.filename).replace(/\\/g, '/');
-  writeJson(FILE_NAME, branding, EMPTY);
-
-  return res.json(branding);
-});
-
-router.post('/signature', imageUpload.single('file'), (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ message: 'No signature uploaded' });
-  }
-
-  const branding = readJson(FILE_NAME, EMPTY);
-  branding.signaturePath = path.join('uploads', req.file.filename).replace(/\\/g, '/');
-  writeJson(FILE_NAME, branding, EMPTY);
-
-  return res.json(branding);
-});
+router.post('/signature', ...imageUploadRoute('signaturePath', 'No signature uploaded'));
 
 module.exports = router;
