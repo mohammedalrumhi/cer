@@ -434,11 +434,12 @@ export default function CanvasStage({
   function handleStageClick(e) {
     if (editing) commitTextEdit(true);
 
-    if (e.target !== e.target.getStage()) return;
     if (tool === 'select') {
+      if (e.target !== e.target.getStage()) return;
       onSelectIds([]);
       return;
     }
+
     const { x, y } = getRelPos(e);
     const created = onAddElement(tool, { x, y });
 
@@ -455,6 +456,13 @@ export default function CanvasStage({
     return {
       onSelect: (e) => {
         if (editing) commitTextEdit(true);
+
+        if (tool !== 'select') {
+          // In insertion mode, let the click bubble to the stage so the new
+          // element can be placed even when clicking over an existing object.
+          return;
+        }
+
         e.cancelBubble = true;
         if (e.evt?.shiftKey) {
           onSelectIds(selectedIds.includes(el.id)
