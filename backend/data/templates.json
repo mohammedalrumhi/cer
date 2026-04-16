@@ -1987,17 +1987,17 @@
         "id": "mistakes-count",
         "type": "dynamicText",
         "field": "mistakesCount",
-        "x": 246.2,
-        "y": 2464.13,
-        "width": 448.05,
+        "x": 256.18581109658487,
+        "y": 2455.4395788986685,
+        "width": 426.6501275701149,
         "fontSize": 77,
-        "fontFamily": "Alexandria-Bold",
+        "fontFamily": "Alexandria-Regular",
         "fontStyle": "bold",
         "fill": "#ffffff",
         "align": "center",
         "lineHeight": 1.4,
         "letterSpacing": 0,
-        "height": 162.69,
+        "height": 134.3598334104542,
         "rotation": 0
       },
       {
@@ -2041,6 +2041,6 @@
       }
     ],
     "createdAt": "2026-04-16T05:35:25.697Z",
-    "updatedAt": "2026-04-16T06:48:42.741Z"
+    "updatedAt": "2026-04-16T06:57:39.698Z"
   }
 ]
