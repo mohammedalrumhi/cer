@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { parseExcel, fetchStudents, saveStudents, updateStudent, deleteStudent } from '../api/client';
+import { parseExcel, fetchStudents, saveStudents, updateStudent, deleteStudent, downloadTemplate } from '../api/client';
 
 const EMPTY_STUDENT = {
   name: '',
@@ -246,6 +246,27 @@ export default function Students() {
     URL.revokeObjectURL(url);
   }
 
+  async function handleDownloadTemplate() {
+    try {
+      setProcessing(true);
+      setError('');
+      const { blob, filename } = await downloadTemplate();
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+      setMessage('تم تحميل الملف النموذجي بنجاح.');
+    } catch {
+      setError('فشل تحميل الملف النموذجي. حاول مرة أخرى.');
+    } finally {
+      setProcessing(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -312,6 +333,28 @@ export default function Students() {
           الأعمدة المدعومة: اسم الطالب، نوع الاستظهار، نص السور، اسم البرنامج، التقويم، عدد الأخطاء، المعلم.
         </p>
         {processing && <p className="mt-4 text-slate-500">جاري استيراد الطلاب...</p>}
+      </section>
+
+      <section className="rounded-3xl border border-blue-100 bg-gradient-to-br from-blue-50 to-cyan-50 p-6 shadow-sm">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+          <div>
+            <h3 className="text-base font-bold text-slate-900">📥 هل تريد ملف نموذجي؟</h3>
+            <p className="mt-1 text-sm text-slate-600">
+              حمّل الملف النموذجي مع أمثلة على البيانات الصحيحة وأضف طلابك مباشرة.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleDownloadTemplate}
+            disabled={processing}
+            className="flex items-center gap-2 rounded-2xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-400 whitespace-nowrap"
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v4a2 2 0 002 2h12a2 2 0 002-2v-4m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            تحميل الملف النموذجي
+          </button>
+        </div>
       </section>
 
       <section className="rounded-3xl border border-emerald-100 bg-white p-6 shadow-sm">

@@ -145,6 +145,14 @@ export async function parseExcel(file) {
   return data.students || [];
 }
 
+export async function downloadTemplate() {
+  const response = await api.get('/template/students', {
+    responseType: 'blob',
+  });
+  const filename = 'students-template.xlsx';
+  return { blob: response.data, filename };
+}
+
 export async function fetchStudents() {
   const { data } = await api.get('/students');
   return data;

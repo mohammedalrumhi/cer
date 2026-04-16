@@ -25,6 +25,48 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
+const XLSX = require('xlsx');
+
+function sendStudentsTemplate(res) {
+  try {
+    const templateData = [
+      {
+        'اسم الطالب': 'مثال: أحمد محمد بن علي',
+        'نوع الاستظهار': 'مثال: نص كامل',
+        'نص السور (من إلى)': 'مثال: من سورة النبأ إلى سورة الناس',
+        'اسم البرنامج': 'مثال: برنامج الإتقان',
+        'التقويم': 'مثال: ممتاز',
+        'عدد الأخطاء': 'مثال: 2',
+        'المعلم': 'مثال: الأستاذ خالد'
+      }
+    ];
+
+    const worksheet = XLSX.utils.json_to_sheet(templateData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'الطلاب');
+    worksheet['!cols'] = [
+      { wch: 25 }, { wch: 35 }, { wch: 35 },
+      { wch: 25 }, { wch: 15 }, { wch: 15 }, { wch: 25 }
+    ];
+
+    const fileBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename="template-students.xlsx"');
+    return res.send(fileBuffer);
+  } catch (error) {
+    return res.status(500).json({ message: 'Failed to generate template', error: error.message });
+  }
+}
+
+app.get('/api/students/template', (_req, res) => {
+  return sendStudentsTemplate(res);
+});
+
+// Public routes (no auth required)
+app.get('/api/template/students', (_req, res) => {
+  return sendStudentsTemplate(res);
+});
+
 app.use('/api/auth', authRouter);
 
 app.use('/api/templates', requireAuth, templatesRouter);
