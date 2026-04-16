@@ -1957,7 +1957,7 @@
         "y": 2467.23,
         "width": 953.59,
         "fontSize": 77,
-        "fontFamily": "ae_sharjah_regular",
+        "fontFamily": "Alexandria-Regular",
         "fontStyle": "bold",
         "fill": "#ffffff",
         "align": "center",
@@ -1974,7 +1974,7 @@
         "y": 2467.23,
         "width": 418.34,
         "fontSize": 77,
-        "fontFamily": "ae_sharjah_regular",
+        "fontFamily": "Alexandria-Regular",
         "fontStyle": "bold",
         "fill": "#ffffff",
         "align": "center",
@@ -1991,7 +1991,7 @@
         "y": 2464.13,
         "width": 448.05,
         "fontSize": 77,
-        "fontFamily": "ae_sharjah_regular",
+        "fontFamily": "Alexandria-Bold",
         "fontStyle": "bold",
         "fill": "#ffffff",
         "align": "center",
@@ -2008,7 +2008,7 @@
         "y": 2683.34,
         "width": 1930.89,
         "fontSize": 79,
-        "fontFamily": "ae_sharjah_regular",
+        "fontFamily": "Alexandria-Regular",
         "fill": "#ffffff",
         "align": "center",
         "lineHeight": 1.4,
@@ -2041,6 +2041,6 @@
       }
     ],
     "createdAt": "2026-04-16T05:35:25.697Z",
-    "updatedAt": "2026-04-16T06:33:23.015Z"
+    "updatedAt": "2026-04-16T06:48:42.741Z"
   }
 ]
