@@ -7,6 +7,10 @@
 # environment files
 **/.env
 
-# runtime uploads
+# runtime uploads — exclude everything except committed assets
 backend/uploads/*
 !backend/uploads/.gitkeep
+!backend/uploads/itqan-certificate-bg.png
+!backend/uploads/itqan-logo.png
+!backend/uploads/itqan-signature.png
+!backend/uploads/itqan-stamp.png
