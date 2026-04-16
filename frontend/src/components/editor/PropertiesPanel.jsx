@@ -19,6 +19,14 @@ const DYNAMIC_FIELD_OPTIONS = [
   { value: 'studentName', label: 'اسم الطالب' },
   { value: 'date', label: 'التاريخ الهجري' },
   { value: 'dateLabel', label: 'تاريخ الإصدار (هجري)' },
+  { value: 'issueDate', label: 'تاريخ الإصدار' },
+  { value: 'issueDateLabel', label: 'سطر تاريخ الإصدار' },
+  { value: 'recitalType', label: 'نوع الاستظهار' },
+  { value: 'surahRange', label: 'نص السور (من إلى)' },
+  { value: 'programName', label: 'اسم البرنامج' },
+  { value: 'calendar', label: 'التقويم' },
+  { value: 'mistakesCount', label: 'عدد الأخطاء' },
+  { value: 'teacherName', label: 'المعلم' },
   { value: 'schoolName', label: 'اسم المدرسة' },
 ];
 

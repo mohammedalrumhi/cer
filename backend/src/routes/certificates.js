@@ -16,7 +16,19 @@ function normalizeStudentName(student) {
 function normalizeStudentsList(students) {
   if (!Array.isArray(students)) return [];
   return students
-    .map(normalizeStudentName)
+    .map((student) => {
+      if (typeof student === 'string') {
+        const name = normalizeStudentName(student);
+        return name ? { name } : null;
+      }
+
+      if (student && typeof student === 'object') {
+        const name = normalizeStudentName(student);
+        return name ? { ...student, name } : null;
+      }
+
+      return null;
+    })
     .filter(Boolean);
 }
 
@@ -80,7 +92,7 @@ router.post('/generate', async (req, res, next) => {
         branding,
       });
 
-      const studentName = sanitizeFileName(normalizedStudents[0], 'certificate');
+      const studentName = sanitizeFileName(normalizeStudentName(normalizedStudents[0]), 'certificate');
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', buildContentDisposition(`${studentName}.pdf`, 'certificate.pdf'));
       return res.send(Buffer.from(pdfBytes));
@@ -100,7 +112,7 @@ router.post('/generate', async (req, res, next) => {
         student,
         branding,
       });
-      const studentName = sanitizeFileName(student, 'certificate');
+      const studentName = sanitizeFileName(normalizeStudentName(student), 'certificate');
       archive.append(pdfBytes, { name: `${studentName}.pdf` });
     }
 

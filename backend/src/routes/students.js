@@ -8,6 +8,107 @@ const { excelUpload } = require('../utils/uploads');
 const router = express.Router();
 const FILE_NAME = 'students.json';
 
+const STUDENT_FIELD_ALIASES = {
+  name: ['name', 'studentname', 'student_name', 'fullname', 'full_name', 'الاسم', 'اسم الطالب', 'الطالب'],
+  issueDate: ['issuedate', 'issue_date', 'date', 'تاريخ الاصدار', 'تاريخ الإصدار', 'تاريخ الشهادة'],
+  recitalType: ['recitaltype', 'recital_type', 'typeofrecital', 'نوع الاستظهار', 'الاستظهار'],
+  surahRange: ['surahrange', 'surah_range', 'surahtext', 'surah_text', 'نص السور', 'السور', 'من الى', 'من إلى'],
+  programName: ['programname', 'program_name', 'اسم البرنامج', 'البرنامج'],
+  calendar: ['calendar', 'التقويم'],
+  mistakesCount: ['mistakescount', 'mistakes_count', 'errorscount', 'عدد الاخطاء', 'عدد الأخطاء'],
+  teacherName: ['teachername', 'teacher_name', 'teacher', 'المعلم', 'اسم المعلم'],
+};
+
+function normalizeKey(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFKC')
+    .replace(/[\s\-_/]+/g, '');
+}
+
+function findCanonicalField(key) {
+  const normalized = normalizeKey(key);
+  return Object.entries(STUDENT_FIELD_ALIASES).find(([, aliases]) => aliases.includes(normalized))?.[0] || null;
+}
+
+function cleanValue(value) {
+  if (value === null || value === undefined) return '';
+  return String(value).trim();
+}
+
+function normalizeStudentRecord(input, existing = {}) {
+  if (typeof input === 'string') {
+    const name = cleanValue(input);
+    if (!name) return null;
+    return {
+      id: existing.id || uuidv4(),
+      name,
+      issueDate: cleanValue(existing.issueDate),
+      recitalType: cleanValue(existing.recitalType),
+      surahRange: cleanValue(existing.surahRange),
+      programName: cleanValue(existing.programName),
+      calendar: cleanValue(existing.calendar),
+      mistakesCount: cleanValue(existing.mistakesCount),
+      teacherName: cleanValue(existing.teacherName),
+    };
+  }
+
+  if (!input || typeof input !== 'object') return null;
+
+  const mapped = {};
+  Object.entries(input).forEach(([rawKey, rawValue]) => {
+    const canonical = findCanonicalField(rawKey) || rawKey;
+    mapped[canonical] = rawValue;
+  });
+
+  const name = cleanValue(mapped.name ?? mapped.studentName ?? mapped.fullName ?? existing.name);
+  if (!name) return null;
+
+  return {
+    id: cleanValue(mapped.id || existing.id) || uuidv4(),
+    name,
+    issueDate: cleanValue(mapped.issueDate ?? existing.issueDate),
+    recitalType: cleanValue(mapped.recitalType ?? existing.recitalType),
+    surahRange: cleanValue(mapped.surahRange ?? existing.surahRange),
+    programName: cleanValue(mapped.programName ?? existing.programName),
+    calendar: cleanValue(mapped.calendar ?? existing.calendar),
+    mistakesCount: cleanValue(mapped.mistakesCount ?? existing.mistakesCount),
+    teacherName: cleanValue(mapped.teacherName ?? existing.teacherName),
+  };
+}
+
+function getStudentSignature(student) {
+  return [
+    student.name,
+    student.issueDate,
+    student.recitalType,
+    student.surahRange,
+    student.programName,
+    student.calendar,
+    student.mistakesCount,
+    student.teacherName,
+  ].map((value) => cleanValue(value).toLowerCase()).join('|');
+}
+
+function parseSpreadsheetRows(rows) {
+  if (!rows || !rows.sheet || !Array.isArray(rows.values) || rows.values.length === 0) return [];
+
+  const objectRows = XLSX.utils.sheet_to_json(rows.sheet, { defval: '', raw: false });
+  const normalizedObjects = objectRows
+    .map((row) => normalizeStudentRecord(row))
+    .filter(Boolean);
+
+  if (normalizedObjects.length > 0) {
+    return normalizedObjects;
+  }
+
+  return rows.values
+    .flat()
+    .map((cell) => normalizeStudentRecord(String(cell || '').trim()))
+    .filter(Boolean);
+}
+
 router.get('/', (_req, res) => {
   const students = readJson(FILE_NAME, []);
   res.json(students);
@@ -15,18 +116,20 @@ router.get('/', (_req, res) => {
 
 router.post('/', (req, res) => {
   const currentStudents = readJson(FILE_NAME, []);
-  const newNames = Array.isArray(req.body.students) ? req.body.students : [];
+  const newStudents = Array.isArray(req.body.students) ? req.body.students : [];
   const nextStudents = [...currentStudents];
+  const signatures = new Set(nextStudents.map(getStudentSignature));
 
-  newNames.forEach((rawName) => {
-    const name = String(rawName || '').trim();
-    if (!name) {
+  newStudents.forEach((rawStudent) => {
+    const student = normalizeStudentRecord(rawStudent);
+    if (!student) {
       return;
     }
 
-    const alreadyExists = nextStudents.some((item) => item.name === name);
-    if (!alreadyExists) {
-      nextStudents.push({ id: uuidv4(), name });
+    const signature = getStudentSignature(student);
+    if (!signatures.has(signature)) {
+      nextStudents.push(student);
+      signatures.add(signature);
     }
   });
 
@@ -41,15 +144,12 @@ router.put('/:id', (req, res) => {
     return res.status(404).json({ message: 'Student not found' });
   }
 
-  const name = String(req.body.name || '').trim();
-  if (!name) {
-    return res.status(400).json({ message: 'Name is required' });
+  const updatedStudent = normalizeStudentRecord(req.body, currentStudents[idx]);
+  if (!updatedStudent) {
+    return res.status(400).json({ message: 'Student name is required' });
   }
 
-  currentStudents[idx] = {
-    ...currentStudents[idx],
-    name,
-  };
+  currentStudents[idx] = updatedStudent;
 
   writeJson(FILE_NAME, currentStudents, []);
   return res.json(currentStudents[idx]);
@@ -76,14 +176,21 @@ router.post('/parse-excel', excelUpload.single('file'), (req, res) => {
   const firstSheet = workbook.SheetNames[0];
   const sheet = workbook.Sheets[firstSheet];
   const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
-
-  const students = rows
-    .flat()
-    .map((cell) => String(cell || '').trim())
-    .filter(Boolean);
+  const students = parseSpreadsheetRows({ sheet, values: rows });
 
   fs.unlinkSync(req.file.path);
-  return res.json({ students: Array.from(new Set(students)) });
+  const uniqueStudents = [];
+  const signatures = new Set();
+
+  students.forEach((student) => {
+    const signature = getStudentSignature(student);
+    if (!signatures.has(signature)) {
+      signatures.add(signature);
+      uniqueStudents.push(student);
+    }
+  });
+
+  return res.json({ students: uniqueStudents });
 });
 
 module.exports = router;

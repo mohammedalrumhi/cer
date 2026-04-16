@@ -1,7 +1,10 @@
 import axios from 'axios';
 
 const AUTH_TOKEN_KEY = 'auth_token';
-const rawApiBase = import.meta.env.VITE_API_BASE || 'http://localhost:4000';
+const fallbackApiBase = import.meta.env.PROD
+  ? 'https://cer-backend.onrender.com'
+  : 'http://localhost:4000';
+const rawApiBase = import.meta.env.VITE_API_BASE || fallbackApiBase;
 const normalizedApiBase = String(rawApiBase).replace(/\/+$/, '');
 export const API_BASE = /\/api$/i.test(normalizedApiBase) ? normalizedApiBase : `${normalizedApiBase}/api`;
 export const API_ORIGIN = API_BASE.replace(/\/api\/?$/, '');

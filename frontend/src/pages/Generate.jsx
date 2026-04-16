@@ -1,10 +1,34 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
   fetchTemplates,
   fetchStudents,
   generateCertificates,
   parseExcel,
 } from '../api/client';
+
+function normalizeStudentRecord(student) {
+  if (typeof student === 'string') {
+    const name = student.trim();
+    return name ? { name } : null;
+  }
+
+  if (!student || typeof student !== 'object') return null;
+
+  const name = String(student.name || student.studentName || '').trim();
+  if (!name) return null;
+
+  return {
+    id: student.id,
+    name,
+    issueDate: String(student.issueDate || '').trim(),
+    recitalType: String(student.recitalType || '').trim(),
+    surahRange: String(student.surahRange || '').trim(),
+    programName: String(student.programName || '').trim(),
+    calendar: String(student.calendar || '').trim(),
+    mistakesCount: String(student.mistakesCount || '').trim(),
+    teacherName: String(student.teacherName || '').trim(),
+  };
+}
 
 export default function Generate() {
   const [templates, setTemplates] = useState([]);
@@ -17,6 +41,8 @@ export default function Generate() {
   const [processing, setProcessing] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [dragActive, setDragActive] = useState(false);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     async function loadData() {
@@ -28,7 +54,7 @@ export default function Generate() {
         if (templateData.length > 0) {
           setSelectedTemplateId(templateData[0].id);
         }
-      } catch (err) {
+      } catch {
         setError('فشل تحميل القوالب أو الطلاب. حاول مرة أخرى.');
       } finally {
         setLoading(false);
@@ -42,7 +68,8 @@ export default function Generate() {
     const nextStudents = value
       .split(/\r?\n|,|;/)
       .map((item) => item.trim())
-      .filter(Boolean);
+      .filter(Boolean)
+      .map((name) => ({ name }));
     setStudents(nextStudents);
   }
 
@@ -52,14 +79,53 @@ export default function Generate() {
 
     try {
       setProcessing(true);
-      const parsedStudents = await parseExcel(file);
-      setStudents(parsedStudents);
-      setMessage(`${parsedStudents.length} طالب/طالبة تم استيرادهم من الملف.`);
       setError('');
-    } catch (err) {
-      setError('فشل قراءة ملف Excel. تأكد من أن الملف صالح وحاول مرة أخرى.');
+      const parsedStudents = await parseExcel(file);
+      setStudents(parsedStudents.map(normalizeStudentRecord).filter(Boolean));
+      setMessage(`${parsedStudents.length} طالب/طالبة تم استيرادهم من الملف.`);
+    } catch {
+      setError('فشل قراءة ملف Excel أو CSV. تأكد من أن الملف صالح وحاول مرة أخرى.');
     } finally {
       setProcessing(false);
+    }
+  }
+
+  function handleDrag(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === 'dragenter' || e.type === 'dragover') {
+      setDragActive(true);
+    } else if (e.type === 'dragleave') {
+      setDragActive(false);
+    }
+  }
+
+  async function handleDrop(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      // Check if file is Excel or CSV
+      if (!['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel', 'text/csv'].includes(file.type) &&
+          !file.name.match(/\.(xlsx|xls|csv)$/i)) {
+        setError('يرجى اسقاط ملف Excel أو CSV فقط.');
+        return;
+      }
+
+      try {
+        setProcessing(true);
+        setError('');
+        const parsedStudents = await parseExcel(file);
+        setStudents(parsedStudents.map(normalizeStudentRecord).filter(Boolean));
+        setMessage(`${parsedStudents.length} طالب/طالبة تم استيرادهم من الملف.`);
+      } catch {
+        setError('فشل قراءة ملف Excel أو CSV. تأكد من أن الملف صالح وحاول مرة أخرى.');
+      } finally {
+        setProcessing(false);
+      }
     }
   }
 
@@ -85,7 +151,10 @@ export default function Generate() {
 
     const effectiveStudents = students.length > 0
       ? students
-      : savedStudents.filter((student) => selectedSavedIds.includes(student.id)).map((item) => item.name);
+      : savedStudents
+          .filter((student) => selectedSavedIds.includes(student.id))
+          .map(normalizeStudentRecord)
+          .filter(Boolean);
 
     if (effectiveStudents.length === 0) {
       setError('أدخل أسماء الطلاب أو استورد ملف Excel أولاً.');
@@ -101,7 +170,7 @@ export default function Generate() {
       });
 
       const isZip = contentType.includes('zip') || effectiveStudents.length > 1;
-      const downloadName = filename || (isZip ? 'certificates.zip' : 'certificates.pdf');
+      const downloadName = filename || (isZip ? 'certificates.zip' : 'certificate.pdf');
       const safeName = isZip && !downloadName.toLowerCase().endsWith('.zip')
         ? 'certificates.zip'
         : downloadName;
@@ -119,7 +188,7 @@ export default function Generate() {
           ? 'تم إنشاء ملف ZIP يحتوي على شهادة مستقلة لكل طالب.'
           : 'تم إنشاء الشهادة بنجاح.'
       );
-    } catch (err) {
+    } catch {
       setError('حدث خطأ أثناء إنشاء الشهادات. حاول مرة أخرى.');
     } finally {
       setProcessing(false);
@@ -192,7 +261,14 @@ export default function Generate() {
                       onClick={() => toggleSavedSelection(student.id)}
                       className={`flex w-full items-center justify-between rounded-2xl border px-3 py-2 text-sm transition ${isChecked ? 'border-emerald-700 bg-emerald-50 text-emerald-900' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100'}`}
                     >
-                      <span>{student.name}</span>
+                      <span className="text-right">
+                        <span className="block">{student.name}</span>
+                        {(student.programName || student.teacherName) && (
+                          <span className="block text-xs text-slate-500">
+                            {[student.programName, student.teacherName].filter(Boolean).join(' • ')}
+                          </span>
+                        )}
+                      </span>
                       <span className="text-xs font-semibold">{isChecked ? 'محدد' : 'غير محدد'}</span>
                     </button>
                   );
@@ -203,21 +279,49 @@ export default function Generate() {
 
           <div className="mt-6 space-y-4">
             <label className="block text-sm font-semibold text-slate-700">استيراد قائمة الطلاب</label>
-            <input
-              type="file"
-              accept=".xlsx,.xls"
-              onChange={handleExcelUpload}
-              className="block w-full rounded-2xl border border-amber-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none"
-            />
-            <p className="text-xs text-slate-500">أو أدخل الأسماء مفصولة بسطر جديد أو فاصلة.</p>
+            
+            {/* Drag and Drop Area */}
+            <div
+              onDragEnter={handleDrag}
+              onDragLeave={handleDrag}
+              onDragOver={handleDrag}
+              onDrop={handleDrop}
+              className={`relative rounded-3xl border-2 border-dashed p-8 text-center transition cursor-pointer ${
+                dragActive
+                  ? 'border-emerald-500 bg-emerald-50'
+                  : 'border-slate-300 bg-slate-50 hover:border-slate-400 hover:bg-slate-100'
+              }`}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                onChange={handleExcelUpload}
+                className="absolute inset-0 cursor-pointer opacity-0"
+              />
+              <div className="pointer-events-none">
+                <svg className="mx-auto h-12 w-12 text-slate-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                <p className="text-sm font-semibold text-slate-700">
+                  {dragActive ? 'أفلت الملف هنا' : 'اسحب ملف Excel أو CSV هنا'}
+                </p>
+                <p className="mt-1 text-xs text-slate-500">أو اضغط لاختيار ملف</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-500">يدعم ملفات Excel (.xlsx, .xls) و CSV. إذا كان الملف يحتوي أعمدة تفصيلية (نوع الاستظهار، نص السور، إلخ) فستُستخدم داخل الشهادة.</p>
             {savedStudents.length > 0 && (
-              <p className="mt-2 text-xs text-slate-500">سيتم استخدام {savedStudents.length} طالبًا محفوظًا إذا تركت القائمة فارغة.</p>
+              <p className="text-xs text-slate-500">إذا لم تستورد ملف، سيتم استخدام {savedStudents.length} طالبًا محفوظًا.</p>
             )}
           </div>
         </section>
 
         <section className="rounded-3xl border border-amber-100 bg-white p-6 shadow-sm">
           <h2 className="mb-3 text-xl font-bold text-slate-900">قائمة الطلاب</h2>
+          <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            هذه الطريقة تدعم اسم الطالب فقط. إذا كنت تريد نوع الاستظهار أو نص السور أو اسم البرنامج أو التقويم أو عدد الأخطاء أو اسم المعلم، فاستخدم صفحة الطلاب أو ملف Excel/CSV.
+          </div>
           <textarea
             rows={10}
             value={studentInput}
@@ -226,10 +330,10 @@ export default function Generate() {
               parseManualStudents(event.target.value);
             }}
             className="w-full rounded-3xl border border-amber-200 bg-white px-4 py-4 text-sm text-slate-800 outline-none ring-emerald-300 focus:ring"
-            placeholder="أدخل أسماء الطلاب، كل اسم في سطر جديد..."
+            placeholder="أدخل أسماء الطلاب فقط، كل اسم في سطر جديد..."
           />
           {studentInput.trim() && (
-            <p className="mt-3 text-xs text-slate-500">سيتم استخدام الأسماء المدخلة يدويًا بدلاً من الطلاب المحفوظين.</p>
+            <p className="mt-3 text-xs text-slate-500">الإدخال اليدوي هنا للاسم فقط. لإدخال باقي الحقول استخدم صفحة الطلاب أو ملف Excel/CSV.</p>
           )}
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
             <span className="text-sm text-slate-500">عدد الطلاب: {students.length}</span>

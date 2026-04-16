@@ -87,9 +87,20 @@ function resolveStudentName(student) {
 
 function resolveFieldValue(field, student, branding) {
   if (field === 'studentName') return resolveStudentName(student);
-  if (field === 'date') return getHijriDateString();
-  if (field === 'dateLabel') return 'تاريخ الإصدار: ' + getHijriDateString();
+  if (field === 'date') return normalizeUtf8(student?.issueDate || getHijriDateString());
+  if (field === 'dateLabel') return 'تاريخ الإصدار: ' + normalizeUtf8(student?.issueDate || getHijriDateString());
+  if (field === 'issueDate') return getHijriDateString();
+  if (field === 'issueDateLabel') return `تاريخ الإصدار: ${getHijriDateString()}`;
+  if (field === 'recitalType') return normalizeUtf8(student?.recitalType || '');
+  if (field === 'surahRange') return normalizeUtf8(student?.surahRange || '');
+  if (field === 'programName') return normalizeUtf8(student?.programName || '');
+  if (field === 'calendar') return normalizeUtf8(student?.calendar || '');
+  if (field === 'mistakesCount') return normalizeUtf8(student?.mistakesCount || '');
+  if (field === 'teacherName') return normalizeUtf8(student?.teacherName || '');
   if (field === 'schoolName') return normalizeUtf8(branding.schoolName || 'دار الإتقان العالي');
+  if (student && typeof student === 'object' && field in student) {
+    return normalizeUtf8(student[field]);
+  }
   return '';
 }
 

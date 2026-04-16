@@ -46,3 +46,5 @@ If you want a stronger version, use this:
 
 Continue as my coding partner and do not stop at planning.
 Inspect the codebase, run the app, find gaps, then implement the most impactful next feature end-to-end with clean commits.
+
+

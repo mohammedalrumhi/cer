@@ -103,12 +103,18 @@ const imageUpload = multer({
 const excelUpload = multer({
   storage,
   fileFilter: (_req, file, cb) => {
-    const isExcel =
-      file.mimetype.includes('spreadsheetml') ||
-      file.originalname.toLowerCase().endsWith('.xlsx');
+    const originalName = String(file.originalname || '').toLowerCase();
+    const mime = String(file.mimetype || '').toLowerCase();
+    const isSpreadsheet =
+      mime.includes('spreadsheetml') ||
+      mime.includes('ms-excel') ||
+      mime.includes('csv') ||
+      originalName.endsWith('.xlsx') ||
+      originalName.endsWith('.xls') ||
+      originalName.endsWith('.csv');
 
-    if (!isExcel) {
-      return cb(new Error('Only .xlsx files are allowed'));
+    if (!isSpreadsheet) {
+      return cb(new Error('Only spreadsheet files are allowed (.xlsx, .xls, .csv)'));
     }
     cb(null, true);
   },

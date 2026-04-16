@@ -1,14 +1,77 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { parseExcel, fetchStudents, saveStudents, updateStudent, deleteStudent } from '../api/client';
+
+const EMPTY_STUDENT = {
+  name: '',
+  recitalType: '',
+  surahRange: '',
+  programName: '',
+  calendar: '',
+  mistakesCount: '',
+  teacherName: '',
+};
+
+const STUDENT_FIELDS = [
+  { key: 'name', label: 'اسم الطالب', placeholder: 'مثال: أحمد محمد' },
+  { key: 'recitalType', label: 'نوع الاستظهار', placeholder: 'مثال: نص كامل' },
+  { key: 'surahRange', label: 'نص السور (من إلى)', placeholder: 'مثال: من سورة النبأ إلى سورة الناس' },
+  { key: 'programName', label: 'اسم البرنامج', placeholder: 'مثال: برنامج الإتقان' },
+  { key: 'calendar', label: 'التقويم', placeholder: 'مثال: ممتاز' },
+  { key: 'mistakesCount', label: 'عدد الأخطاء', placeholder: 'مثال: 2' },
+  { key: 'teacherName', label: 'المعلم', placeholder: 'مثال: الأستاذ خالد' },
+];
+
+function normalizeStudent(student) {
+  if (!student || typeof student !== 'object') return { ...EMPTY_STUDENT };
+  return {
+    name: String(student.name || '').trim(),
+    recitalType: String(student.recitalType || '').trim(),
+    surahRange: String(student.surahRange || '').trim(),
+    programName: String(student.programName || '').trim(),
+    calendar: String(student.calendar || '').trim(),
+    mistakesCount: String(student.mistakesCount || '').trim(),
+    teacherName: String(student.teacherName || '').trim(),
+  };
+}
+
+function escapeCsv(value) {
+  const text = String(value || '');
+  if (/[",\n]/.test(text)) {
+    return `"${text.replace(/"/g, '""')}"`;
+  }
+  return text;
+}
+
+function StudentForm({ value, onChange, disabled }) {
+  return (
+    <div className="grid gap-4 md:grid-cols-2">
+      {STUDENT_FIELDS.map((field) => (
+        <label key={field.key} className="block text-sm font-semibold text-slate-700">
+          {field.label}
+          <input
+            type="text"
+            value={value[field.key] || ''}
+            onChange={(event) => onChange(field.key, event.target.value)}
+            placeholder={field.placeholder}
+            disabled={disabled}
+            className="mt-2 w-full rounded-2xl border border-amber-200 bg-white px-4 py-3 text-sm outline-none ring-emerald-300 focus:ring disabled:cursor-not-allowed disabled:bg-slate-100"
+          />
+        </label>
+      ))}
+    </div>
+  );
+}
 
 export default function Students() {
   const [students, setStudents] = useState([]);
-  const [studentName, setStudentName] = useState('');
+  const [studentForm, setStudentForm] = useState(EMPTY_STUDENT);
   const [editingId, setEditingId] = useState('');
-  const [editingName, setEditingName] = useState('');
+  const [editingForm, setEditingForm] = useState(EMPTY_STUDENT);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [dragActive, setDragActive] = useState(false);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     async function loadStudents() {
@@ -16,7 +79,7 @@ export default function Students() {
         setProcessing(true);
         const savedStudents = await fetchStudents();
         setStudents(savedStudents);
-      } catch (err) {
+      } catch {
         setError('فشل تحميل قائمة الطلاب. حاول مرة أخرى.');
       } finally {
         setProcessing(false);
@@ -36,32 +99,81 @@ export default function Students() {
       setMessage('');
       const parsedStudents = await parseExcel(file);
       if (parsedStudents.length === 0) {
-        setError('لم يتم العثور على أسماء صالحة في الملف.');
+        setError('لم يتم العثور على بيانات طلاب صالحة في الملف.');
         return;
       }
 
       const savedStudents = await saveStudents(parsedStudents);
       setStudents(savedStudents);
       setMessage(`تم حفظ ${parsedStudents.length} طالب/طالبة بنجاح.`);
-    } catch (err) {
-      setError('فشل قراءة ملف Excel. تأكد من أن الملف صالح وحاول مرة أخرى.');
+    } catch {
+      setError('فشل قراءة ملف Excel أو CSV. تأكد من أن الملف صالح وحاول مرة أخرى.');
     } finally {
       setProcessing(false);
     }
   }
 
+  function handleDrag(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === 'dragenter' || e.type === 'dragover') {
+      setDragActive(true);
+    } else if (e.type === 'dragleave') {
+      setDragActive(false);
+    }
+  }
+
+  async function handleDrop(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      // Check if file is Excel or CSV
+      if (!['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel', 'text/csv'].includes(file.type) &&
+          !file.name.match(/\.(xlsx|xls|csv)$/i)) {
+        setError('يرجى اسقاط ملف Excel أو CSV فقط.');
+        return;
+      }
+
+      try {
+        setProcessing(true);
+        setError('');
+        setMessage('');
+        const parsedStudents = await parseExcel(file);
+        if (parsedStudents.length === 0) {
+          setError('لم يتم العثور على بيانات طلاب صالحة في الملف.');
+          return;
+        }
+
+        const savedStudents = await saveStudents(parsedStudents);
+        setStudents(savedStudents);
+        setMessage(`تم حفظ ${parsedStudents.length} طالب/طالبة بنجاح.`);
+      } catch {
+        setError('فشل قراءة ملف Excel أو CSV. تأكد من أن الملف صالح وحاول مرة أخرى.');
+      } finally {
+        setProcessing(false);
+      }
+    }
+  }
+
   async function handleAddStudent() {
-    if (!studentName.trim()) return;
+    if (!studentForm.name.trim()) {
+      setError('اسم الطالب مطلوب.');
+      return;
+    }
 
     try {
       setProcessing(true);
       setError('');
       setMessage('');
-      const savedStudents = await saveStudents([studentName.trim()]);
+      const savedStudents = await saveStudents([normalizeStudent(studentForm)]);
       setStudents(savedStudents);
-      setStudentName('');
+      setStudentForm(EMPTY_STUDENT);
       setMessage('تم إضافة الطالب بنجاح.');
-    } catch (err) {
+    } catch {
       setError('تعذر إضافة الطالب. حاول مرة أخرى.');
     } finally {
       setProcessing(false);
@@ -75,7 +187,7 @@ export default function Students() {
       await deleteStudent(id);
       setStudents((prev) => prev.filter((item) => item.id !== id));
       setMessage('تم حذف الطالب.');
-    } catch (err) {
+    } catch {
       setError('فشل حذف الطالب. حاول مرة أخرى.');
     } finally {
       setProcessing(false);
@@ -84,19 +196,19 @@ export default function Students() {
 
   function handleStartEdit(student) {
     setEditingId(student.id);
-    setEditingName(student.name);
+    setEditingForm(normalizeStudent(student));
     setError('');
     setMessage('');
   }
 
   function handleCancelEdit() {
     setEditingId('');
-    setEditingName('');
+    setEditingForm(EMPTY_STUDENT);
   }
 
   async function handleEditStudent(id) {
-    const name = editingName.trim();
-    if (!name) {
+    const payload = normalizeStudent(editingForm);
+    if (!payload.name) {
       setError('الاسم لا يمكن أن يكون فارغاً.');
       return;
     }
@@ -105,22 +217,24 @@ export default function Students() {
       setProcessing(true);
       setError('');
       setMessage('');
-      const updated = await updateStudent(id, { name });
+      const updated = await updateStudent(id, payload);
       setStudents((prev) => prev.map((student) => (student.id === id ? updated : student)));
       setEditingId('');
-      setEditingName('');
-      setMessage('تم تحديث اسم الطالب بنجاح.');
-    } catch (err) {
-      setError('فشل تحديث اسم الطالب. حاول مرة أخرى.');
+      setEditingForm(EMPTY_STUDENT);
+      setMessage('تم تحديث بيانات الطالب بنجاح.');
+    } catch {
+      setError('فشل تحديث بيانات الطالب. حاول مرة أخرى.');
     } finally {
       setProcessing(false);
     }
   }
 
   function handleExportCsv() {
-    const csvContent = ['الاسم']
-      .concat(students.map((student) => student.name))
-      .join('\n');
+    const headers = STUDENT_FIELDS.map((field) => field.label).join(',');
+    const rows = students.map((student) =>
+      STUDENT_FIELDS.map((field) => escapeCsv(student[field.key])).join(',')
+    );
+    const csvContent = [headers].concat(rows).join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
@@ -144,14 +258,12 @@ export default function Students() {
 
       <section className="rounded-3xl border border-emerald-100 bg-white p-6 shadow-sm">
         <h2 className="mb-4 text-lg font-bold text-slate-900">إضافة طالب جديد</h2>
-        <div className="grid gap-4 sm:grid-cols-[1fr_auto]">
-          <input
-            type="text"
-            value={studentName}
-            onChange={(event) => setStudentName(event.target.value)}
-            placeholder="اسم الطالب"
-            className="w-full rounded-2xl border border-amber-200 bg-white px-4 py-3 text-sm outline-none ring-emerald-300 focus:ring"
-          />
+        <StudentForm
+          value={studentForm}
+          onChange={(key, nextValue) => setStudentForm((prev) => ({ ...prev, [key]: nextValue }))}
+          disabled={processing}
+        />
+        <div className="mt-4 flex justify-end">
           <button
             type="button"
             onClick={handleAddStudent}
@@ -164,13 +276,41 @@ export default function Students() {
       </section>
 
       <section className="rounded-3xl border border-emerald-100 bg-white p-6 shadow-sm">
-        <h2 className="mb-4 text-lg font-bold text-slate-900">رفع ملف Excel</h2>
-        <input
-          type="file"
-          accept=".xlsx,.xls"
-          onChange={handleUpload}
-          className="w-full rounded-2xl border border-amber-200 bg-white px-4 py-3 text-sm outline-none"
-        />
+        <h2 className="mb-4 text-lg font-bold text-slate-900">رفع ملف Excel أو CSV</h2>
+        
+        {/* Drag and Drop Area */}
+        <div
+          onDragEnter={handleDrag}
+          onDragLeave={handleDrag}
+          onDragOver={handleDrag}
+          onDrop={handleDrop}
+          className={`relative rounded-3xl border-2 border-dashed p-8 text-center transition cursor-pointer ${
+            dragActive
+              ? 'border-emerald-500 bg-emerald-50'
+              : 'border-slate-300 bg-slate-50 hover:border-slate-400 hover:bg-slate-100'
+          }`}
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".xlsx,.xls,.csv"
+            onChange={handleUpload}
+            className="absolute inset-0 cursor-pointer opacity-0"
+          />
+          <div className="pointer-events-none">
+            <svg className="mx-auto h-12 w-12 text-slate-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            <p className="text-sm font-semibold text-slate-700">
+              {dragActive ? 'أفلت الملف هنا' : 'اسحب ملف Excel أو CSV هنا'}
+            </p>
+            <p className="mt-1 text-xs text-slate-500">أو اضغط لاختيار ملف</p>
+          </div>
+        </div>
+
+        <p className="mt-3 text-xs text-slate-500">
+          الأعمدة المدعومة: اسم الطالب، نوع الاستظهار، نص السور، اسم البرنامج، التقويم، عدد الأخطاء، المعلم.
+        </p>
         {processing && <p className="mt-4 text-slate-500">جاري استيراد الطلاب...</p>}
       </section>
 
@@ -178,7 +318,7 @@ export default function Students() {
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-bold text-slate-900">قائمة الطلاب المحفوظين</h2>
-            <p className="text-sm text-slate-500">يمكنك تعديل الأسماء أو تصدير القائمة لملف CSV.</p>
+            <p className="text-sm text-slate-500">يمكنك تعديل كل بيانات الطالب أو تصدير القائمة لملف CSV.</p>
           </div>
           <button
             type="button"
@@ -204,10 +344,10 @@ export default function Students() {
               <div key={student.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
                 {editingId === student.id ? (
                   <div className="space-y-3">
-                    <input
-                      value={editingName}
-                      onChange={(event) => setEditingName(event.target.value)}
-                      className="w-full rounded-2xl border border-amber-200 bg-white px-4 py-3 text-sm outline-none ring-emerald-300 focus:ring"
+                    <StudentForm
+                      value={editingForm}
+                      onChange={(key, nextValue) => setEditingForm((prev) => ({ ...prev, [key]: nextValue }))}
+                      disabled={processing}
                     />
                     <div className="flex flex-wrap gap-2">
                       <button
@@ -228,8 +368,17 @@ export default function Students() {
                     </div>
                   </div>
                 ) : (
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <span className="text-sm text-slate-700">{student.name}</span>
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="space-y-2 text-sm text-slate-700">
+                      <div className="text-base font-semibold text-slate-900">{student.name}</div>
+                      <div className="grid gap-1 text-xs text-slate-500 sm:grid-cols-2">
+                        {STUDENT_FIELDS.filter((field) => field.key !== 'name').map((field) => (
+                          <div key={field.key}>
+                            {field.label}: {student[field.key] || '—'}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                     <div className="flex gap-2">
                       <button
                         type="button"
