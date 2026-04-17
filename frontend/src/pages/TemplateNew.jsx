@@ -2,6 +2,12 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createTemplate, uploadTemplateDesign } from '../api/client';
 import { defaultTemplatePayload, templatePresets } from '../data/presets';
+import {
+  TEMPLATE_AUDIENCE_OPTIONS,
+  TEMPLATE_DETAIL_OPTIONS,
+  TemplateAudienceType,
+  TemplateDetailLevel,
+} from '../utils/templateMetadata';
 
 function readImageDimensions(file) {
   return new Promise((resolve, reject) => {
@@ -23,6 +29,8 @@ export default function TemplateNew() {
   const navigate = useNavigate();
   const [name, setName] = useState('قالب جديد');
   const [orientation, setOrientation] = useState(defaultTemplatePayload.orientation);
+  const [detailLevel, setDetailLevel] = useState(defaultTemplatePayload.detailLevel || TemplateDetailLevel.SIMPLE);
+  const [audienceType, setAudienceType] = useState(defaultTemplatePayload.audienceType || TemplateAudienceType.STUDENT);
   const [presetId, setPresetId] = useState(templatePresets[0].id);
   const [designFile, setDesignFile] = useState(null);
   const [processing, setProcessing] = useState(false);
@@ -47,6 +55,8 @@ export default function TemplateNew() {
           width,
           height,
           orientation: width >= height ? 'landscape' : 'portrait',
+          detailLevel,
+          audienceType,
           background: {
             type: 'image',
             color: '#ffffff',
@@ -62,6 +72,8 @@ export default function TemplateNew() {
           ...selectedPreset.payload,
           name: name.trim() || selectedPreset.payload.name || 'قالب جديد',
           orientation,
+          detailLevel,
+          audienceType,
         };
       }
 
@@ -129,6 +141,32 @@ export default function TemplateNew() {
             >
               <option value="landscape">عرضي</option>
               <option value="portrait">طولي</option>
+            </select>
+          </label>
+
+          <label className="space-y-2 text-sm font-semibold text-slate-700">
+            مستوى القالب
+            <select
+              value={detailLevel}
+              onChange={(event) => setDetailLevel(event.target.value)}
+              className="w-full rounded-2xl border border-amber-200 bg-white px-4 py-3 text-sm outline-none ring-emerald-300 focus:ring"
+            >
+              {TEMPLATE_DETAIL_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+          </label>
+
+          <label className="space-y-2 text-sm font-semibold text-slate-700">
+            فئة القالب
+            <select
+              value={audienceType}
+              onChange={(event) => setAudienceType(event.target.value)}
+              className="w-full rounded-2xl border border-amber-200 bg-white px-4 py-3 text-sm outline-none ring-emerald-300 focus:ring"
+            >
+              {TEMPLATE_AUDIENCE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
             </select>
           </label>
 

@@ -8,6 +8,10 @@ import {
   Text,
   Transformer,
 } from 'react-konva';
+import {
+  getRecipientAchievementSentenceForTemplate,
+  getRecipientTitleForTemplate,
+} from '../../utils/templateMetadata';
 
 /* ── Hijri date preview helper ───────────────────────────────────────── */
 function getHijriDate() {
@@ -17,18 +21,27 @@ function getHijriDate() {
     }).formatToParts(new Date());
     const get = (t) => parts.find((p) => p.type === t)?.value || '';
     const year = get('year').replace(/\s*هـ?$/, '').trim();
-    return `${get('day')} / ${get('month')} / ${year}`;
+    return `${get('day')} / ${get('month')} / ${year} هـ`;
   } catch {
     return new Date().toLocaleDateString('ar');
   }
 }
 
-function getDynamicPreview(el) {
+function getDynamicPreview(el, template) {
   if (el.type !== 'dynamicText') return el.text || '';
   switch (el.field) {
+    case 'recipientAchievementSentence':
+      return getRecipientAchievementSentenceForTemplate(template, 'محمد الحرملي');
+    case 'recipientTitle': return getRecipientTitleForTemplate(template, 'محمد الحرملي');
     case 'studentName': return 'اسم الطالب';
     case 'date': return getHijriDate();
     case 'dateLabel': return 'تاريخ الإصدار: ' + getHijriDate();
+    case 'recitalType': return 'نوع الاستظهار';
+    case 'surahRange': return 'من سورة إلى سورة';
+    case 'programName': return 'اسم البرنامج';
+    case 'calendar': return 'التقويم';
+    case 'mistakesCount': return 'عدد الأخطاء';
+    case 'teacherName': return 'المعلم';
     case 'schoolName': return 'اسم المدرسة';
     default: return el.field || '';
   }
@@ -82,14 +95,14 @@ function measureTextWidth(text, el) {
 }
 
 /* ── individual element components ───────────────────────────────────── */
-function TextEl({ el, isSelected, onSelect, onDragEnd, onTransformEnd, onStartEdit }) {
+function TextEl({ el, template, isSelected, onSelect, onDragEnd, onTransformEnd, onStartEdit }) {
   return (
     <Text
       id={el.id}
       x={el.x}
       y={el.y}
       width={el.width || 200}
-      text={getDynamicPreview(el)}
+      text={getDynamicPreview(el, template)}
       fontSize={el.fontSize || 28}
       fontFamily={el.fontFamily || 'Amiri-Regular'}
       fontStyle={el.fontStyle || 'normal'}
@@ -296,7 +309,7 @@ function ContextMenu({ menu, onAction, onClose }) {
   return (
     <div
       style={{ position: 'fixed', left: menu.x, top: menu.y, zIndex: 1000, direction: 'rtl' }}
-      className="min-w-[140px] overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
+      className="min-w-35 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
     >
       {items.map((item, i) =>
         item === null ? (
@@ -328,6 +341,7 @@ export default function CanvasStage({
   logoImg,
   signatureImg,
   stampImg,
+  isPanMode,
   onSelectIds,
   onElementChange,
   onAddElement,
@@ -432,6 +446,7 @@ export default function CanvasStage({
   }
 
   function handleStageClick(e) {
+    if (isPanMode) return;
     if (editing) commitTextEdit(true);
 
     if (tool === 'select') {
@@ -455,6 +470,7 @@ export default function CanvasStage({
   function makeHandlers(el) {
     return {
       onSelect: (e) => {
+        if (isPanMode) return;
         if (editing) commitTextEdit(true);
 
         if (tool !== 'select') {
@@ -523,6 +539,7 @@ export default function CanvasStage({
                 <TextEl
                   key={el.id}
                   el={el}
+                  template={template}
                   isSelected={isSelected}
                   {...handlers}
                   onStartEdit={startTextEdit}

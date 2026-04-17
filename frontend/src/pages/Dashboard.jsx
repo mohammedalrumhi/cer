@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { Search, X } from 'lucide-react';
 import { TemplateCard } from '../components/TemplateCard';
 import { BrandingPanel } from '../components/BrandingPanel';
 import {
@@ -11,6 +12,19 @@ import {
   uploadSignature,
 } from '../api/client';
 
+function normalizeSearchText(value) {
+  return String(value || '')
+    .trim()
+    .normalize('NFKC')
+    .replace(/[\u064B-\u065F\u0670]/g, '')
+    .toLowerCase();
+}
+
+function extractColorLabel(templateName) {
+  const match = String(templateName || '').match(/لون\s+(.+?)\s+-/);
+  return match?.[1] || '';
+}
+
 export default function Dashboard() {
   const [templates, setTemplates] = useState([]);
   const [branding, setBranding] = useState({ schoolName: '' });
@@ -18,6 +32,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [savingBranding, setSavingBranding] = useState(false);
   const [error, setError] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   function getUploadErrorMessage(err, fallback) {
     return err?.response?.data?.message || fallback;
@@ -98,6 +113,48 @@ export default function Dashboard() {
     }
   }
 
+  function clearTemplateFilters() {
+    setSearchQuery('');
+  }
+
+  const filteredTemplates = useMemo(() => {
+    const normalizedQuery = normalizeSearchText(searchQuery);
+
+    const next = templates
+      .map((template) => {
+        const nameText = normalizeSearchText(template.name);
+        const colorLabel = normalizeSearchText(extractColorLabel(template.name));
+        const colorHex = normalizeSearchText(template.background?.accentColor || template.background?.color || '');
+        const updatedAt = new Date(template.updatedAt || 0).getTime();
+
+        let score = 0;
+        if (!normalizedQuery) {
+          score = updatedAt;
+        } else {
+          if (colorLabel === normalizedQuery) score += 500;
+          else if (colorLabel.startsWith(normalizedQuery)) score += 350;
+          else if (colorLabel.includes(normalizedQuery)) score += 250;
+
+          if (nameText.startsWith(normalizedQuery)) score += 180;
+          else if (nameText.includes(normalizedQuery)) score += 120;
+
+          if (colorHex.includes(normalizedQuery)) score += 80;
+        }
+
+        return { template, score, updatedAt };
+      })
+      .filter((item) => !normalizedQuery || item.score > 0)
+      .sort((left, right) => {
+        if (left.score !== right.score) return right.score - left.score;
+        return right.updatedAt - left.updatedAt;
+      })
+      .map((item) => item.template);
+
+    return next;
+  }, [templates, searchQuery]);
+
+  const hasActiveFilters = Boolean(searchQuery);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -130,11 +187,40 @@ export default function Dashboard() {
           <div className="mb-6 flex items-center justify-between gap-4">
             <div>
               <h2 className="text-xl font-bold text-slate-900">قوالب الشهادات</h2>
-              <p className="text-sm text-slate-500">قم بتحرير أو حذف القوالب الجاهزة.</p>
+              <p className="text-sm text-slate-500">ابحث مباشرة باسم اللون أو اسم القالب للوصول السريع إلى التعديل.</p>
             </div>
-            <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
-              {templates.length} قالب
+            <span className="whitespace-nowrap rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
+              {filteredTemplates.length} / {templates.length} قالب
             </span>
+          </div>
+
+          <div className="mb-6 rounded-3xl border border-slate-200 bg-slate-50 p-4">
+            <label className="relative block">
+              <Search className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="ابحث باللون أولاً، مثال: زمردي، عنابي، كهرماني..."
+                className="w-full rounded-2xl border border-slate-200 bg-white py-3 pr-10 pl-4 text-sm text-slate-800 outline-none ring-emerald-300 focus:ring"
+              />
+            </label>
+
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+              <div className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm">
+                {hasActiveFilters ? 'نتائج البحث ترتب اللون أولاً' : 'اكتب اسم اللون وستظهر أقرب القوالب أولاً'}
+              </div>
+
+              {hasActiveFilters && (
+                <button
+                  type="button"
+                  onClick={clearTemplateFilters}
+                  className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-100"
+                >
+                  <X size={14} />
+                  مسح البحث
+                </button>
+              )}
+            </div>
           </div>
 
           {loading ? (
@@ -143,9 +229,13 @@ export default function Dashboard() {
             <div className="rounded-2xl border border-dashed border-emerald-200 p-8 text-center text-slate-500">
               لم يتم العثور على قوالب. أنشئ قالبًا جديدًا من القائمة الجانبية.
             </div>
+          ) : filteredTemplates.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-slate-500">
+              لا توجد قوالب مطابقة للبحث الحالي. جرّب اسم لون مختلف أو امسح البحث.
+            </div>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2">
-              {templates.map((template) => (
+              {filteredTemplates.map((template) => (
                 <TemplateCard key={template.id} template={template} onDelete={handleDeleteTemplate} />
               ))}
             </div>

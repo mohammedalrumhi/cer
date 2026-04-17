@@ -1,6 +1,10 @@
 # dependencies
 **/node_modules
 
+# OS files
+.DS_Store
+**/.DS_Store
+
 # build outputs
 **/dist
 
@@ -14,3 +18,5 @@ backend/uploads/*
 !backend/uploads/itqan-logo.png
 !backend/uploads/itqan-signature.png
 !backend/uploads/itqan-stamp.png
+!backend/uploads/itqan-template-5.png
+!backend/uploads/itqan-template-5-*.png

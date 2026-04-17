@@ -16,6 +16,8 @@ import {
 } from 'lucide-react';
 
 const DYNAMIC_FIELD_OPTIONS = [
+  { value: 'recipientAchievementSentence', label: 'جملة التهنئة' },
+  { value: 'recipientTitle', label: 'اللقب التلقائي' },
   { value: 'studentName', label: 'اسم الطالب' },
   { value: 'date', label: 'التاريخ الهجري' },
   { value: 'dateLabel', label: 'تاريخ الإصدار (هجري)' },

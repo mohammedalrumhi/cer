@@ -7,6 +7,8 @@ const elementLabels = {
 };
 
 const dynamicFields = [
+  { value: 'recipientAchievementSentence', label: 'جملة التهنئة' },
+  { value: 'recipientTitle', label: 'اللقب التلقائي' },
   { value: 'studentName', label: 'اسم الطالب' },
   { value: 'date', label: 'التاريخ' },
   { value: 'issueDate', label: 'تاريخ الإصدار' },

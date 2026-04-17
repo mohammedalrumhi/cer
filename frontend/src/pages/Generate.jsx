@@ -1,10 +1,12 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   fetchTemplates,
   fetchStudents,
   generateCertificates,
   parseExcel,
 } from '../api/client';
+import { getTemplateDetailLabel } from '../utils/templateMetadata';
+import { TemplatePreviewPanel } from '../components/TemplatePreviewPanel';
 
 function normalizeStudentRecord(student) {
   if (typeof student === 'string') {
@@ -43,6 +45,11 @@ export default function Generate() {
   const [error, setError] = useState('');
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef(null);
+  const detailedTemplates = useMemo(
+    () => templates.filter((template) => getTemplateDetailLabel(template) === 'مفصل'),
+    [templates]
+  );
+  const selectedTemplate = detailedTemplates.find((template) => template.id === selectedTemplateId) || null;
 
   useEffect(() => {
     async function loadData() {
@@ -51,8 +58,9 @@ export default function Generate() {
         setTemplates(templateData);
         setSavedStudents(studentData);
         setSelectedSavedIds(studentData.map((student) => student.id));
-        if (templateData.length > 0) {
-          setSelectedTemplateId(templateData[0].id);
+        const detailed = templateData.filter((template) => getTemplateDetailLabel(template) === 'مفصل');
+        if (detailed.length > 0) {
+          setSelectedTemplateId(detailed[0].id);
         }
       } catch {
         setError('فشل تحميل القوالب أو الطلاب. حاول مرة أخرى.');
@@ -63,15 +71,6 @@ export default function Generate() {
 
     loadData();
   }, []);
-
-  function parseManualStudents(value) {
-    const nextStudents = value
-      .split(/\r?\n|,|;/)
-      .map((item) => item.trim())
-      .filter(Boolean)
-      .map((name) => ({ name }));
-    setStudents(nextStudents);
-  }
 
   async function handleExcelUpload(event) {
     const file = event.target.files?.[0];
@@ -149,15 +148,13 @@ export default function Generate() {
       return;
     }
 
-    const effectiveStudents = students.length > 0
-      ? students
-      : savedStudents
-          .filter((student) => selectedSavedIds.includes(student.id))
-          .map(normalizeStudentRecord)
-          .filter(Boolean);
+    const effectiveStudents = savedStudents
+      .filter((student) => selectedSavedIds.includes(student.id))
+      .map(normalizeStudentRecord)
+      .filter(Boolean);
 
     if (effectiveStudents.length === 0) {
-      setError('أدخل أسماء الطلاب أو استورد ملف Excel أولاً.');
+      setError('حدد الطلاب أو استورد ملف Excel/CSV أولاً.');
       return;
     }
 
@@ -199,26 +196,26 @@ export default function Generate() {
     <div className="space-y-6">
       <div>
         <p className="text-sm text-slate-500">صفحة إنشاء الشهادات</p>
-        <h1 className="text-3xl font-bold text-slate-900">توليد الشهادات</h1>
+        <h1 className="text-3xl font-bold text-slate-900">توليد الشهادات المفصلة</h1>
       </div>
 
       {error && <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{error}</div>}
       {message && <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">{message}</div>}
 
-      <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
-        <section className="rounded-3xl border border-emerald-100 bg-white p-6 shadow-sm">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <section className="space-y-6 rounded-3xl border border-emerald-100 bg-white p-6 shadow-sm">
           <h2 className="mb-3 text-xl font-bold text-slate-900">اختر القالب</h2>
           {loading ? (
             <p className="text-slate-500">جاري تحميل القوالب...</p>
-          ) : templates.length === 0 ? (
-            <p className="text-slate-500">لا يوجد أي قالب. أضف قالبًا أولاً.</p>
+          ) : detailedTemplates.length === 0 ? (
+            <p className="text-slate-500">لا يوجد قالب مفصل حاليًا. استخدم صفحة القوالب أو أنشئ قالبًا جديدًا.</p>
           ) : (
             <select
               value={selectedTemplateId}
               onChange={(event) => setSelectedTemplateId(event.target.value)}
               className="w-full rounded-2xl border border-amber-200 bg-white px-4 py-3 text-sm outline-none ring-emerald-300 focus:ring"
             >
-              {templates.map((template) => (
+              {detailedTemplates.map((template) => (
                 <option key={template.id} value={template.id}>
                   {template.name}
                 </option>
@@ -311,32 +308,15 @@ export default function Generate() {
             </div>
 
             <p className="text-xs text-slate-500">يدعم ملفات Excel (.xlsx, .xls) و CSV. إذا كان الملف يحتوي أعمدة تفصيلية (نوع الاستظهار، نص السور، إلخ) فستُستخدم داخل الشهادة.</p>
-            {savedStudents.length > 0 && (
-              <p className="text-xs text-slate-500">إذا لم تستورد ملف، سيتم استخدام {savedStudents.length} طالبًا محفوظًا.</p>
-            )}
+            {savedStudents.length > 0 && <p className="text-xs text-slate-500">يمكنك أيضًا استخدام الطلاب المحفوظين فقط دون رفع ملف جديد.</p>}
           </div>
-        </section>
 
-        <section className="rounded-3xl border border-amber-100 bg-white p-6 shadow-sm">
-          <h2 className="mb-3 text-xl font-bold text-slate-900">قائمة الطلاب</h2>
-          <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-            هذه الطريقة تدعم اسم الطالب فقط. إذا كنت تريد نوع الاستظهار أو نص السور أو اسم البرنامج أو التقويم أو عدد الأخطاء أو اسم المعلم، فاستخدم صفحة الطلاب أو ملف Excel/CSV.
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+            هذه الصفحة مخصصة للقوالب المفصلة. للإنشاء السريع بالقوالب البسيطة والكتابة سطرًا بسطر استخدم صفحة الشهادات السريعة.
           </div>
-          <textarea
-            rows={10}
-            value={studentInput}
-            onChange={(event) => {
-              setStudentInput(event.target.value);
-              parseManualStudents(event.target.value);
-            }}
-            className="w-full rounded-3xl border border-amber-200 bg-white px-4 py-4 text-sm text-slate-800 outline-none ring-emerald-300 focus:ring"
-            placeholder="أدخل أسماء الطلاب فقط، كل اسم في سطر جديد..."
-          />
-          {studentInput.trim() && (
-            <p className="mt-3 text-xs text-slate-500">الإدخال اليدوي هنا للاسم فقط. لإدخال باقي الحقول استخدم صفحة الطلاب أو ملف Excel/CSV.</p>
-          )}
+
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-            <span className="text-sm text-slate-500">عدد الطلاب: {students.length}</span>
+            <span className="text-sm text-slate-500">عدد الطلاب المحددين: {selectedSavedIds.length}</span>
             <button
               type="button"
               onClick={handleGenerate}
@@ -347,6 +327,8 @@ export default function Generate() {
             </button>
           </div>
         </section>
+
+        <TemplatePreviewPanel template={selectedTemplate} />
       </div>
     </div>
   );

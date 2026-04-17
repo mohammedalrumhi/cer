@@ -1,6 +1,109 @@
 # cer
 # cer
 
+## Hostinger deployment
+
+This project is now ready to run on a single Hostinger Node.js app:
+
+- backend serves the API
+- backend can also serve the built frontend from `frontend/dist`
+- MySQL can be used for app data
+- uploaded files can stay on disk through a fixed storage path
+
+### Recommended structure on Hostinger
+
+Upload the full project with this structure intact:
+
+- `backend/`
+- `frontend/`
+- root `package.json`
+
+Build the frontend once on the server:
+
+```bash
+npm --prefix frontend install
+npm --prefix backend install
+npm run build
+```
+
+Start the app with:
+
+```bash
+npm start
+```
+
+### Environment variables for Hostinger
+
+Set these in the Node.js app configuration or your server environment:
+
+```env
+PORT=3000
+AUTH_TOKEN_SECRET=change-this-to-a-long-random-secret
+
+MYSQL_HOST=127.0.0.1
+MYSQL_PORT=3306
+MYSQL_DATABASE=certificates_app
+MYSQL_USER=your_mysql_user
+MYSQL_PASSWORD=your_mysql_password
+
+PERSISTENT_STORAGE_DIR=/absolute/path/to/cer-storage
+VITE_API_BASE=/api
+```
+
+Notes:
+
+- `VITE_API_BASE=/api` is recommended when frontend and backend are on the same domain.
+- If Hostinger gives you a full MySQL connection string, use `MYSQL_URL` instead of separate MySQL fields.
+- `PERSISTENT_STORAGE_DIR` should point to a real writable folder on the hosting account so uploaded logos, signatures, stamps, fonts, and generated assets are not lost.
+
+Optional frontend override if the built files are in a non-default location:
+
+```env
+FRONTEND_DIST_DIR=/absolute/path/to/frontend/dist
+```
+
+### First deployment steps
+
+1. Create the MySQL database in Hostinger.
+2. Upload the project files to the Node.js application folder.
+3. Install dependencies in both `backend` and `frontend`.
+4. Set the environment variables.
+5. Run `npm run build` from the project root.
+6. Start the app with `npm start`.
+7. Open `/api/health` and confirm the response includes `"storage":"mysql"`.
+
+### Uploaded files and persistence
+
+The app writes runtime files to disk:
+
+- uploaded images such as logo, signature, stamp, and template backgrounds
+- uploaded fonts
+- local fallback data when MySQL is not enabled
+
+Use a fixed writable folder for `PERSISTENT_STORAGE_DIR`. Example:
+
+```env
+PERSISTENT_STORAGE_DIR=/home/your-user/cer-storage
+```
+
+After the first deploy, re-upload branding files if you want them stored in the new persistent location.
+
+## Frontend backend URL
+
+The frontend backend URL is now configured from one file at the project root:
+
+- `.env`
+
+Set:
+
+- `VITE_API_BASE=http://localhost:4000`
+
+Example for production:
+
+- `VITE_API_BASE=https://your-backend-domain.com`
+
+After changing `.env`, restart the frontend dev server.
+
 ## Render persistence
 
 This app writes runtime files to disk:

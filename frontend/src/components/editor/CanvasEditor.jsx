@@ -14,8 +14,27 @@ import PropertiesPanel from './PropertiesPanel';
 import ToolsSidebar from './ToolsSidebar';
 import TopBar from './TopBar';
 import { useHistory } from './useHistory';
+import {
+  normalizeTemplateMetadata,
+  TemplateAudienceType,
+  TemplateDetailLevel,
+} from '../../utils/templateMetadata';
+
+const ZOOM_MIN = 0.1;
+const ZOOM_MAX = 3;
+const CANVAS_PADDING = 32;
 
 const DEFAULT_FONT_OPTIONS = [{ value: 'Amiri-Regular', label: 'Amiri-Regular' }];
+const PREVIEW_STUDENT = {
+  name: 'الطالب النموذجي',
+  issueDate: '١٨ / شوال / ١٤٤٧',
+  recitalType: 'في استظهار الحصة السابعة (نصف ثمن القرآن)',
+  surahRange: 'من سورة الملك إلى سورة الناس',
+  programName: 'برنامج الحافظ المتقن',
+  calendar: 'تفوق عال',
+  mistakesCount: 'لا يوجد',
+  teacherName: 'المُعلم : فيصل الرمحي',
+};
 
 function readImageDimensions(file) {
   return new Promise((resolve, reject) => {
@@ -137,23 +156,31 @@ function useBrandingImages(branding) {
 export default function CanvasEditor({ templateId, initialTemplate, initialBranding }) {
   const navigate = useNavigate();
   const stageRef = useRef();
+  const canvasContainerRef = useRef(null);
+  const panStateRef = useRef({ active: false, startX: 0, startY: 0, scrollLeft: 0, scrollTop: 0 });
+  const normalizedInitialTemplate = normalizeTemplateMetadata(initialTemplate);
 
   // Template meta (name, size, background) separate from elements
   const [meta, setMeta] = useState({
-    name: initialTemplate.name || 'قالب جديد',
-    width: initialTemplate.width || 1123,
-    height: initialTemplate.height || 794,
-    orientation: initialTemplate.orientation || 'landscape',
-    background: initialTemplate.background || { color: '#ffffff' },
+    name: normalizedInitialTemplate.name || 'قالب جديد',
+    width: normalizedInitialTemplate.width || 1123,
+    height: normalizedInitialTemplate.height || 794,
+    orientation: normalizedInitialTemplate.orientation || 'landscape',
+    background: normalizedInitialTemplate.background || { color: '#ffffff' },
+    detailLevel: normalizedInitialTemplate.detailLevel || TemplateDetailLevel.SIMPLE,
+    audienceType: normalizedInitialTemplate.audienceType || TemplateAudienceType.STUDENT,
   });
 
   const { elements, setElements, undo, redo, canUndo, canRedo } = useHistory(
-    initialTemplate.elements || []
+    normalizedInitialTemplate.elements || []
   );
 
   const [selectedIds, setSelectedIds] = useState([]);
   const [tool, setTool] = useState('select');
   const [zoom, setZoom] = useState(0.7);
+  const [viewportSize, setViewportSize] = useState({ width: 0, height: 0 });
+  const [spacePressed, setSpacePressed] = useState(false);
+  const [isPanning, setIsPanning] = useState(false);
   const [showGrid, setShowGrid] = useState(false);
   const [clipboard, setClipboard] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -166,6 +193,23 @@ export default function CanvasEditor({ templateId, initialTemplate, initialBrand
 
   const { logoImg, signatureImg, stampImg } = useBrandingImages(initialBranding);
   const backgroundImageSrc = buildAssetUrl(meta.background?.imagePath);
+  const scaledWidth = meta.width * zoom;
+  const scaledHeight = meta.height * zoom;
+  const shouldCenterHorizontally = scaledWidth + CANVAS_PADDING * 2 <= viewportSize.width;
+  const shouldCenterVertically = scaledHeight + CANVAS_PADDING * 2 <= viewportSize.height;
+
+  useEffect(() => {
+    if (!canvasContainerRef.current) return undefined;
+
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+      setViewportSize({ width: entry.contentRect.width, height: entry.contentRect.height });
+    });
+
+    observer.observe(canvasContainerRef.current);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -208,9 +252,18 @@ export default function CanvasEditor({ templateId, initialTemplate, initialBrand
       const tag = e.target?.tagName?.toLowerCase();
       if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
 
+      if (e.code === 'Space') {
+        e.preventDefault();
+        setSpacePressed(true);
+        return;
+      }
+
       if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); undo(); return; }
       if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'z'))) { e.preventDefault(); redo(); return; }
       if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); handleSave(); return; }
+      if ((e.ctrlKey || e.metaKey) && (e.key === '+' || e.key === '=')) { e.preventDefault(); setZoom((value) => Math.min(ZOOM_MAX, Number((value + 0.1).toFixed(2)))); return; }
+      if ((e.ctrlKey || e.metaKey) && e.key === '-') { e.preventDefault(); setZoom((value) => Math.max(ZOOM_MIN, Number((value - 0.1).toFixed(2)))); return; }
+      if ((e.ctrlKey || e.metaKey) && e.key === '0') { e.preventDefault(); setZoom(1); return; }
       if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
         if (selectedIds.length > 0) {
           const el = elements.find((x) => x.id === selectedIds[0]);
@@ -251,8 +304,20 @@ export default function CanvasEditor({ templateId, initialTemplate, initialBrand
         );
       }
     }
+
+    function handleKeyUp(e) {
+      if (e.code !== 'Space') return;
+      setSpacePressed(false);
+      setIsPanning(false);
+      panStateRef.current.active = false;
+    }
+
     window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKey);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedIds, elements, clipboard, canUndo, canRedo]);
 
@@ -260,8 +325,57 @@ export default function CanvasEditor({ templateId, initialTemplate, initialBrand
   function handleWheel(e) {
     if (!e.ctrlKey && !e.metaKey) return;
     e.preventDefault();
-    setZoom((z) => Math.min(3, Math.max(0.1, z - e.deltaY * 0.001)));
+    setZoom((z) => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, z - e.deltaY * 0.001)));
   }
+
+  function handleZoomChange(nextZoom) {
+    setZoom(Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Number(nextZoom) || 1)));
+  }
+
+  function fitCanvasToViewport() {
+    if (!viewportSize.width || !viewportSize.height) return;
+    const availableWidth = Math.max(120, viewportSize.width - CANVAS_PADDING * 2);
+    const availableHeight = Math.max(120, viewportSize.height - CANVAS_PADDING * 2);
+    const horizontalScale = availableWidth / meta.width;
+    const verticalScale = availableHeight / meta.height;
+    handleZoomChange(Math.min(horizontalScale, verticalScale));
+  }
+
+  function handleCanvasMouseDown(event) {
+    if (!spacePressed || event.button !== 0 || !canvasContainerRef.current) return;
+    event.preventDefault();
+    panStateRef.current = {
+      active: true,
+      startX: event.clientX,
+      startY: event.clientY,
+      scrollLeft: canvasContainerRef.current.scrollLeft,
+      scrollTop: canvasContainerRef.current.scrollTop,
+    };
+    setIsPanning(true);
+  }
+
+  useEffect(() => {
+    function handleMouseMove(event) {
+      if (!panStateRef.current.active || !canvasContainerRef.current) return;
+      const deltaX = event.clientX - panStateRef.current.startX;
+      const deltaY = event.clientY - panStateRef.current.startY;
+      canvasContainerRef.current.scrollLeft = panStateRef.current.scrollLeft - deltaX;
+      canvasContainerRef.current.scrollTop = panStateRef.current.scrollTop - deltaY;
+    }
+
+    function handleMouseUp() {
+      if (!panStateRef.current.active) return;
+      panStateRef.current.active = false;
+      setIsPanning(false);
+    }
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, []);
 
   /* ── element helpers ────────────────────────────────────────────────── */
   function addElement(type, extra = {}) {
@@ -407,7 +521,8 @@ export default function CanvasEditor({ templateId, initialTemplate, initialBrand
       if (previewUrl) URL.revokeObjectURL(previewUrl);
       const blob = await previewTemplate({
         template: { ...meta, elements },
-        students: [{ name: 'الطالب النموذجي', schoolName: initialBranding?.schoolName || 'دار الإتقان' }],
+        students: [PREVIEW_STUDENT],
+        branding: initialBranding,
       });
       const url = URL.createObjectURL(blob);
       setPreviewUrl(url);
@@ -443,6 +558,10 @@ export default function CanvasEditor({ templateId, initialTemplate, initialBrand
       <TopBar
         templateName={meta.name}
         onNameChange={(v) => setMeta((m) => ({ ...m, name: v }))}
+        detailLevel={meta.detailLevel}
+        onDetailLevelChange={(value) => setMeta((current) => ({ ...current, detailLevel: value }))}
+        audienceType={meta.audienceType}
+        onAudienceTypeChange={(value) => setMeta((current) => ({ ...current, audienceType: value }))}
         canUndo={canUndo}
         canRedo={canRedo}
         onUndo={undo}
@@ -453,7 +572,8 @@ export default function CanvasEditor({ templateId, initialTemplate, initialBrand
         previewing={previewing}
         onExportPng={handleExportPng}
         zoom={zoom}
-        onZoom={setZoom}
+        onZoom={handleZoomChange}
+        onZoomFit={fitCanvasToViewport}
         dirty={dirty}
         onBack={() => navigate('/')}
         onImportDesign={handleImportDesign}
@@ -482,9 +602,11 @@ export default function CanvasEditor({ templateId, initialTemplate, initialBrand
 
         {/* Center: canvas */}
         <div
-          className="relative flex flex-1 items-center justify-center overflow-auto bg-slate-200"
+          ref={canvasContainerRef}
+          className="relative flex flex-1 overflow-auto bg-slate-200"
           onWheel={handleWheel}
-          style={{ cursor: tool !== 'select' ? 'crosshair' : 'default' }}
+          onMouseDown={handleCanvasMouseDown}
+          style={{ cursor: isPanning ? 'grabbing' : spacePressed ? 'grab' : tool !== 'select' ? 'crosshair' : 'default' }}
         >
           {/* Grid toggle */}
           <button
@@ -496,26 +618,38 @@ export default function CanvasEditor({ templateId, initialTemplate, initialBrand
           </button>
 
           <div
-            className="shadow-2xl"
-            style={{ background: meta.background?.color || '#ffffff' }}
+            className="flex min-h-full min-w-full"
+            style={{
+              minWidth: shouldCenterHorizontally ? '100%' : `${scaledWidth + CANVAS_PADDING * 2}px`,
+              minHeight: shouldCenterVertically ? '100%' : `${scaledHeight + CANVAS_PADDING * 2}px`,
+              justifyContent: shouldCenterHorizontally ? 'center' : 'flex-start',
+              alignItems: shouldCenterVertically ? 'center' : 'flex-start',
+              padding: CANVAS_PADDING,
+            }}
           >
-            <CanvasStage
-              stageRef={stageRef}
-              template={meta}
-              backgroundImageSrc={backgroundImageSrc}
-              elements={elements}
-              selectedIds={selectedIds}
-              tool={tool}
-              zoom={zoom}
-              showGrid={showGrid}
-              logoImg={logoImg}
-              signatureImg={signatureImg}
-              stampImg={stampImg}
-              onSelectIds={setSelectedIds}
-              onElementChange={updateElement}
-              onAddElement={addElement}
-              onContextAction={handleContextAction}
-            />
+            <div
+              className="shadow-2xl"
+              style={{ background: meta.background?.color || '#ffffff' }}
+            >
+              <CanvasStage
+                stageRef={stageRef}
+                template={meta}
+                backgroundImageSrc={backgroundImageSrc}
+                elements={elements}
+                selectedIds={selectedIds}
+                tool={tool}
+                zoom={zoom}
+                showGrid={showGrid}
+                logoImg={logoImg}
+                signatureImg={signatureImg}
+                stampImg={stampImg}
+                isPanMode={spacePressed || isPanning}
+                onSelectIds={setSelectedIds}
+                onElementChange={updateElement}
+                onAddElement={addElement}
+                onContextAction={handleContextAction}
+              />
+            </div>
           </div>
         </div>
 

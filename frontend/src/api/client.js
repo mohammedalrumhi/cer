@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const AUTH_TOKEN_KEY = 'auth_token';
 const fallbackApiBase = import.meta.env.PROD
-  ? 'https://cer-backend.onrender.com'
+  ? '/api'
   : 'http://localhost:4000';
 const rawApiBase = import.meta.env.VITE_API_BASE || fallbackApiBase;
 const normalizedApiBase = String(rawApiBase).replace(/\/+$/, '');

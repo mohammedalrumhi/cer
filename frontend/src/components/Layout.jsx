@@ -5,7 +5,8 @@ import { clearAuthToken } from '../api/client';
 const links = [
   { to: '/', label: 'لوحة التحكم', icon: LayoutDashboard },
   { to: '/students', label: 'الطلاب', icon: Users },
-  { to: '/generate', label: 'الشهادات', icon: FileText },
+  { to: '/generate', label: 'الشهادات المفصلة', icon: FileText },
+  { to: '/generate-simple', label: 'الشهادات السريعة', icon: FileText },
 ];
 
 export function Layout({ children }) {

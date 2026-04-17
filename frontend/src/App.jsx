@@ -2,6 +2,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Generate from './pages/Generate';
+import GenerateSimple from './pages/GenerateSimple';
 import Students from './pages/Students';
 import TemplateNew from './pages/TemplateNew';
 import TemplateEdit from './pages/TemplateEdit';
@@ -56,6 +57,7 @@ function App() {
                 <Routes>
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/generate" element={<Generate />} />
+                  <Route path="/generate-simple" element={<GenerateSimple />} />
                   <Route path="/students" element={<Students />} />
                   <Route path="/templates/new" element={<TemplateNew />} />
                   <Route path="/404" element={<NotFound />} />

@@ -2,6 +2,9 @@
   "name": "certificate-workspace",
   "private": true,
   "scripts": {
-    "dev": "sh -c 'npm --prefix backend run dev & npm --prefix frontend run dev -- --host 0.0.0.0'"
+    "dev": "sh -c 'npm --prefix backend run dev & npm --prefix frontend run dev -- --host 0.0.0.0'",
+    "build": "npm --prefix frontend run build",
+    "start": "npm --prefix backend start",
+    "test:backend": "npm --prefix backend test"
   }
 }

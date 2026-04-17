@@ -3,6 +3,10 @@ const path = require('path');
 const PDFDocument = require('pdfkit');
 const { convertArabicBack } = require('arabic-reshaper');
 const { fontsDir, resolveBackendAssetPath } = require('../utils/storagePaths');
+const {
+  getRecipientAchievementSentenceForTemplate,
+  getRecipientTitleForTemplate,
+} = require('../utils/templateMetadata');
 
 function normalizeUtf8(value) {
   if (value === null || value === undefined) return '';
@@ -19,7 +23,7 @@ function containsArabicPresentationForms(value) {
 
 function stripBidiControlMarks(value) {
   // Remove hidden direction controls that often come from copy/paste and break PDF rendering order.
-  return value.replace(/[\u200E\u200F\u202A-\u202E\u2066-\u2069]/g, '');
+  return value.replace(/[\u202A-\u202E\u2066-\u2069]/g, '');
 }
 
 function normalizeArabicInput(value) {
@@ -44,6 +48,10 @@ function mirrorRtlBrackets(value) {
   return value.replace(/[()\[\]{}<>]/g, (ch) => mirrorMap[ch] || ch);
 }
 
+function reverseNumericRuns(value) {
+  return String(value || '').replace(/[0-9\u0660-\u0669]+/g, (match) => Array.from(match).reverse().join(''));
+}
+
 function shapeText(value) {
   let text = normalizeArabicInput(value);
   if (!text || !containsArabic(text)) return text;
@@ -55,9 +63,9 @@ function shapeText(value) {
       text = convertArabicBack(text);
     }
 
-    return mirrorRtlBrackets(text);
+    return reverseNumericRuns(mirrorRtlBrackets(text));
   } catch {
-    return mirrorRtlBrackets(normalizeArabicInput(value));
+    return reverseNumericRuns(mirrorRtlBrackets(normalizeArabicInput(value)));
   }
 }
 
@@ -70,10 +78,16 @@ function getHijriDateString() {
     }).formatToParts(new Date());
     const get = (t) => parts.find((p) => p.type === t)?.value || '';
     const year = get('year').replace(/\s*هـ?$/, '').trim();
-    return `${get('day')} / ${get('month')} / ${year}`;
+    return `${get('day')} / ${get('month')} / ${year} هـ`;
   } catch {
     return new Date().toLocaleDateString('ar-SA');
   }
+}
+
+function withHijriSuffix(value) {
+  const text = normalizeUtf8(value).trim();
+  if (!text) return '';
+  return /\s*هـ$/.test(text) ? text : `${text} هـ`;
 }
 
 function resolveStudentName(student) {
@@ -85,12 +99,18 @@ function resolveStudentName(student) {
   return '';
 }
 
-function resolveFieldValue(field, student, branding) {
+function resolveFieldValue(field, student, branding, template) {
   if (field === 'studentName') return resolveStudentName(student);
-  if (field === 'date') return normalizeUtf8(student?.issueDate || getHijriDateString());
-  if (field === 'dateLabel') return 'تاريخ الإصدار: ' + normalizeUtf8(student?.issueDate || getHijriDateString());
-  if (field === 'issueDate') return getHijriDateString();
-  if (field === 'issueDateLabel') return `تاريخ الإصدار: ${getHijriDateString()}`;
+  if (field === 'recipientTitle') return getRecipientTitleForTemplate(template, resolveStudentName(student));
+  if (field === 'recipientAchievementSentence') {
+    return getRecipientAchievementSentenceForTemplate(template, resolveStudentName(student), {
+      institutionName: branding?.schoolName ? `مؤسسة ${normalizeUtf8(branding.schoolName)}` : undefined,
+    });
+  }
+  if (field === 'date') return withHijriSuffix(student?.issueDate || getHijriDateString());
+  if (field === 'dateLabel') return 'تاريخ الإصدار: ' + withHijriSuffix(student?.issueDate || getHijriDateString());
+  if (field === 'issueDate') return withHijriSuffix(student?.issueDate || getHijriDateString());
+  if (field === 'issueDateLabel') return `تاريخ الإصدار: ${withHijriSuffix(student?.issueDate || getHijriDateString())}`;
   if (field === 'recitalType') return normalizeUtf8(student?.recitalType || '');
   if (field === 'surahRange') return normalizeUtf8(student?.surahRange || '');
   if (field === 'programName') return normalizeUtf8(student?.programName || '');
@@ -291,7 +311,7 @@ function drawTemplateElement(doc, template, element, student, branding, imageAss
 
   if (element.type === 'text' || element.type === 'dynamicText') {
     const sourceText = element.type === 'dynamicText'
-      ? resolveFieldValue(element.field, student, branding)
+      ? resolveFieldValue(element.field, student, branding, template)
       : normalizeUtf8(element.text || '');
 
     if (!sourceText) return;

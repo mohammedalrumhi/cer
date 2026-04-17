@@ -9,6 +9,8 @@ const TOOLS = [
 ];
 
 const DYNAMIC_ITEMS = [
+  { label: 'جملة التهنئة', type: 'dynamicText', extra: { field: 'recipientAchievementSentence' } },
+  { label: 'اللقب التلقائي', type: 'dynamicText', extra: { field: 'recipientTitle' } },
   { label: 'اسم الطالب', type: 'dynamicText', extra: { field: 'studentName' } },
   { label: 'التاريخ هـ', type: 'dynamicText', extra: { field: 'date' } },
   { label: 'تاريخ الإصدار', type: 'dynamicText', extra: { field: 'dateLabel' } },

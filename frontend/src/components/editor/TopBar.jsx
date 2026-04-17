@@ -1,8 +1,13 @@
 import { ArrowRight, Download, Eye, Redo2, Save, Undo2, ZoomIn, ZoomOut } from 'lucide-react';
+import { TEMPLATE_AUDIENCE_OPTIONS, TEMPLATE_DETAIL_OPTIONS } from '../../utils/templateMetadata';
 
 export default function TopBar({
   templateName,
   onNameChange,
+  detailLevel,
+  onDetailLevelChange,
+  audienceType,
+  onAudienceTypeChange,
   canUndo,
   canRedo,
   onUndo,
@@ -14,6 +19,7 @@ export default function TopBar({
   onExportPng,
   zoom,
   onZoom,
+  onZoomFit,
   dirty,
   onBack,
   onImportDesign,
@@ -47,6 +53,27 @@ export default function TopBar({
           ●
         </span>
       )}
+
+      <select
+        value={detailLevel}
+        onChange={(e) => onDetailLevelChange(e.target.value)}
+        className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 outline-none focus:border-emerald-400"
+        title="مستوى القالب"
+      >
+        {TEMPLATE_DETAIL_OPTIONS.map((option) => (
+          <option key={option.value} value={option.value}>{option.label}</option>
+        ))}
+      </select>
+      <select
+        value={audienceType}
+        onChange={(e) => onAudienceTypeChange(e.target.value)}
+        className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 outline-none focus:border-emerald-400"
+        title="فئة القالب"
+      >
+        {TEMPLATE_AUDIENCE_OPTIONS.map((option) => (
+          <option key={option.value} value={option.value}>{option.label}</option>
+        ))}
+      </select>
 
       <div className="h-5 w-px bg-slate-200" />
 
@@ -95,6 +122,23 @@ export default function TopBar({
       >
         1:1
       </button>
+      <button
+        onClick={onZoomFit}
+        title="ملاءمة الشاشة"
+        className="rounded-lg px-2 py-1 text-xs text-slate-500 hover:bg-slate-100"
+      >
+        احتواء
+      </button>
+      <input
+        type="range"
+        min="10"
+        max="300"
+        step="5"
+        value={Math.round(zoom * 100)}
+        onChange={(e) => onZoom(Number(e.target.value) / 100)}
+        className="w-28 accent-emerald-600"
+        title="مستوى التكبير"
+      />
 
       {/* Spacer */}
       <div className="flex-1" />

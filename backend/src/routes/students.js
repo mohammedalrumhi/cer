@@ -1,35 +1,39 @@
 const fs = require('fs');
+const path = require('path');
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const XLSX = require('xlsx');
-const { readJson, writeJson } = require('../utils/fileDb');
 const { excelUpload } = require('../utils/uploads');
-
-const router = express.Router();
-const FILE_NAME = 'students.json';
 
 const STUDENT_FIELD_ALIASES = {
   name: ['name', 'studentname', 'student_name', 'fullname', 'full_name', 'الاسم', 'اسم الطالب', 'الطالب'],
   issueDate: ['issuedate', 'issue_date', 'date', 'تاريخ الاصدار', 'تاريخ الإصدار', 'تاريخ الشهادة'],
   recitalType: ['recitaltype', 'recital_type', 'typeofrecital', 'نوع الاستظهار', 'الاستظهار'],
-  surahRange: ['surahrange', 'surah_range', 'surahtext', 'surah_text', 'نص السور', 'السور', 'من الى', 'من إلى'],
+  surahRange: ['surahrange', 'surah_range', 'surahtext', 'surah_text', 'نص السور', 'نص السور من إلى', 'نص السور من الى', 'السور', 'من الى', 'من إلى'],
   programName: ['programname', 'program_name', 'اسم البرنامج', 'البرنامج'],
   calendar: ['calendar', 'التقويم'],
   mistakesCount: ['mistakescount', 'mistakes_count', 'errorscount', 'عدد الاخطاء', 'عدد الأخطاء'],
   teacherName: ['teachername', 'teacher_name', 'teacher', 'المعلم', 'اسم المعلم'],
 };
 
+const NORMALIZED_ALIAS_MAP = Object.entries(STUDENT_FIELD_ALIASES).reduce((acc, [field, aliases]) => {
+  aliases.forEach((alias) => {
+    acc.set(normalizeKey(alias), field);
+  });
+  return acc;
+}, new Map());
+
 function normalizeKey(value) {
   return String(value || '')
     .trim()
     .toLowerCase()
     .normalize('NFKC')
-    .replace(/[\s\-_/]+/g, '');
+    .replace(/[\u064B-\u065F\u0670]/g, '')
+    .replace(/[^\p{Letter}\p{Number}]+/gu, '');
 }
 
 function findCanonicalField(key) {
-  const normalized = normalizeKey(key);
-  return Object.entries(STUDENT_FIELD_ALIASES).find(([, aliases]) => aliases.includes(normalized))?.[0] || null;
+  return NORMALIZED_ALIAS_MAP.get(normalizeKey(key)) || null;
 }
 
 function cleanValue(value) {
@@ -109,88 +113,157 @@ function parseSpreadsheetRows(rows) {
     .filter(Boolean);
 }
 
-router.get('/', (_req, res) => {
-  const students = readJson(FILE_NAME, []);
-  res.json(students);
-});
+function parseCsvLine(line) {
+  const cells = [];
+  let current = '';
+  let inQuotes = false;
 
-router.post('/', (req, res) => {
-  const currentStudents = readJson(FILE_NAME, []);
-  const newStudents = Array.isArray(req.body.students) ? req.body.students : [];
-  const nextStudents = [...currentStudents];
-  const signatures = new Set(nextStudents.map(getStudentSignature));
+  for (let index = 0; index < line.length; index += 1) {
+    const char = line[index];
+    const nextChar = line[index + 1];
 
-  newStudents.forEach((rawStudent) => {
-    const student = normalizeStudentRecord(rawStudent);
-    if (!student) {
-      return;
+    if (char === '"') {
+      if (inQuotes && nextChar === '"') {
+        current += '"';
+        index += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      continue;
     }
 
-    const signature = getStudentSignature(student);
-    if (!signatures.has(signature)) {
-      nextStudents.push(student);
-      signatures.add(signature);
+    if (char === ',' && !inQuotes) {
+      cells.push(current);
+      current = '';
+      continue;
     }
-  });
 
-  writeJson(FILE_NAME, nextStudents, []);
-  res.status(201).json({ students: nextStudents });
-});
-
-router.put('/:id', (req, res) => {
-  const currentStudents = readJson(FILE_NAME, []);
-  const idx = currentStudents.findIndex((item) => item.id === req.params.id);
-  if (idx < 0) {
-    return res.status(404).json({ message: 'Student not found' });
+    current += char;
   }
 
-  const updatedStudent = normalizeStudentRecord(req.body, currentStudents[idx]);
-  if (!updatedStudent) {
-    return res.status(400).json({ message: 'Student name is required' });
+  cells.push(current);
+  return cells.map((cell) => cell.replace(/^\uFEFF/, '').trim());
+}
+
+function parseCsvStudents(filePath) {
+  const raw = fs.readFileSync(filePath, 'utf8').replace(/^\uFEFF/, '');
+  const lines = raw
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (lines.length === 0) return [];
+
+  const headers = parseCsvLine(lines[0]);
+  const students = lines.slice(1)
+    .map((line) => {
+      const cells = parseCsvLine(line);
+      const row = headers.reduce((acc, header, index) => {
+        acc[header] = cells[index] || '';
+        return acc;
+      }, {});
+      return normalizeStudentRecord(row);
+    })
+    .filter(Boolean);
+
+  return students;
+}
+
+function parseUploadedStudents(filePath, originalName) {
+  const extension = String(originalName || path.extname(filePath)).toLowerCase();
+
+  if (extension.endsWith('.csv')) {
+    return parseCsvStudents(filePath);
   }
 
-  currentStudents[idx] = updatedStudent;
-
-  writeJson(FILE_NAME, currentStudents, []);
-  return res.json(currentStudents[idx]);
-});
-
-router.delete('/:id', (req, res) => {
-  const currentStudents = readJson(FILE_NAME, []);
-  const remaining = currentStudents.filter((item) => item.id !== req.params.id);
-
-  if (remaining.length === currentStudents.length) {
-    return res.status(404).json({ message: 'Student not found' });
-  }
-
-  writeJson(FILE_NAME, remaining, []);
-  return res.status(204).send();
-});
-
-router.post('/parse-excel', excelUpload.single('file'), (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ message: 'No Excel file uploaded' });
-  }
-
-  const workbook = XLSX.readFile(req.file.path);
+  const workbook = XLSX.readFile(filePath);
   const firstSheet = workbook.SheetNames[0];
   const sheet = workbook.Sheets[firstSheet];
   const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
-  const students = parseSpreadsheetRows({ sheet, values: rows });
+  return parseSpreadsheetRows({ sheet, values: rows });
+}
 
-  fs.unlinkSync(req.file.path);
-  const uniqueStudents = [];
-  const signatures = new Set();
+function createStudentsRouter({ storage }) {
+  const router = express.Router();
 
-  students.forEach((student) => {
-    const signature = getStudentSignature(student);
-    if (!signatures.has(signature)) {
-      signatures.add(signature);
-      uniqueStudents.push(student);
-    }
+  router.get('/', async (_req, res) => {
+    const students = await storage.listStudents();
+    res.json(students);
   });
 
-  return res.json({ students: uniqueStudents });
-});
+  router.post('/', async (req, res) => {
+    const currentStudents = await storage.listStudents();
+    const newStudents = Array.isArray(req.body.students) ? req.body.students : [];
+    const signatures = new Set(currentStudents.map(getStudentSignature));
+    const toInsert = [];
 
-module.exports = router;
+    newStudents.forEach((rawStudent) => {
+      const student = normalizeStudentRecord(rawStudent);
+      if (!student) return;
+      const signature = getStudentSignature(student);
+      if (!signatures.has(signature)) {
+        signatures.add(signature);
+        toInsert.push(student);
+      }
+    });
+
+    const students = toInsert.length > 0
+      ? await storage.addStudents(toInsert)
+      : currentStudents;
+
+    res.status(201).json({ students });
+  });
+
+  router.put('/:id', async (req, res) => {
+    const currentStudents = await storage.listStudents();
+    const currentStudent = currentStudents.find((item) => item.id === req.params.id);
+    if (!currentStudent) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    const updatedStudent = normalizeStudentRecord(req.body, currentStudent);
+    if (!updatedStudent) {
+      return res.status(400).json({ message: 'Student name is required' });
+    }
+
+    await storage.updateStudent(updatedStudent);
+    return res.json(updatedStudent);
+  });
+
+  router.delete('/:id', async (req, res) => {
+    const deleted = await storage.deleteStudent(req.params.id);
+    if (!deleted) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    return res.status(204).send();
+  });
+
+  router.post('/parse-excel', excelUpload.single('file'), (req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No Excel file uploaded' });
+    }
+
+    const students = parseUploadedStudents(req.file.path, req.file.originalname);
+
+    fs.unlinkSync(req.file.path);
+    const uniqueStudents = [];
+    const signatures = new Set();
+
+    students.forEach((student) => {
+      const signature = getStudentSignature(student);
+      if (!signatures.has(signature)) {
+        signatures.add(signature);
+        uniqueStudents.push(student);
+      }
+    });
+
+    return res.json({ students: uniqueStudents });
+  });
+
+  return router;
+}
+
+module.exports = {
+  createStudentsRouter,
+};
