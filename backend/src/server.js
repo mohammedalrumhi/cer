@@ -19,9 +19,17 @@ async function startServer() {
 
   process.on('SIGINT', shutdown);
   process.on('SIGTERM', shutdown);
+
+  return server;
 }
 
-startServer().catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
+if (require.main === module) {
+  startServer().catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
+}
+
+module.exports = {
+  startServer,
+};
