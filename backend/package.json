@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
-    "test": "node --test"
+    "test": "node --test",
+    "sync:templates": "node scripts/syncTemplatesToDb.js"
   },
   "keywords": [],
   "author": "",
