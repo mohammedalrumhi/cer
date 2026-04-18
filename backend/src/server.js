@@ -1,5 +1,19 @@
-const { createApp } = require('./app');
-const { closeStorage, initStorage } = require('./storage');
+const fs = require("fs");
+const path = require("path");
+const dotenv = require("dotenv");
+const { createApp } = require("./app");
+const { closeStorage, initStorage } = require("./storage");
+
+const envFiles = [
+  path.resolve(__dirname, "../../.env"),
+  path.resolve(__dirname, "../.env"),
+];
+
+for (const envFile of envFiles) {
+  if (fs.existsSync(envFile)) {
+    dotenv.config({ path: envFile, override: false });
+  }
+}
 
 const PORT = process.env.PORT || 4000;
 
@@ -17,19 +31,11 @@ async function startServer() {
     });
   };
 
-  process.on('SIGINT', shutdown);
-  process.on('SIGTERM', shutdown);
-
-  return server;
+  process.on("SIGINT", shutdown);
+  process.on("SIGTERM", shutdown);
 }
 
-if (require.main === module) {
-  startServer().catch((error) => {
-    console.error(error);
-    process.exit(1);
-  });
-}
-
-module.exports = {
-  startServer,
-};
+startServer().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});

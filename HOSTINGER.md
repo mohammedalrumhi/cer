@@ -68,12 +68,6 @@ Use this command in Hostinger:
 npm start
 ```
 
-Use this entry file in platforms that require a single Node.js entry file:
-
-```text
-server.js
-```
-
 ## Required environment variables
 
 ```env

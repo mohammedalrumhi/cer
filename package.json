@@ -6,7 +6,7 @@
     "dev": "sh -c 'npm --prefix backend run dev & npm --prefix frontend run dev -- --host 0.0.0.0'",
     "build": "npm --prefix frontend run build",
     "build:public-html": "npm run build && node scripts/sync-public-html.js",
-    "start": "node server.js",
+    "start": "npm --prefix backend start",
     "test:backend": "npm --prefix backend test"
   }
 }

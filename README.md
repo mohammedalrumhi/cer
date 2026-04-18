@@ -38,12 +38,6 @@ Start the app with:
 npm start
 ```
 
-If your hosting provider asks for a Node.js entry file, use:
-
-```text
-server.js
-```
-
 ### Environment variables for Hostinger
 
 Set these in the Node.js app configuration or your server environment:
