@@ -7,6 +7,8 @@
 
 # build outputs
 **/dist
+!frontend/dist/
+!frontend/dist/**
 
 # environment files
 **/.env
