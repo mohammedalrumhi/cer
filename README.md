@@ -26,6 +26,12 @@ npm --prefix backend install
 npm run build
 ```
 
+If you want to copy the built frontend directly into a `public_html` folder, run:
+
+```bash
+PUBLIC_HTML_DIR=/path/to/public_html npm run build:public-html
+```
+
 Start the app with:
 
 ```bash
