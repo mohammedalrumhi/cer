@@ -193,7 +193,7 @@ export function getRecipientTitleForTemplate(template, studentName, options = {}
 export function getRecipientAchievementSentenceForTemplate(template, studentName, options = {}) {
   const title = getRecipientTitleForTemplate(template, studentName, options);
   const institutionName = String(options.institutionName || 'مؤسسة دار الإتقان العالي').trim();
-  return `تبارك ${institutionName} بنجاح ${title} :`;
+  return `تبارك ${institutionName}\nبنجاح ${title} :`;
 }
 
 export function normalizeTemplateMetadata(template = {}) {

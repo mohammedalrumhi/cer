@@ -8,6 +8,8 @@ const {
   getRecipientTitleForTemplate,
 } = require('../utils/templateMetadata');
 
+let cachedFontFiles = null;
+
 function normalizeUtf8(value) {
   if (value === null || value === undefined) return '';
   return Buffer.from(String(value), 'utf8').toString('utf8');
@@ -99,29 +101,52 @@ function resolveStudentName(student) {
   return '';
 }
 
-function resolveFieldValue(field, student, branding, template) {
-  if (field === 'studentName') return resolveStudentName(student);
-  if (field === 'recipientTitle') return getRecipientTitleForTemplate(template, resolveStudentName(student));
-  if (field === 'recipientAchievementSentence') {
-    return getRecipientAchievementSentenceForTemplate(template, resolveStudentName(student), {
+function buildDynamicFieldValues(student, branding, template) {
+  const studentName = resolveStudentName(student);
+  const issueDate = withHijriSuffix(student?.issueDate || getHijriDateString());
+  const values = {
+    studentName,
+    recipientTitle: getRecipientTitleForTemplate(template, studentName),
+    recipientAchievementSentence: getRecipientAchievementSentenceForTemplate(template, studentName, {
       institutionName: branding?.schoolName ? `مؤسسة ${normalizeUtf8(branding.schoolName)}` : undefined,
-    });
+    }),
+    date: issueDate,
+    dateLabel: `تاريخ الإصدار: ${issueDate}`,
+    issueDate,
+    issueDateLabel: `تاريخ الإصدار: ${issueDate}`,
+    recitalType: normalizeUtf8(student?.recitalType || ''),
+    surahRange: normalizeUtf8(student?.surahRange || ''),
+    programName: normalizeUtf8(student?.programName || ''),
+    calendar: normalizeUtf8(student?.calendar || ''),
+    mistakesCount: normalizeUtf8(student?.mistakesCount || ''),
+    teacherName: normalizeUtf8(student?.teacherName || ''),
+    schoolName: normalizeUtf8(branding?.schoolName || 'دار الإتقان العالي'),
+  };
+
+  if (student && typeof student === 'object') {
+    for (const [key, value] of Object.entries(student)) {
+      if (value !== null && value !== undefined && !(key in values)) {
+        values[key] = normalizeUtf8(value);
+      }
+    }
   }
-  if (field === 'date') return withHijriSuffix(student?.issueDate || getHijriDateString());
-  if (field === 'dateLabel') return 'تاريخ الإصدار: ' + withHijriSuffix(student?.issueDate || getHijriDateString());
-  if (field === 'issueDate') return withHijriSuffix(student?.issueDate || getHijriDateString());
-  if (field === 'issueDateLabel') return `تاريخ الإصدار: ${withHijriSuffix(student?.issueDate || getHijriDateString())}`;
-  if (field === 'recitalType') return normalizeUtf8(student?.recitalType || '');
-  if (field === 'surahRange') return normalizeUtf8(student?.surahRange || '');
-  if (field === 'programName') return normalizeUtf8(student?.programName || '');
-  if (field === 'calendar') return normalizeUtf8(student?.calendar || '');
-  if (field === 'mistakesCount') return normalizeUtf8(student?.mistakesCount || '');
-  if (field === 'teacherName') return normalizeUtf8(student?.teacherName || '');
-  if (field === 'schoolName') return normalizeUtf8(branding.schoolName || 'دار الإتقان العالي');
-  if (student && typeof student === 'object' && field in student) {
-    return normalizeUtf8(student[field]);
-  }
-  return '';
+
+  return values;
+}
+
+function renderDynamicTextTemplate(templateText, values, fallbackField) {
+  const rawTemplate = normalizeUtf8(templateText);
+  if (!rawTemplate) return values[fallbackField] || '';
+
+  return rawTemplate.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (_match, token) => {
+    if (token === 'value') return values[fallbackField] || '';
+    return values[token] || '';
+  });
+}
+
+function resolveDynamicTextValue(element, student, branding, template) {
+  const values = buildDynamicFieldValues(student, branding, template);
+  return renderDynamicTextTemplate(element.dynamicTextTemplate, values, element.field);
 }
 
 function getFontCandidates(fontFamily, isBold, isItalic) {
@@ -159,10 +184,47 @@ function getFontCandidates(fontFamily, isBold, isItalic) {
   return candidates;
 }
 
+function getFontFiles() {
+  if (cachedFontFiles) return cachedFontFiles;
+
+  try {
+    cachedFontFiles = fs.readdirSync(fontsDir)
+      .filter((file) => ['.ttf', '.otf'].includes(path.extname(file).toLowerCase()));
+  } catch {
+    cachedFontFiles = [];
+  }
+
+  return cachedFontFiles;
+}
+
+function normalizeFontToken(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\.(ttf|otf)$/i, '')
+    .replace(/[\s_-]+/g, '');
+}
+
+function resolveExactFontPath(fontFamily) {
+  const family = String(fontFamily || '').trim();
+  if (!family) return null;
+
+  const exactPath = ['.ttf', '.otf']
+    .map((extension) => path.join(fontsDir, `${family}${extension}`))
+    .find((candidate) => fs.existsSync(candidate));
+  if (exactPath) return exactPath;
+
+  const normalizedFamily = normalizeFontToken(family);
+  const matchingFile = getFontFiles().find((file) => normalizeFontToken(file) === normalizedFamily);
+  return matchingFile ? path.join(fontsDir, matchingFile) : null;
+}
+
 function findArabicFontPath(fontFamily, fontStyle) {
   const style = String(fontStyle || 'normal').toLowerCase();
   const isBold = style.includes('bold');
   const isItalic = style.includes('italic');
+  const exactMatch = resolveExactFontPath(fontFamily);
+  if (exactMatch) return exactMatch;
   const familyCandidates = getFontCandidates(fontFamily, isBold, isItalic);
   const fallbackCandidates = [
     ...getFontCandidates('Amiri', isBold, isItalic),
@@ -245,6 +307,7 @@ function withElementTransform(doc, element, draw) {
 function applyFont(doc, element) {
   const fontPath = findArabicFontPath(element.fontFamily, element.fontStyle);
   doc.font(fontPath || 'Helvetica');
+  return fontPath;
 }
 
 function getTextOptions(element, sourceText) {
@@ -252,17 +315,75 @@ function getTextOptions(element, sourceText) {
   const lineHeight = Math.max(0.5, Number(element.lineHeight) || 1.4);
   const letterSpacing = Number(element.letterSpacing) || 0;
   const hasExplicitNewLines = String(sourceText || '').includes('\n');
+  const isArabic = containsArabic(sourceText);
 
   return {
     width: Math.max(1, Number(element.width) || 900),
     align: element.align || 'center',
-    lineBreak: hasExplicitNewLines,
+    lineBreak: !hasExplicitNewLines,
     lineGap: Math.max(0, (lineHeight - 1) * fontSize),
-    characterSpacing: letterSpacing,
+    characterSpacing: isArabic ? 0 : letterSpacing,
     underline: element.textDecoration === 'underline',
     // Keep standard ligature/context features; avoid forcing rtla to prevent double-direction processing.
     features: ['rlig', 'calt'],
   };
+}
+
+function resolveTextLayout(doc, element, sourceText, renderedText) {
+  const originalFontSize = Number(element.fontSize) || 26;
+  const options = getTextOptions(element, sourceText);
+  const lines = String(renderedText || '').split('\n');
+
+  const maxWidth = options.width;
+  const minFontSize = Math.max(12, Math.round(originalFontSize * 0.72));
+  let fontSize = originalFontSize;
+  doc.fontSize(fontSize);
+  let measuredWidth = Math.max(
+    ...lines.map((line) => doc.widthOfString(line, { ...options, lineBreak: false, lineGap: 0 }))
+  );
+
+  while (measuredWidth > maxWidth && fontSize > minFontSize) {
+    fontSize -= 1;
+    doc.fontSize(fontSize);
+    measuredWidth = Math.max(
+      ...lines.map((line) => doc.widthOfString(line, {
+        ...options,
+        lineBreak: false,
+        lineGap: 0,
+      }))
+    );
+  }
+
+  return {
+    fontSize,
+    options: {
+      ...options,
+      lineGap: Math.max(0, (Math.max(0.5, Number(element.lineHeight) || 1.4) - 1) * fontSize),
+    },
+  };
+}
+
+function getTextVerticalOffset(element, sourceText, fontSize) {
+  if (element.type !== 'dynamicText') return 0;
+
+  const normalizedSize = Number(fontSize) || Number(element.fontSize) || 26;
+  const factor = containsArabic(sourceText) ? 0.09 : 0.06;
+  return Math.round(normalizedSize * factor);
+}
+
+function drawExplicitMultilineText(doc, text, x, y, element, options) {
+  const lines = String(text || '').split('\n');
+  const lineHeight = Math.max(0.5, Number(element.lineHeight) || 1.4);
+  const fontSize = Number(doc._fontSize) || Number(element.fontSize) || 26;
+  const step = fontSize * lineHeight;
+
+  lines.forEach((line, index) => {
+    doc.text(line, x, y + (index * step), {
+      ...options,
+      lineBreak: false,
+      lineGap: 0,
+    });
+  });
 }
 
 function drawBackground(doc, template) {
@@ -311,22 +432,30 @@ function drawTemplateElement(doc, template, element, student, branding, imageAss
 
   if (element.type === 'text' || element.type === 'dynamicText') {
     const sourceText = element.type === 'dynamicText'
-      ? resolveFieldValue(element.field, student, branding, template)
+      ? resolveDynamicTextValue(element, student, branding, template)
       : normalizeUtf8(element.text || '');
 
     if (!sourceText) return;
 
-    const fontSize = Number(element.fontSize) || 26;
+    const renderedText = shapeText(sourceText);
     const color = element.fill || '#0f172a';
     const x = Number(element.x) || 0;
     const y = Number(element.y) || 120;
 
     withElementTransform(doc, element, () => {
       applyFont(doc, element);
+      const { fontSize, options } = resolveTextLayout(doc, element, sourceText, renderedText);
+      const verticalOffset = getTextVerticalOffset(element, sourceText, fontSize);
       doc
         .fontSize(fontSize)
-        .fillColor(color)
-        .text(shapeText(sourceText), x, y, getTextOptions(element, sourceText));
+        .fillColor(color);
+
+      if (String(sourceText || '').includes('\n')) {
+        drawExplicitMultilineText(doc, renderedText, x, y - verticalOffset, element, options);
+        return;
+      }
+
+      doc.text(renderedText, x, y - verticalOffset, options);
     });
 
     return;

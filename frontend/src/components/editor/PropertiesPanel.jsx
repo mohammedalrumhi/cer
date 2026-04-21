@@ -51,7 +51,7 @@ function NumberInput({ value, onChange, min, max, step = 1, className = '' }) {
   return (
     <input
       type="number"
-      value={Math.round(value ?? 0)}
+      value={value ?? 0}
       min={min}
       max={max}
       step={step}
@@ -149,6 +149,17 @@ export default function PropertiesPanel({ element, fontOptions = [], onChange, o
                 <option key={o.value} value={o.value}>{o.label}</option>
               ))}
             </select>
+          </Row>
+        )}
+        {element.type === 'dynamicText' && (
+          <Row label="القالب">
+            <textarea
+              value={element.dynamicTextTemplate || ''}
+              rows={4}
+              placeholder={'{{value}}\n\nمثال:\nتبارك مؤسسة دار الإتقان العالي بنجاح\n{{recipientTitle}}'}
+              onChange={(e) => onChange(element.id, { dynamicTextTemplate: e.target.value })}
+              className="w-full resize-y rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-300"
+            />
           </Row>
         )}
         {element.type === 'dynamicImage' && (
@@ -295,12 +306,12 @@ export default function PropertiesPanel({ element, fontOptions = [], onChange, o
                   })}
                 </div>
               </Row>
-              <Row label="التباعد">
+              <Row label="تباعد السطور">
                 <NumberInput
                   value={element.lineHeight ?? 1.4}
                   min={0.5}
                   max={5}
-                  step={0.1}
+                  step={0.5}
                   onChange={(v) => onChange(element.id, { lineHeight: v })}
                 />
               </Row>

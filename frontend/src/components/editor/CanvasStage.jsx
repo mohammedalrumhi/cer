@@ -27,24 +27,40 @@ function getHijriDate() {
   }
 }
 
+function buildDynamicPreviewValues(template) {
+  const issueDate = getHijriDate();
+  return {
+    recipientAchievementSentence: getRecipientAchievementSentenceForTemplate(template, 'محمد الحرملي'),
+    recipientTitle: getRecipientTitleForTemplate(template, 'محمد الحرملي'),
+    studentName: 'اسم الطالب',
+    date: issueDate,
+    dateLabel: `تاريخ الإصدار: ${issueDate}`,
+    issueDate: issueDate,
+    issueDateLabel: `تاريخ الإصدار: ${issueDate}`,
+    recitalType: 'نوع الاستظهار',
+    surahRange: 'من سورة إلى سورة',
+    programName: 'اسم البرنامج',
+    calendar: 'التقويم',
+    mistakesCount: 'عدد الأخطاء',
+    teacherName: 'المعلم',
+    schoolName: 'اسم المدرسة',
+  };
+}
+
+function renderDynamicPreviewTemplate(templateText, values, fallbackField) {
+  const rawTemplate = String(templateText || '');
+  if (!rawTemplate) return values[fallbackField] || '';
+
+  return rawTemplate.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (_match, token) => {
+    if (token === 'value') return values[fallbackField] || '';
+    return values[token] || '';
+  });
+}
+
 function getDynamicPreview(el, template) {
   if (el.type !== 'dynamicText') return el.text || '';
-  switch (el.field) {
-    case 'recipientAchievementSentence':
-      return getRecipientAchievementSentenceForTemplate(template, 'محمد الحرملي');
-    case 'recipientTitle': return getRecipientTitleForTemplate(template, 'محمد الحرملي');
-    case 'studentName': return 'اسم الطالب';
-    case 'date': return getHijriDate();
-    case 'dateLabel': return 'تاريخ الإصدار: ' + getHijriDate();
-    case 'recitalType': return 'نوع الاستظهار';
-    case 'surahRange': return 'من سورة إلى سورة';
-    case 'programName': return 'اسم البرنامج';
-    case 'calendar': return 'التقويم';
-    case 'mistakesCount': return 'عدد الأخطاء';
-    case 'teacherName': return 'المعلم';
-    case 'schoolName': return 'اسم المدرسة';
-    default: return el.field || '';
-  }
+  const values = buildDynamicPreviewValues(template);
+  return renderDynamicPreviewTemplate(el.dynamicTextTemplate, values, el.field);
 }
 
 /* ── per-element image loader ─────────────────────────────────────────── */
