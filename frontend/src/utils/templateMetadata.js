@@ -213,5 +213,8 @@ export function getTemplateAudienceLabel(template) {
 }
 
 export function getTemplateDisplayName(template = {}) {
+  if (Array.isArray(template?.availableBackgroundVariants) && template.availableBackgroundVariants.length > 0) {
+    return `${getTemplateDetailLabel(template)} - ${getTemplateAudienceLabel(template)}`;
+  }
   return `${getFallbackColorLabel(template)} - ${getTemplateDetailLabel(template)} - ${getTemplateAudienceLabel(template)}`;
 }

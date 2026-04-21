@@ -1,7 +1,11 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const { normalizeTemplateMetadata } = require('../utils/templateMetadata');
-const { expandTemplatesWithBackgroundVariants } = require('../utils/templateVariants');
+const {
+  collapseTemplatesWithBackgroundVariants,
+  deleteTemplateFamily,
+  parseManagedVariantTemplateId,
+} = require('../utils/templateVariants');
 const { imageUpload } = require('../utils/uploads');
 
 function createTemplatesRouter({ storage }) {
@@ -27,13 +31,15 @@ function createTemplatesRouter({ storage }) {
   });
 
   router.get('/', async (_req, res) => {
-    const templates = expandTemplatesWithBackgroundVariants(await storage.listTemplates());
+    const templates = collapseTemplatesWithBackgroundVariants(await storage.listTemplates());
     res.json(templates.map((template) => normalizeTemplateMetadata(template)));
   });
 
   router.get('/:id', async (req, res) => {
-    const templates = expandTemplatesWithBackgroundVariants(await storage.listTemplates());
-    const template = templates.find((item) => item.id === req.params.id);
+    const templates = collapseTemplatesWithBackgroundVariants(await storage.listTemplates());
+    const managedVariant = parseManagedVariantTemplateId(req.params.id);
+    const targetId = managedVariant?.baseId || req.params.id;
+    const template = templates.find((item) => item.id === targetId);
     if (!template) {
       return res.status(404).json({ message: 'Template not found' });
     }
@@ -63,8 +69,10 @@ function createTemplatesRouter({ storage }) {
     const templates = await storage.listTemplates();
     const existing = templates.find((item) => item.id === req.params.id);
     if (!existing) {
-      const generatedTemplate = expandTemplatesWithBackgroundVariants(templates)
-        .find((item) => item.id === req.params.id);
+      const managedVariant = parseManagedVariantTemplateId(req.params.id);
+      const targetId = managedVariant?.baseId || req.params.id;
+      const generatedTemplate = collapseTemplatesWithBackgroundVariants(templates)
+        .find((item) => item.id === targetId);
 
       if (!generatedTemplate) {
         return res.status(404).json({ message: 'Template not found' });
@@ -95,7 +103,7 @@ function createTemplatesRouter({ storage }) {
   });
 
   router.delete('/:id', async (req, res) => {
-    const deleted = await storage.deleteTemplate(req.params.id);
+    const deleted = await deleteTemplateFamily(storage, req.params.id);
 
     if (!deleted) {
       return res.status(404).json({ message: 'Template not found' });

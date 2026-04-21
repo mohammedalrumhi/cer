@@ -25,6 +25,11 @@ function extractColorLabel(templateName) {
   return match?.[1] || '';
 }
 
+function extractVariantLabels(template) {
+  if (!Array.isArray(template?.availableBackgroundVariants)) return '';
+  return template.availableBackgroundVariants.map((variant) => variant.label).join(' ');
+}
+
 export default function Dashboard() {
   const [templates, setTemplates] = useState([]);
   const [branding, setBranding] = useState({ schoolName: '' });
@@ -124,6 +129,7 @@ export default function Dashboard() {
       .map((template) => {
         const nameText = normalizeSearchText(template.name);
         const colorLabel = normalizeSearchText(extractColorLabel(template.name));
+        const variantLabels = normalizeSearchText(extractVariantLabels(template));
         const colorHex = normalizeSearchText(template.background?.accentColor || template.background?.color || '');
         const updatedAt = new Date(template.updatedAt || 0).getTime();
 
@@ -134,6 +140,8 @@ export default function Dashboard() {
           if (colorLabel === normalizedQuery) score += 500;
           else if (colorLabel.startsWith(normalizedQuery)) score += 350;
           else if (colorLabel.includes(normalizedQuery)) score += 250;
+
+          if (variantLabels.includes(normalizedQuery)) score += 220;
 
           if (nameText.startsWith(normalizedQuery)) score += 180;
           else if (nameText.includes(normalizedQuery)) score += 120;

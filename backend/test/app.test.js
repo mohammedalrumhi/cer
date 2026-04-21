@@ -56,7 +56,7 @@ test('auth login returns token for valid credentials', async () => {
   assert.ok(response.body.token);
 });
 
-test('templates endpoint includes generated color variants', async () => {
+test('templates endpoint exposes one detailed template with selectable color variants', async () => {
   const { app } = createSeededApp();
   const token = await loginAndGetToken(app);
 
@@ -65,9 +65,13 @@ test('templates endpoint includes generated color variants', async () => {
     .set('Authorization', `Bearer ${token}`)
     .expect(200);
 
-  const templateNames = response.body.map((template) => template.name);
-  assert.ok(templateNames.some((name) => name.includes('أخضر زمردي - مفصل - الطلاب')));
-  assert.ok(templateNames.some((name) => name.includes('كهرماني - مفصل - الطلاب')));
+  const detailedStudentTemplate = response.body.find((template) => template.id === 'itqan-template-5-students');
+  assert.ok(detailedStudentTemplate);
+  assert.equal(detailedStudentTemplate.name, 'مفصل - الطلاب');
+  assert.ok(Array.isArray(detailedStudentTemplate.availableBackgroundVariants));
+  assert.ok(detailedStudentTemplate.availableBackgroundVariants.some((variant) => variant.label === 'أخضر زمردي'));
+  assert.ok(detailedStudentTemplate.availableBackgroundVariants.some((variant) => variant.label === 'كهرماني'));
+  assert.equal(response.body.some((template) => template.id === 'itqan-template-5-emerald-students'), false);
 });
 
 test('branding can be fetched and updated', async () => {
@@ -132,13 +136,14 @@ test('certificate generation returns a PDF for one student', async () => {
   const { app, storage } = createSeededApp();
   const token = await loginAndGetToken(app);
   const templates = await storage.listTemplates();
-  const template = templates.find((item) => item.detailLevel === 'simple') || templates[0];
+  const template = templates.find((item) => item.id === 'itqan-template-5-students') || templates[0];
 
   const response = await request(app)
     .post('/api/certificates/generate')
     .set('Authorization', `Bearer ${token}`)
     .send({
       templateId: template.id,
+      backgroundVariantKey: 'emerald',
       students: [{ name: 'طالب تجريبي' }],
     })
     .expect(200);

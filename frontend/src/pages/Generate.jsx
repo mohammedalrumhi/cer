@@ -8,6 +8,27 @@ import {
 import { getTemplateDetailLabel } from '../utils/templateMetadata';
 import { TemplatePreviewPanel } from '../components/TemplatePreviewPanel';
 
+function applyBackgroundVariantToTemplate(template, variantKey) {
+  if (!template) return null;
+  const selectedVariant = Array.isArray(template.availableBackgroundVariants)
+    ? template.availableBackgroundVariants.find((variant) => variant.key === variantKey)
+    : null;
+
+  if (!selectedVariant) return template;
+
+  return {
+    ...template,
+    background: {
+      ...template.background,
+      type: 'image',
+      color: selectedVariant.color,
+      accentColor: selectedVariant.accentColor,
+      imagePath: selectedVariant.imagePath,
+      customLayout: true,
+    },
+  };
+}
+
 function normalizeStudentRecord(student) {
   if (typeof student === 'string') {
     const name = student.trim();
@@ -37,6 +58,7 @@ export default function Generate() {
   const [savedStudents, setSavedStudents] = useState([]);
   const [selectedSavedIds, setSelectedSavedIds] = useState([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
+  const [selectedBackgroundVariantKey, setSelectedBackgroundVariantKey] = useState('');
   const [studentInput, setStudentInput] = useState('');
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -50,6 +72,10 @@ export default function Generate() {
     [templates]
   );
   const selectedTemplate = detailedTemplates.find((template) => template.id === selectedTemplateId) || null;
+  const previewTemplate = useMemo(
+    () => applyBackgroundVariantToTemplate(selectedTemplate, selectedBackgroundVariantKey),
+    [selectedBackgroundVariantKey, selectedTemplate]
+  );
 
   useEffect(() => {
     async function loadData() {
@@ -71,6 +97,21 @@ export default function Generate() {
 
     loadData();
   }, []);
+
+  useEffect(() => {
+    const variants = Array.isArray(selectedTemplate?.availableBackgroundVariants)
+      ? selectedTemplate.availableBackgroundVariants
+      : [];
+
+    if (!variants.length) {
+      setSelectedBackgroundVariantKey('');
+      return;
+    }
+
+    setSelectedBackgroundVariantKey((current) => (
+      variants.some((variant) => variant.key === current) ? current : variants[0].key
+    ));
+  }, [selectedTemplate]);
 
   async function handleExcelUpload(event) {
     const file = event.target.files?.[0];
@@ -163,6 +204,7 @@ export default function Generate() {
       setError('');
       const { blob, filename, contentType } = await generateCertificates({
         templateId: selectedTemplateId,
+        backgroundVariantKey: selectedBackgroundVariantKey || undefined,
         students: effectiveStudents,
       });
 
@@ -210,17 +252,46 @@ export default function Generate() {
           ) : detailedTemplates.length === 0 ? (
             <p className="text-slate-500">لا يوجد قالب مفصل حاليًا. استخدم صفحة القوالب أو أنشئ قالبًا جديدًا.</p>
           ) : (
-            <select
-              value={selectedTemplateId}
-              onChange={(event) => setSelectedTemplateId(event.target.value)}
-              className="w-full rounded-2xl border border-amber-200 bg-white px-4 py-3 text-sm outline-none ring-emerald-300 focus:ring"
-            >
-              {detailedTemplates.map((template) => (
-                <option key={template.id} value={template.id}>
-                  {template.name}
-                </option>
-              ))}
-            </select>
+            <div className="space-y-4">
+              <select
+                value={selectedTemplateId}
+                onChange={(event) => setSelectedTemplateId(event.target.value)}
+                className="w-full rounded-2xl border border-amber-200 bg-white px-4 py-3 text-sm outline-none ring-emerald-300 focus:ring"
+              >
+                {detailedTemplates.map((template) => (
+                  <option key={template.id} value={template.id}>
+                    {template.name}
+                  </option>
+                ))}
+              </select>
+
+              {Array.isArray(selectedTemplate?.availableBackgroundVariants) && selectedTemplate.availableBackgroundVariants.length > 0 && (
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <div>
+                      <h3 className="text-sm font-semibold text-slate-900">لون القالب</h3>
+                      <p className="text-xs text-slate-500">اختر اللون هنا. تعديل مواضع الخطوط يبقى على نفس القالب.</p>
+                    </div>
+                    <span
+                      className="h-8 w-8 rounded-full border border-white shadow-sm"
+                      style={{ backgroundColor: previewTemplate?.background?.accentColor || '#0f4a3c' }}
+                    />
+                  </div>
+
+                  <select
+                    value={selectedBackgroundVariantKey}
+                    onChange={(event) => setSelectedBackgroundVariantKey(event.target.value)}
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none ring-emerald-300 focus:ring"
+                  >
+                    {selectedTemplate.availableBackgroundVariants.map((variant) => (
+                      <option key={variant.key} value={variant.key}>
+                        {variant.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
           )}
 
           {savedStudents.length > 0 && (
@@ -328,7 +399,7 @@ export default function Generate() {
           </div>
         </section>
 
-        <TemplatePreviewPanel template={selectedTemplate} />
+        <TemplatePreviewPanel template={previewTemplate} />
       </div>
     </div>
   );

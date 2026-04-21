@@ -1,7 +1,7 @@
 const express = require('express');
 const archiver = require('archiver');
 const { buildCertificatePdf, buildCertificatesPdf } = require('../services/pdfService');
-const { expandTemplatesWithBackgroundVariants } = require('../utils/templateVariants');
+const { applyBackgroundVariant, resolveTemplateWithBackgroundVariant } = require('../utils/templateVariants');
 
 function normalizeStudentName(student) {
   if (typeof student === 'string') return student.trim();
@@ -49,7 +49,7 @@ function createCertificatesRouter({ storage }) {
 
   router.post('/preview', async (req, res, next) => {
     try {
-      const { template, branding, students } = req.body || {};
+      const { template, branding, students, backgroundVariantKey } = req.body || {};
       const normalizedStudents = normalizeStudentsList(students);
       if (!template || normalizedStudents.length === 0) {
         return res.status(400).json({ message: 'template and students are required' });
@@ -57,7 +57,7 @@ function createCertificatesRouter({ storage }) {
 
       const resolvedBranding = branding || await storage.getBranding();
       const pdfBytes = await buildCertificatesPdf({
-        template,
+        template: applyBackgroundVariant(template, backgroundVariantKey),
         students: normalizedStudents,
         branding: resolvedBranding,
       });
@@ -72,15 +72,15 @@ function createCertificatesRouter({ storage }) {
 
   router.post('/generate', async (req, res, next) => {
     try {
-      const { templateId, students } = req.body || {};
+      const { templateId, students, backgroundVariantKey } = req.body || {};
       const normalizedStudents = normalizeStudentsList(students);
       if (!templateId || normalizedStudents.length === 0) {
         return res.status(400).json({ message: 'templateId and students are required' });
       }
 
-      const templates = expandTemplatesWithBackgroundVariants(await storage.listTemplates());
+      const templates = await storage.listTemplates();
       const branding = await storage.getBranding();
-      const template = templates.find((item) => item.id === templateId);
+      const template = resolveTemplateWithBackgroundVariant(templates, templateId, backgroundVariantKey);
 
       if (!template) {
         return res.status(404).json({ message: 'Template not found' });
