@@ -160,13 +160,13 @@ export default function Dashboard() {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <p className="text-sm text-slate-500">مرحبًا بكم في لوحة إدارة الشهادات</p>
-          <h1 className="text-3xl font-bold text-slate-900">لوحة التحكم</h1>
+          <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">لوحة التحكم</h1>
         </div>
         <button
           type="button"
           onClick={handleSaveBranding}
           disabled={savingBranding}
-          className="inline-flex items-center justify-center rounded-2xl bg-emerald-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-400"
+          className="inline-flex min-h-11 w-full items-center justify-center rounded-2xl bg-emerald-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-auto"
         >
           {savingBranding ? 'جاري الحفظ...' : 'حفظ هوية المدرسة'}
         </button>
@@ -174,7 +174,7 @@ export default function Dashboard() {
 
       {error && <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{error}</div>}
 
-      <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
+      <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
         <BrandingPanel
           branding={branding}
           onSchoolNameChange={setSchoolName}
@@ -183,8 +183,8 @@ export default function Dashboard() {
           onUploadStamp={handleUploadStamp}
         />
 
-        <section className="rounded-3xl border border-emerald-100 bg-white p-6 shadow-sm">
-          <div className="mb-6 flex items-center justify-between gap-4">
+        <section className="min-w-0 rounded-3xl border border-emerald-100 bg-white p-4 shadow-sm sm:p-6">
+          <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-xl font-bold text-slate-900">قوالب الشهادات</h2>
               <p className="text-sm text-slate-500">ابحث مباشرة باسم اللون أو اسم القالب للوصول السريع إلى التعديل.</p>
@@ -205,7 +205,7 @@ export default function Dashboard() {
               />
             </label>
 
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+            <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm">
                 {hasActiveFilters ? 'نتائج البحث ترتب اللون أولاً' : 'اكتب اسم اللون وستظهر أقرب القوالب أولاً'}
               </div>

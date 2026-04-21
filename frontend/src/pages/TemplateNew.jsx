@@ -90,17 +90,17 @@ export default function TemplateNew() {
     <div className="space-y-6">
       <div>
         <p className="text-sm text-slate-500">إضافة قالب جديد</p>
-        <h1 className="text-3xl font-bold text-slate-900">قالب جديد</h1>
+        <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">قالب جديد</h1>
       </div>
 
       {error && <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{error}</div>}
 
-      <div className="grid gap-6 rounded-3xl border border-emerald-100 bg-white p-6 shadow-sm">
+      <div className="grid gap-6 rounded-3xl border border-emerald-100 bg-white p-4 shadow-sm sm:p-6">
         <div>
           <h2 className="text-lg font-bold text-slate-900">اختر قالبًا جاهزًا</h2>
           <p className="text-sm text-slate-500">ابدأ بسرعة من أحد الأنماط المصممة مسبقًا أو ارفع تصميمك كصورة.</p>
         </div>
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {templatePresets.map((preset) => (
             <label
               key={preset.id}
@@ -186,7 +186,7 @@ export default function TemplateNew() {
           <button
             type="submit"
             disabled={processing}
-            className="rounded-2xl bg-emerald-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-400"
+            className="w-full rounded-2xl bg-emerald-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-auto"
           >
             {processing ? 'جارٍ الإنشاء...' : 'إنشاء القالب'}
           </button>

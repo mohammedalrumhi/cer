@@ -27,9 +27,9 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_20%_20%,#d1fae5_0,#f0fdf4_25%,#f8fafc_60%)]" dir="rtl">
-      <div className="mx-auto flex min-h-screen max-w-6xl items-center px-4 py-10 lg:px-8">
+      <div className="mx-auto flex min-h-screen max-w-6xl items-center px-3 py-6 sm:px-4 sm:py-10 lg:px-8">
         <div className="grid w-full overflow-hidden rounded-3xl border border-emerald-100 bg-white shadow-2xl lg:grid-cols-[1.15fr_1fr]">
-          <section className="relative hidden bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-700 p-10 text-white lg:block">
+          <section className="relative hidden bg-linear-to-br from-emerald-900 via-emerald-800 to-teal-700 p-10 text-white lg:block">
             <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
             <div className="relative z-10">
               <img src="/assets/logo.png" alt="Logo" className="mb-6 h-20 w-20 rounded-2xl bg-white/95 p-2" />
@@ -44,11 +44,11 @@ export default function Login() {
             </div>
           </section>
 
-          <section className="p-6 sm:p-10">
+          <section className="p-5 sm:p-8 lg:p-10">
             <div className="mx-auto w-full max-w-md">
               <div className="mb-8 text-center">
                 <img src="/assets/logo.png" alt="Logo" className="mx-auto mb-4 h-16 w-16 rounded-xl bg-emerald-50 p-2 lg:hidden" />
-                <h2 className="text-3xl font-bold text-slate-900">تسجيل الدخول</h2>
+                <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">تسجيل الدخول</h2>
                 <p className="mt-2 text-sm text-slate-500">أدخل اسم المستخدم وكلمة المرور</p>
               </div>
 
@@ -88,7 +88,7 @@ export default function Login() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="mt-2 w-full rounded-xl bg-gradient-to-r from-emerald-700 to-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:from-emerald-600 hover:to-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="mt-2 w-full rounded-xl bg-linear-to-r from-emerald-700 to-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:from-emerald-600 hover:to-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {loading ? 'جاري التحقق...' : 'دخول'}
                 </button>

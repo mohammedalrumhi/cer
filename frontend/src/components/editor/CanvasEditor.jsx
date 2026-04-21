@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Eye, Grid2X2, Redo2, Search, Undo2, ZoomIn, ZoomOut } from 'lucide-react';
 import {
-  API_ORIGIN,
   buildAssetUrl,
   fetchFonts,
   previewTemplate,
@@ -152,6 +152,57 @@ function useBrandingImages(branding) {
   return { logoImg, signatureImg, stampImg };
 }
 
+function MobileCanvasToolbar({
+  canUndo,
+  canRedo,
+  onUndo,
+  onRedo,
+  onPreview,
+  previewing,
+  zoom,
+  onZoomIn,
+  onZoomOut,
+  onZoomFit,
+  showGrid,
+  onToggleGrid,
+}) {
+  const buttonClass = 'flex min-h-10 min-w-10 items-center justify-center rounded-xl border border-white/70 bg-white/95 px-3 text-slate-700 shadow-sm backdrop-blur hover:bg-white';
+
+  return (
+    <div className="pointer-events-none absolute inset-x-3 top-3 z-10 flex items-center justify-between gap-2">
+      <div className="pointer-events-auto flex items-center gap-2 rounded-2xl bg-white/70 p-1 shadow-lg backdrop-blur-md">
+        <button type="button" onClick={onUndo} disabled={!canUndo} className={`${buttonClass} disabled:opacity-40`} title="تراجع">
+          <Undo2 size={16} />
+        </button>
+        <button type="button" onClick={onRedo} disabled={!canRedo} className={`${buttonClass} disabled:opacity-40`} title="إعادة">
+          <Redo2 size={16} />
+        </button>
+        <button type="button" onClick={onToggleGrid} className={buttonClass} title="إظهار الشبكة">
+          <Grid2X2 size={16} className={showGrid ? 'text-emerald-700' : ''} />
+        </button>
+        <button type="button" onClick={onPreview} disabled={previewing} className={`${buttonClass} disabled:opacity-40`} title="معاينة PDF">
+          <Eye size={16} />
+        </button>
+      </div>
+
+      <div className="pointer-events-auto flex items-center gap-2 rounded-2xl bg-white/70 p-1 shadow-lg backdrop-blur-md">
+        <button type="button" onClick={onZoomOut} className={buttonClass} title="تصغير">
+          <ZoomOut size={16} />
+        </button>
+        <div className="min-w-14 text-center text-xs font-semibold text-slate-700">
+          {Math.round(zoom * 100)}%
+        </div>
+        <button type="button" onClick={onZoomIn} className={buttonClass} title="تكبير">
+          <ZoomIn size={16} />
+        </button>
+        <button type="button" onClick={onZoomFit} className={buttonClass} title="احتواء">
+          <Search size={16} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /* ── CanvasEditor ─────────────────────────────────────────────────────── */
 export default function CanvasEditor({ templateId, initialTemplate, initialBranding }) {
   const navigate = useNavigate();
@@ -190,6 +241,8 @@ export default function CanvasEditor({ templateId, initialTemplate, initialBrand
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [fontOptions, setFontOptions] = useState(DEFAULT_FONT_OPTIONS);
+  const [isMobileLayout, setIsMobileLayout] = useState(false);
+  const [mobileInspectorOpen, setMobileInspectorOpen] = useState(false);
 
   const { logoImg, signatureImg, stampImg } = useBrandingImages(initialBranding);
   const backgroundImageSrc = buildAssetUrl(meta.background?.imagePath);
@@ -238,6 +291,30 @@ export default function CanvasEditor({ templateId, initialTemplate, initialBrand
   }, []);
 
   const selectedElement = elements.find((el) => el.id === selectedIds[0]) || null;
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
+
+    const mediaQuery = window.matchMedia('(max-width: 1023px)');
+    const updateLayout = (event) => {
+      setIsMobileLayout(event.matches);
+    };
+
+    updateLayout(mediaQuery);
+    mediaQuery.addEventListener('change', updateLayout);
+    return () => mediaQuery.removeEventListener('change', updateLayout);
+  }, []);
+
+  useEffect(() => {
+    if (!isMobileLayout) {
+      setMobileInspectorOpen(false);
+      return;
+    }
+
+    if (!selectedElement) {
+      setMobileInspectorOpen(false);
+    }
+  }, [isMobileLayout, selectedElement]);
 
   /* mark dirty whenever elements or meta change (after initial mount) */
   const mountedRef = useRef(false);
@@ -340,6 +417,12 @@ export default function CanvasEditor({ templateId, initialTemplate, initialBrand
     const verticalScale = availableHeight / meta.height;
     handleZoomChange(Math.min(horizontalScale, verticalScale));
   }
+
+  useEffect(() => {
+    if (!isMobileLayout || !viewportSize.width || !viewportSize.height) return;
+    fitCanvasToViewport();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMobileLayout, viewportSize.width, viewportSize.height, meta.width, meta.height]);
 
   function handleCanvasMouseDown(event) {
     if (!spacePressed || event.button !== 0 || !canvasContainerRef.current) return;
@@ -578,6 +661,7 @@ export default function CanvasEditor({ templateId, initialTemplate, initialBrand
         onBack={() => navigate('/')}
         onImportDesign={handleImportDesign}
         onUploadFont={handleUploadFont}
+        isMobile={isMobileLayout}
       />
 
       {/* Toast messages */}
@@ -591,31 +675,59 @@ export default function CanvasEditor({ templateId, initialTemplate, initialBrand
       )}
 
       {/* Editor body */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Left: tools */}
-        <ToolsSidebar
-          activeTool={tool}
-          onToolChange={setTool}
-          onAddElement={addElement}
-          onUploadImage={handleUploadImage}
-        />
+      <div className={`flex flex-1 overflow-hidden ${isMobileLayout ? 'flex-col' : ''}`}>
+        {!isMobileLayout && (
+          <ToolsSidebar
+            activeTool={tool}
+            onToolChange={setTool}
+            onAddElement={addElement}
+            onUploadImage={handleUploadImage}
+            isMobile={false}
+          />
+        )}
 
         {/* Center: canvas */}
         <div
           ref={canvasContainerRef}
-          className="relative flex flex-1 overflow-auto bg-slate-200"
+          className={`relative flex flex-1 overflow-auto bg-slate-200 ${isMobileLayout ? 'min-h-[46vh]' : ''}`}
           onWheel={handleWheel}
           onMouseDown={handleCanvasMouseDown}
           style={{ cursor: isPanning ? 'grabbing' : spacePressed ? 'grab' : tool !== 'select' ? 'crosshair' : 'default' }}
         >
-          {/* Grid toggle */}
-          <button
-            onClick={() => setShowGrid((g) => !g)}
-            title="شبكة"
-            className={`absolute right-3 top-3 z-10 rounded-lg border px-2 py-1 text-xs font-semibold shadow-sm transition ${showGrid ? 'border-emerald-400 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50'}`}
-          >
-            شبكة
-          </button>
+          {isMobileLayout ? (
+            <MobileCanvasToolbar
+              canUndo={canUndo}
+              canRedo={canRedo}
+              onUndo={undo}
+              onRedo={redo}
+              onPreview={handlePreview}
+              previewing={previewing}
+              zoom={zoom}
+              onZoomIn={() => handleZoomChange(Math.min(ZOOM_MAX, zoom + 0.1))}
+              onZoomOut={() => handleZoomChange(Math.max(ZOOM_MIN, zoom - 0.1))}
+              onZoomFit={fitCanvasToViewport}
+              showGrid={showGrid}
+              onToggleGrid={() => setShowGrid((g) => !g)}
+            />
+          ) : (
+            <button
+              onClick={() => setShowGrid((g) => !g)}
+              title="شبكة"
+              className={`absolute right-3 top-3 z-10 rounded-lg border px-2 py-1 text-xs font-semibold shadow-sm transition ${showGrid ? 'border-emerald-400 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50'}`}
+            >
+              شبكة
+            </button>
+          )}
+
+          {isMobileLayout && selectedElement && (
+            <button
+              type="button"
+              onClick={() => setMobileInspectorOpen((value) => !value)}
+              className="absolute bottom-3 left-3 z-10 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 shadow-lg transition hover:bg-slate-50"
+            >
+              {mobileInspectorOpen ? 'إخفاء الخصائص' : 'خصائص العنصر'}
+            </button>
+          )}
 
           <div
             className="flex min-h-full min-w-full"
@@ -653,15 +765,45 @@ export default function CanvasEditor({ templateId, initialTemplate, initialBrand
           </div>
         </div>
 
-        {/* Right: properties */}
-        <PropertiesPanel
-          element={selectedElement}
-          fontOptions={fontOptions}
-          onChange={updateElement}
-          onRemove={removeElement}
-          onLayerOp={(action) => selectedElement && layerOp(action, selectedElement.id)}
-        />
+        {isMobileLayout && (
+          <ToolsSidebar
+            activeTool={tool}
+            onToolChange={setTool}
+            onAddElement={addElement}
+            onUploadImage={handleUploadImage}
+            isMobile
+          />
+        )}
+
+        {isMobileLayout ? null : (
+          <PropertiesPanel
+            element={selectedElement}
+            fontOptions={fontOptions}
+            onChange={updateElement}
+            onRemove={removeElement}
+            onLayerOp={(action) => selectedElement && layerOp(action, selectedElement.id)}
+          />
+        )}
       </div>
+
+      {isMobileLayout && mobileInspectorOpen && selectedElement && (
+        <div
+          className="fixed inset-0 z-30 flex items-end justify-center bg-slate-900/45 p-3 backdrop-blur-[2px]"
+          onClick={() => setMobileInspectorOpen(false)}
+        >
+          <div className="w-full max-w-lg" onClick={(event) => event.stopPropagation()}>
+            <PropertiesPanel
+              element={selectedElement}
+              fontOptions={fontOptions}
+              onChange={updateElement}
+              onRemove={removeElement}
+              onLayerOp={(action) => selectedElement && layerOp(action, selectedElement.id)}
+              isMobile
+              onClose={() => setMobileInspectorOpen(false)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -65,10 +65,10 @@ export function TemplateCard({ template, onDelete }) {
 
       <p className="mb-4 text-xs text-slate-500">{new Date(template.updatedAt).toLocaleDateString('ar-SA')}</p>
 
-      <div className="mt-auto flex gap-2">
+      <div className="mt-auto flex flex-col gap-2 sm:flex-row">
         <Link
           to={`/templates/${template.id}/edit`}
-          className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-emerald-800 bg-emerald-800 px-3 py-2 text-sm text-white"
+          className="flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-emerald-800 bg-emerald-800 px-3 py-2 text-sm text-white"
         >
           <Edit3 size={15} />
           تعديل
@@ -76,7 +76,7 @@ export function TemplateCard({ template, onDelete }) {
         <button
           type="button"
           onClick={() => onDelete(template.id)}
-          className="flex items-center justify-center gap-2 rounded-xl border border-rose-200 px-3 py-2 text-sm text-rose-600"
+          className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-rose-200 px-3 py-2 text-sm text-rose-600"
         >
           <Trash2 size={15} />
           حذف

@@ -196,14 +196,14 @@ export default function Generate() {
     <div className="space-y-6">
       <div>
         <p className="text-sm text-slate-500">صفحة إنشاء الشهادات</p>
-        <h1 className="text-3xl font-bold text-slate-900">توليد الشهادات المفصلة</h1>
+        <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">توليد الشهادات المفصلة</h1>
       </div>
 
       {error && <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{error}</div>}
       {message && <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">{message}</div>}
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <section className="space-y-6 rounded-3xl border border-emerald-100 bg-white p-6 shadow-sm">
+        <section className="min-w-0 space-y-6 rounded-3xl border border-emerald-100 bg-white p-4 shadow-sm sm:p-6">
           <h2 className="mb-3 text-xl font-bold text-slate-900">اختر القالب</h2>
           {loading ? (
             <p className="text-slate-500">جاري تحميل القوالب...</p>
@@ -225,7 +225,7 @@ export default function Generate() {
 
           {savedStudents.length > 0 && (
             <div className="mt-6 rounded-3xl border border-slate-200 bg-slate-50 p-4">
-              <div className="mb-3 flex items-center justify-between gap-3">
+              <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h3 className="text-sm font-semibold text-slate-900">الطلاب المحفوظون</h3>
                   <p className="text-xs text-slate-500">حدد الطلاب الذين تريد إنشاء شهاداتهم.</p>
@@ -234,14 +234,14 @@ export default function Generate() {
                   <button
                     type="button"
                     onClick={selectAllSaved}
-                    className="rounded-2xl border border-emerald-700 bg-emerald-700 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-600"
+                    className="min-h-11 rounded-2xl border border-emerald-700 bg-emerald-700 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-600"
                   >
                     اختيار الكل
                   </button>
                   <button
                     type="button"
                     onClick={clearSavedSelection}
-                    className="rounded-2xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-100"
+                    className="min-h-11 rounded-2xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-100"
                   >
                     إلغاء التحديد
                   </button>
@@ -256,9 +256,9 @@ export default function Generate() {
                       key={student.id}
                       type="button"
                       onClick={() => toggleSavedSelection(student.id)}
-                      className={`flex w-full items-center justify-between rounded-2xl border px-3 py-2 text-sm transition ${isChecked ? 'border-emerald-700 bg-emerald-50 text-emerald-900' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100'}`}
+                      className={`flex w-full items-center justify-between gap-3 rounded-2xl border px-3 py-2 text-sm transition ${isChecked ? 'border-emerald-700 bg-emerald-50 text-emerald-900' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100'}`}
                     >
-                      <span className="text-right">
+                      <span className="min-w-0 flex-1 text-right">
                         <span className="block">{student.name}</span>
                         {(student.programName || student.teacherName) && (
                           <span className="block text-xs text-slate-500">
@@ -283,7 +283,7 @@ export default function Generate() {
               onDragLeave={handleDrag}
               onDragOver={handleDrag}
               onDrop={handleDrop}
-              className={`relative rounded-3xl border-2 border-dashed p-8 text-center transition cursor-pointer ${
+              className={`relative cursor-pointer rounded-3xl border-2 border-dashed p-5 text-center transition sm:p-8 ${
                 dragActive
                   ? 'border-emerald-500 bg-emerald-50'
                   : 'border-slate-300 bg-slate-50 hover:border-slate-400 hover:bg-slate-100'
@@ -315,13 +315,13 @@ export default function Generate() {
             هذه الصفحة مخصصة للقوالب المفصلة. للإنشاء السريع بالقوالب البسيطة والكتابة سطرًا بسطر استخدم صفحة الشهادات السريعة.
           </div>
 
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <span className="text-sm text-slate-500">عدد الطلاب المحددين: {selectedSavedIds.length}</span>
             <button
               type="button"
               onClick={handleGenerate}
               disabled={processing || loading}
-              className="rounded-2xl bg-emerald-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-400"
+              className="w-full rounded-2xl bg-emerald-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-auto"
             >
               {processing ? 'جاري التوليد...' : 'تحميل الشهادات'}
             </button>

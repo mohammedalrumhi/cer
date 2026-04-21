@@ -39,7 +39,7 @@ export function BrandingPanel({ branding, onSchoolNameChange, onUploadLogo, onUp
   }
 
   return (
-    <section className="rounded-2xl border border-amber-100 bg-amber-50/60 p-4">
+    <section className="rounded-2xl border border-amber-100 bg-amber-50/60 p-4 sm:p-5">
       <h3 className="mb-3 text-lg font-bold text-emerald-900">هوية المدرسة</h3>
 
       <label className="mb-3 block text-sm font-semibold text-slate-700">اسم المدرسة</label>
@@ -51,11 +51,11 @@ export function BrandingPanel({ branding, onSchoolNameChange, onUploadLogo, onUp
         placeholder="دار الإتقان العالي"
       />
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         <button
           type="button"
           onClick={() => logoRef.current?.click()}
-          className="flex items-center justify-center gap-2 rounded-xl border border-emerald-700 bg-emerald-700 px-3 py-2 text-sm font-semibold text-white"
+          className="flex min-h-12 items-center justify-center gap-2 rounded-xl border border-emerald-700 bg-emerald-700 px-3 py-2 text-sm font-semibold text-white"
         >
           <ImagePlus size={16} />
           رفع الشعار
@@ -63,7 +63,7 @@ export function BrandingPanel({ branding, onSchoolNameChange, onUploadLogo, onUp
         <button
           type="button"
           onClick={() => signatureRef.current?.click()}
-          className="flex items-center justify-center gap-2 rounded-xl border border-amber-500 bg-amber-400 px-3 py-2 text-sm font-semibold text-emerald-950"
+          className="flex min-h-12 items-center justify-center gap-2 rounded-xl border border-amber-500 bg-amber-400 px-3 py-2 text-sm font-semibold text-emerald-950"
         >
           <PenSquare size={16} />
           رفع التوقيع
@@ -71,14 +71,14 @@ export function BrandingPanel({ branding, onSchoolNameChange, onUploadLogo, onUp
         <button
           type="button"
           onClick={() => stampRef.current?.click()}
-          className="flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700"
+          className="flex min-h-12 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700"
         >
           <Stamp size={16} />
           رفع الختم
         </button>
       </div>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         <AssetPreview title="الشعار الحالي" src={logoSrc} emptyText="لم يتم رفع شعار بعد" mode="contain" />
         <AssetPreview title="التوقيع الحالي" src={signatureSrc} emptyText="لم يتم رفع توقيع بعد" mode="contain" />
         <AssetPreview title="الختم الحالي" src={stampSrc} emptyText="لم يتم رفع ختم بعد" mode="contain" />

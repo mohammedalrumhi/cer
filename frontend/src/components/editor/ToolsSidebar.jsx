@@ -27,11 +27,13 @@ const DYNAMIC_ITEMS = [
   { label: 'الختم', type: 'dynamicImage', extra: { field: 'stamp' } },
 ];
 
-export default function ToolsSidebar({ activeTool, onToolChange, onAddElement, onUploadImage }) {
+export default function ToolsSidebar({ activeTool, onToolChange, onAddElement, onUploadImage, isMobile = false }) {
   return (
     <div
-      className="flex h-full w-16 shrink-0 flex-col items-center gap-1 overflow-y-auto border-l border-slate-200 bg-white py-3"
-      style={{ direction: 'ltr' }}
+      className={isMobile
+        ? 'flex w-full shrink-0 items-stretch gap-2 overflow-x-auto border-t border-slate-200 bg-white px-3 py-3'
+        : 'flex h-full w-16 shrink-0 flex-col items-center gap-1 overflow-y-auto border-l border-slate-200 bg-white py-3'}
+      style={{ direction: 'ltr', paddingBottom: isMobile ? 'calc(12px + env(safe-area-inset-bottom))' : undefined }}
     >
       {/* Drawing tools */}
       {TOOLS.map((tool) => (
@@ -39,7 +41,7 @@ export default function ToolsSidebar({ activeTool, onToolChange, onAddElement, o
           key={tool.id}
           title={tool.label}
           onClick={() => onToolChange(tool.id)}
-          className={`flex w-12 flex-col items-center gap-0.5 rounded-xl py-2 text-[10px] font-semibold transition ${
+          className={`flex ${isMobile ? 'min-w-16 px-2' : 'w-12'} flex-col items-center gap-0.5 rounded-xl py-2 text-[10px] font-semibold transition ${
             activeTool === tool.id
               ? 'bg-emerald-100 text-emerald-800'
               : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'
@@ -50,19 +52,19 @@ export default function ToolsSidebar({ activeTool, onToolChange, onAddElement, o
         </button>
       ))}
 
-      <div className="my-1 w-10 border-t border-slate-200" />
+      <div className={isMobile ? 'my-1 h-10 w-px shrink-0 border-l border-slate-200' : 'my-1 w-10 border-t border-slate-200'} />
 
       {/* Upload image */}
       <label
         title="رفع صورة"
-        className="flex w-12 cursor-pointer flex-col items-center gap-0.5 rounded-xl py-2 text-[10px] font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
+        className={`flex cursor-pointer flex-col items-center gap-0.5 rounded-xl py-2 text-[10px] font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-800 ${isMobile ? 'min-w-16 px-2' : 'w-12'}`}
       >
         <Image size={18} />
         <span className="leading-tight">صورة</span>
         <input type="file" accept="image/*" className="hidden" onChange={onUploadImage} />
       </label>
 
-      <div className="my-1 w-10 border-t border-slate-200" />
+      <div className={isMobile ? 'my-1 h-10 w-px shrink-0 border-l border-slate-200' : 'my-1 w-10 border-t border-slate-200'} />
 
       {/* Dynamic fields */}
       {DYNAMIC_ITEMS.map((item) => (
@@ -70,7 +72,7 @@ export default function ToolsSidebar({ activeTool, onToolChange, onAddElement, o
           key={item.extra.field}
           title={`إضافة ${item.label}`}
           onClick={() => onAddElement(item.type, item.extra)}
-          className="flex w-12 flex-col items-center gap-0.5 rounded-xl py-2 text-[10px] font-semibold text-amber-700 transition hover:bg-amber-50"
+          className={`flex flex-col items-center gap-0.5 rounded-xl py-2 text-[10px] font-semibold text-amber-700 transition hover:bg-amber-50 ${isMobile ? 'min-w-16 px-2' : 'w-12'}`}
         >
           <span className="text-[16px] leading-none">⬡</span>
           <span className="text-center leading-tight">{item.label}</span>

@@ -61,11 +61,11 @@ function NumberInput({ value, onChange, min, max, step = 1, className = '' }) {
   );
 }
 
-export default function PropertiesPanel({ element, fontOptions = [], onChange, onRemove, onLayerOp }) {
+export default function PropertiesPanel({ element, fontOptions = [], onChange, onRemove, onLayerOp, isMobile = false, onClose }) {
   if (!element) {
     return (
       <div
-        className="flex h-full w-64 shrink-0 flex-col items-center justify-center border-r border-slate-200 bg-white p-6"
+        className={`flex shrink-0 flex-col items-center justify-center bg-white p-6 ${isMobile ? 'w-full border-t border-slate-200' : 'h-full w-64 border-r border-slate-200'}`}
         style={{ direction: 'rtl' }}
       >
         <p className="text-center text-xs text-slate-400">اختر عنصراً لتعديل خصائصه</p>
@@ -96,11 +96,11 @@ export default function PropertiesPanel({ element, fontOptions = [], onChange, o
 
   return (
     <div
-      className="flex h-full w-64 shrink-0 flex-col overflow-y-auto border-r border-slate-200 bg-white"
+      className={`flex shrink-0 flex-col overflow-y-auto bg-white ${isMobile ? 'max-h-[80vh] w-full rounded-3xl border border-slate-200 shadow-2xl' : 'h-full w-64 border-r border-slate-200'}`}
       style={{ direction: 'rtl' }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+      <div className="sticky top-0 flex items-center justify-between border-b border-slate-100 bg-white px-4 py-3">
         <span className="text-xs font-semibold text-slate-700">
           {element.type === 'text'
             ? 'نص ثابت'
@@ -116,13 +116,24 @@ export default function PropertiesPanel({ element, fontOptions = [], onChange, o
                       ? 'صورة ديناميكية'
                       : 'صورة'}
         </span>
-        <button
-          onClick={() => onRemove(element.id)}
-          className="rounded-lg p-1 text-rose-400 hover:bg-rose-50 hover:text-rose-600"
-          title="حذف العنصر"
-        >
-          <Trash2 size={14} />
-        </button>
+        <div className="flex items-center gap-2">
+          {isMobile && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg px-2 py-1 text-xs font-semibold text-slate-500 hover:bg-slate-100"
+            >
+              إغلاق
+            </button>
+          )}
+          <button
+            onClick={() => onRemove(element.id)}
+            className="rounded-lg p-1 text-rose-400 hover:bg-rose-50 hover:text-rose-600"
+            title="حذف العنصر"
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-col gap-3 p-4">

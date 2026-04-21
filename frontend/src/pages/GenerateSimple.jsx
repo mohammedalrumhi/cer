@@ -91,14 +91,14 @@ export default function GenerateSimple() {
     <div className="space-y-6">
       <div>
         <p className="text-sm text-slate-500">صفحة الشهادات السريعة</p>
-        <h1 className="text-3xl font-bold text-slate-900">توليد الشهادات البسيطة</h1>
+        <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">توليد الشهادات البسيطة</h1>
       </div>
 
       {error && <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{error}</div>}
       {message && <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">{message}</div>}
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <section className="space-y-6 rounded-3xl border border-amber-100 bg-white p-6 shadow-sm">
+        <section className="min-w-0 space-y-6 rounded-3xl border border-amber-100 bg-white p-4 shadow-sm sm:p-6">
           <div>
             <h2 className="text-xl font-bold text-slate-900">القوالب البسيطة</h2>
             <p className="mt-1 text-sm text-slate-500">هذه الصفحة مخصصة للقوالب البسيطة وإدخال الأسماء فقط سطرًا بسطر.</p>
@@ -134,13 +134,13 @@ export default function GenerateSimple() {
             placeholder="أدخل أسماء الطلاب فقط، كل اسم في سطر جديد..."
           />
 
-          <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <span className="text-sm text-slate-500">عدد الطلاب: {students.length}</span>
             <button
               type="button"
               onClick={handleGenerate}
               disabled={processing || loading}
-              className="rounded-2xl bg-emerald-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-400"
+              className="w-full rounded-2xl bg-emerald-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-auto"
             >
               {processing ? 'جاري التوليد...' : 'تحميل الشهادات'}
             </button>
