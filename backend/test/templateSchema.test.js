@@ -69,6 +69,16 @@ test('saving stores the upgraded template and preserves unknown fields', async (
   assert.equal(updated.schemaVersion, 2);
 });
 
+test('creating a template keeps client metadata such as audienceType and schemaVersion', async () => {
+  const { app, auth } = await setup([]);
+  const { body } = await request(app).post('/api/templates').set(auth)
+    .send({ name: 'x', audienceType: 'adult', schemaVersion: 2, background: { type: 'solid', color: '#fff' }, elements: [] })
+    .expect(201);
+  assert.equal(body.audienceType, 'adult');
+  assert.equal(body.schemaVersion, 2);
+  assert.equal(body.elements.length, 0, 'a v2 payload is not re-migrated (no legacy decoration added)');
+});
+
 test('MySQL storage round-trips non-column template fields through extra_json', async () => {
   const mysql = require('mysql2/promise');
   const originalCreatePool = mysql.createPool;

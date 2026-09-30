@@ -49,7 +49,10 @@ function createTemplatesRouter({ storage }) {
   router.post('/', async (req, res) => {
     const payload = req.body || {};
 
+    // Keep every client field (detailLevel, audienceType, schemaVersion…); the storage layer
+    // migrates and the server owns id and timestamps.
     const template = normalizeTemplateMetadata({
+      ...payload,
       id: uuidv4(),
       name: payload.name || 'قالب جديد',
       orientation: payload.orientation || 'landscape',
