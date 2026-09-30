@@ -1,11 +1,9 @@
-const fs = require('fs');
 const path = require('path');
 const express = require('express');
 const { fontUpload } = require('../utils/uploads');
+const { listFontFiles } = require('../utils/storagePaths');
 
 const router = express.Router();
-const fontsDir = path.resolve(__dirname, '../../assets/fonts');
-const supportedExtensions = new Set(['.ttf', '.otf']);
 
 function toFamilyName(fileName) {
   return path.basename(fileName, path.extname(fileName));
@@ -38,10 +36,8 @@ router.post('/', (req, res) => {
 });
 
 router.get('/', (_req, res) => {
-  const files = fs.existsSync(fontsDir) ? fs.readdirSync(fontsDir) : [];
-  const fonts = files
-    .filter((file) => supportedExtensions.has(path.extname(file).toLowerCase()))
-    .map(toFontDto)
+  const fonts = listFontFiles()
+    .map(({ fileName }) => toFontDto(fileName))
     .sort((a, b) => a.label.localeCompare(b.label, 'ar'));
 
   res.json(fonts);

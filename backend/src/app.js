@@ -11,7 +11,7 @@ const { createCertificatesRouter } = require('./routes/certificates');
 const fontsRouter = require('./routes/fonts');
 const { createAuthRouter } = require('./routes/auth');
 const { requireAuth } = require('./middleware/auth');
-const { uploadsDir, fontsDir } = require('./utils/storagePaths');
+const { uploadsDir, fontDirs } = require('./utils/storagePaths');
 const { withTemplateMigrations } = require('./storage/withTemplateMigrations');
 
 function resolveFrontendDistDir() {
@@ -62,7 +62,7 @@ function createApp({ storage: rawStorage }) {
   app.use(cors({ exposedHeaders: ['Content-Disposition', 'Content-Type'] }));
   app.use(express.json({ limit: '10mb' }));
   app.use('/uploads', express.static(uploadsDir));
-  app.use('/assets/fonts', express.static(fontsDir));
+  for (const dir of fontDirs) app.use('/assets/fonts', express.static(dir));
   if (frontendDistDir) {
     app.use(express.static(frontendDistDir));
   }
