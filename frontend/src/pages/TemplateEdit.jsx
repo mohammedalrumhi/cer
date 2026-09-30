@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { fetchBranding, fetchTemplate } from '../api/client';
-import CanvasEditor from '../components/editor/CanvasEditor';
+import EditorShell from '../editor/EditorShell';
 
 export default function TemplateEdit() {
   const { id } = useParams();
@@ -45,7 +45,7 @@ export default function TemplateEdit() {
   }
 
   return (
-    <CanvasEditor
+    <EditorShell
       templateId={id}
       initialTemplate={template}
       initialBranding={branding}

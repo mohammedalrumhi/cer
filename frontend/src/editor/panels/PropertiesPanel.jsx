@@ -14,29 +14,7 @@ import {
   Trash2,
   Underline,
 } from 'lucide-react';
-
-const DYNAMIC_FIELD_OPTIONS = [
-  { value: 'recipientAchievementSentence', label: 'جملة التهنئة' },
-  { value: 'recipientTitle', label: 'اللقب التلقائي' },
-  { value: 'studentName', label: 'اسم الطالب' },
-  { value: 'date', label: 'التاريخ الهجري' },
-  { value: 'dateLabel', label: 'تاريخ الإصدار (هجري)' },
-  { value: 'issueDate', label: 'تاريخ الإصدار' },
-  { value: 'issueDateLabel', label: 'سطر تاريخ الإصدار' },
-  { value: 'recitalType', label: 'نوع الاستظهار' },
-  { value: 'surahRange', label: 'نص السور (من إلى)' },
-  { value: 'programName', label: 'اسم البرنامج' },
-  { value: 'calendar', label: 'التقويم' },
-  { value: 'mistakesCount', label: 'عدد الأخطاء' },
-  { value: 'teacherName', label: 'المعلم' },
-  { value: 'schoolName', label: 'اسم المدرسة' },
-];
-
-const DYNAMIC_IMAGE_FIELD_OPTIONS = [
-  { value: 'logo', label: 'الشعار' },
-  { value: 'signature', label: 'التوقيع' },
-  { value: 'stamp', label: 'الختم' },
-];
+import { DYNAMIC_IMAGE_FIELDS, DYNAMIC_TEXT_FIELDS, ELEMENT_LABELS } from '../model/elements';
 
 function Row({ label, children }) {
   return (
@@ -102,19 +80,7 @@ export default function PropertiesPanel({ element, fontOptions = [], onChange, o
       {/* Header */}
       <div className="sticky top-0 flex items-center justify-between border-b border-slate-100 bg-white px-4 py-3">
         <span className="text-xs font-semibold text-slate-700">
-          {element.type === 'text'
-            ? 'نص ثابت'
-            : element.type === 'dynamicText'
-              ? 'نص ديناميكي'
-              : element.type === 'rect'
-                ? 'مستطيل'
-                : element.type === 'circle'
-                  ? 'دائرة'
-                  : element.type === 'line'
-                    ? 'خط'
-                    : element.type === 'dynamicImage'
-                      ? 'صورة ديناميكية'
-                      : 'صورة'}
+          {ELEMENT_LABELS[element.type] || 'عنصر'}
         </span>
         <div className="flex items-center gap-2">
           {isMobile && (
@@ -145,7 +111,7 @@ export default function PropertiesPanel({ element, fontOptions = [], onChange, o
               onChange={(e) => onChange(element.id, { field: e.target.value })}
               className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs outline-none focus:border-emerald-400"
             >
-              {DYNAMIC_FIELD_OPTIONS.map((o) => (
+              {DYNAMIC_TEXT_FIELDS.map((o) => (
                 <option key={o.value} value={o.value}>{o.label}</option>
               ))}
             </select>
@@ -169,7 +135,7 @@ export default function PropertiesPanel({ element, fontOptions = [], onChange, o
               onChange={(e) => onChange(element.id, { field: e.target.value })}
               className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs outline-none focus:border-emerald-400"
             >
-              {DYNAMIC_IMAGE_FIELD_OPTIONS.map((o) => (
+              {DYNAMIC_IMAGE_FIELDS.map((o) => (
                 <option key={o.value} value={o.value}>{o.label}</option>
               ))}
             </select>
