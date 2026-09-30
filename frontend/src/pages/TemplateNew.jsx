@@ -79,7 +79,7 @@ export default function TemplateNew() {
 
       const template = await createTemplate(payload);
       navigate(`/templates/${template.id}/edit`);
-    } catch (err) {
+    } catch {
       setError('فشل إنشاء القالب. حاول مرة أخرى.');
     } finally {
       setProcessing(false);

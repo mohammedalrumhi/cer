@@ -39,7 +39,9 @@ export function Layout({ children }) {
 
           {/* Main Navigation */}
           <nav className="mb-5 grid grid-cols-2 gap-2 sm:mb-6 lg:grid-cols-1">
-            {links.map(({ to, label, icon: Icon }) => (
+            {links.map(({ to, label, icon }) => {
+              const Icon = icon;
+              return (
               <NavLink
                 key={to}
                 to={to}
@@ -54,7 +56,8 @@ export function Layout({ children }) {
                 <Icon size={18} />
                 {label}
               </NavLink>
-            ))}
+              );
+            })}
           </nav>
 
           {/* New Template Button */}

@@ -51,7 +51,7 @@ export default function Dashboard() {
         setTemplates(templateData);
         setBranding(brandingData);
         setSchoolName(brandingData.schoolName || '');
-      } catch (err) {
+      } catch {
         setError('فشل في تحميل البيانات. حاول مرة أخرى.');
       } finally {
         setLoading(false);
@@ -69,7 +69,7 @@ export default function Dashboard() {
     try {
       await removeTemplate(id);
       setTemplates((prev) => prev.filter((item) => item.id !== id));
-    } catch (err) {
+    } catch {
       setError('حدث خطأ أثناء حذف القالب. حاول مرة أخرى.');
     }
   }
@@ -80,7 +80,7 @@ export default function Dashboard() {
       const updated = await updateBranding({ schoolName });
       setBranding(updated);
       setError('');
-    } catch (err) {
+    } catch {
       setError('تعذر حفظ هوية المدرسة. حاول مرة أخرى.');
     } finally {
       setSavingBranding(false);

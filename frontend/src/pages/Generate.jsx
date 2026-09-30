@@ -59,8 +59,7 @@ export default function Generate() {
   const [selectedSavedIds, setSelectedSavedIds] = useState([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
   const [selectedBackgroundVariantKey, setSelectedBackgroundVariantKey] = useState('');
-  const [studentInput, setStudentInput] = useState('');
-  const [students, setStudents] = useState([]);
+  const [importedStudents, setImportedStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [message, setMessage] = useState('');
@@ -121,7 +120,7 @@ export default function Generate() {
       setProcessing(true);
       setError('');
       const parsedStudents = await parseExcel(file);
-      setStudents(parsedStudents.map(normalizeStudentRecord).filter(Boolean));
+      setImportedStudents(parsedStudents.map(normalizeStudentRecord).filter(Boolean));
       setMessage(`${parsedStudents.length} طالب/طالبة تم استيرادهم من الملف.`);
     } catch {
       setError('فشل قراءة ملف Excel أو CSV. تأكد من أن الملف صالح وحاول مرة أخرى.');
@@ -159,7 +158,7 @@ export default function Generate() {
         setProcessing(true);
         setError('');
         const parsedStudents = await parseExcel(file);
-        setStudents(parsedStudents.map(normalizeStudentRecord).filter(Boolean));
+        setImportedStudents(parsedStudents.map(normalizeStudentRecord).filter(Boolean));
         setMessage(`${parsedStudents.length} طالب/طالبة تم استيرادهم من الملف.`);
       } catch {
         setError('فشل قراءة ملف Excel أو CSV. تأكد من أن الملف صالح وحاول مرة أخرى.');
@@ -189,10 +188,13 @@ export default function Generate() {
       return;
     }
 
-    const effectiveStudents = savedStudents
-      .filter((student) => selectedSavedIds.includes(student.id))
-      .map(normalizeStudentRecord)
-      .filter(Boolean);
+    const effectiveStudents = [
+      ...savedStudents
+        .filter((student) => selectedSavedIds.includes(student.id))
+        .map(normalizeStudentRecord)
+        .filter(Boolean),
+      ...importedStudents,
+    ];
 
     if (effectiveStudents.length === 0) {
       setError('حدد الطلاب أو استورد ملف Excel/CSV أولاً.');
