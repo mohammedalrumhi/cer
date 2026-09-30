@@ -22,3 +22,10 @@ backend/uploads/*
 !backend/uploads/itqan-stamp.png
 !backend/uploads/itqan-template-5.png
 !backend/uploads/itqan-template-5-*.png
+
+# test artifacts
+test-results/
+playwright-report/
+
+# local scratch environments
+.tmp-venv/

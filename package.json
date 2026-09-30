@@ -7,6 +7,16 @@
     "build": "npm --prefix frontend run build",
     "build:public-html": "npm run build && node scripts/sync-public-html.js",
     "start": "npm --prefix backend start",
-    "test:backend": "npm --prefix backend test"
+    "test:backend": "npm --prefix backend test",
+    "test:frontend": "npm --prefix frontend test",
+    "test:e2e": "playwright test",
+    "test:visual": "playwright test tests/visual --project=desktop",
+    "test": "npm run test:backend && npm run test:frontend && npm run test:e2e"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "pdfjs-dist": "^5.7.284",
+    "pixelmatch": "^7.2.0",
+    "pngjs": "^7.0.0"
   }
 }
