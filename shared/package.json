@@ -1,0 +1,6 @@
+{
+  "name": "@cer/shared",
+  "private": true,
+  "description": "Isomorphic template model and rendering code shared by frontend and backend. ESM, no dependencies: runtime libraries (HarfBuzz, bidi) are injected.",
+  "type": "module"
+}

@@ -37,6 +37,34 @@ function parseJsonColumn(value, fallback) {
   }
 }
 
+// Template fields with their own columns. Everything else (schemaVersion, future settings…)
+// round-trips through `extra_json` so newer template fields are never silently dropped.
+const TEMPLATE_COLUMN_FIELDS = new Set([
+  'id', 'name', 'orientation', 'width', 'height', 'background', 'elements',
+  'createdAt', 'updatedAt', 'detailLevel', 'audienceType',
+]);
+// Derived on read by utils/templateVariants; never persisted.
+const TEMPLATE_COMPUTED_FIELDS = new Set(['availableBackgroundVariants']);
+
+function templateExtraJson(template) {
+  const extra = {};
+  for (const [key, value] of Object.entries(template || {})) {
+    if (!TEMPLATE_COLUMN_FIELDS.has(key) && !TEMPLATE_COMPUTED_FIELDS.has(key) && value !== undefined) {
+      extra[key] = value;
+    }
+  }
+  return JSON.stringify(extra);
+}
+
+async function ensureColumn(pool, tableName, columnName, definition) {
+  const [rows] = await pool.query(
+    'SELECT COUNT(*) AS count FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?',
+    [tableName, columnName]
+  );
+  if (Number(rows[0]?.count) > 0) return;
+  await pool.query(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${definition}`);
+}
+
 async function seedTableIfEmpty(pool, tableName, loader, inserter) {
   const [[{ count }]] = await pool.query(`SELECT COUNT(*) AS count FROM ${tableName}`);
   if (count > 0) return;
@@ -98,9 +126,13 @@ function createMysqlStorage() {
         created_at VARCHAR(40) NOT NULL,
         updated_at VARCHAR(40) NOT NULL,
         detail_level VARCHAR(32) NULL,
-        audience_type VARCHAR(32) NULL
+        audience_type VARCHAR(32) NULL,
+        extra_json LONGTEXT NULL
       ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
     `);
+
+    // Databases created before extra_json existed.
+    await ensureColumn(pool, 'templates', 'extra_json', 'LONGTEXT NULL');
   }
 
   async function seedFromFiles() {
@@ -144,8 +176,8 @@ function createMysqlStorage() {
     await seedTableIfEmpty(pool, 'templates', () => readJson('templates.json', []), async (templates) => {
       for (const template of templates) {
         await pool.query(
-          `INSERT INTO templates (id, name, orientation, width, height, background_json, elements_json, created_at, updated_at, detail_level, audience_type)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO templates (id, name, orientation, width, height, background_json, elements_json, created_at, updated_at, detail_level, audience_type, extra_json)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             template.id,
             template.name,
@@ -158,6 +190,7 @@ function createMysqlStorage() {
             template.updatedAt || new Date().toISOString(),
             template.detailLevel || null,
             template.audienceType || null,
+            templateExtraJson(template),
           ]
         );
       }
@@ -190,6 +223,7 @@ function createMysqlStorage() {
 
   function mapTemplateRow(row) {
     return {
+      ...parseJsonColumn(row.extra_json, {}),
       id: row.id,
       name: row.name,
       orientation: row.orientation,
@@ -287,8 +321,8 @@ function createMysqlStorage() {
     },
     async createTemplate(template) {
       await pool.query(
-        `INSERT INTO templates (id, name, orientation, width, height, background_json, elements_json, created_at, updated_at, detail_level, audience_type)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO templates (id, name, orientation, width, height, background_json, elements_json, created_at, updated_at, detail_level, audience_type, extra_json)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           template.id,
           template.name,
@@ -301,6 +335,7 @@ function createMysqlStorage() {
           template.updatedAt,
           template.detailLevel || null,
           template.audienceType || null,
+          templateExtraJson(template),
         ]
       );
       return template;
@@ -308,7 +343,7 @@ function createMysqlStorage() {
     async updateTemplate(template) {
       const [result] = await pool.query(
         `UPDATE templates
-         SET name = ?, orientation = ?, width = ?, height = ?, background_json = ?, elements_json = ?, created_at = ?, updated_at = ?, detail_level = ?, audience_type = ?
+         SET name = ?, orientation = ?, width = ?, height = ?, background_json = ?, elements_json = ?, created_at = ?, updated_at = ?, detail_level = ?, audience_type = ?, extra_json = ?
          WHERE id = ?`,
         [
           template.name,
@@ -321,6 +356,7 @@ function createMysqlStorage() {
           template.updatedAt,
           template.detailLevel || null,
           template.audienceType || null,
+          templateExtraJson(template),
           template.id,
         ]
       );
@@ -344,4 +380,5 @@ function createMysqlStorage() {
 
 module.exports = {
   createMysqlStorage,
+  templateExtraJson,
 };

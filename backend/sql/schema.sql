@@ -40,5 +40,6 @@ CREATE TABLE IF NOT EXISTS templates (
   created_at VARCHAR(40) NOT NULL,
   updated_at VARCHAR(40) NOT NULL,
   detail_level VARCHAR(32) NULL,
-  audience_type VARCHAR(32) NULL
+  audience_type VARCHAR(32) NULL,
+  extra_json LONGTEXT NULL
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;

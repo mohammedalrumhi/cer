@@ -12,6 +12,7 @@ const fontsRouter = require('./routes/fonts');
 const { createAuthRouter } = require('./routes/auth');
 const { requireAuth } = require('./middleware/auth');
 const { uploadsDir, fontsDir } = require('./utils/storagePaths');
+const { withTemplateMigrations } = require('./storage/withTemplateMigrations');
 
 function resolveFrontendDistDir() {
   const configuredPath = String(process.env.FRONTEND_DIST_DIR || '').trim();
@@ -53,7 +54,8 @@ function sendStudentsTemplate(res) {
   }
 }
 
-function createApp({ storage }) {
+function createApp({ storage: rawStorage }) {
+  const storage = withTemplateMigrations(rawStorage);
   const app = express();
   const frontendDistDir = resolveFrontendDistDir();
 
