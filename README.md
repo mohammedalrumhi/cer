@@ -1,5 +1,19 @@
-# cer
-# cer
+# cer — Certificate Studio for دار الإتقان العالي
+
+Design certificate templates in an Arabic-first editor and generate PDF certificates for students,
+one at a time or in bulk. The editor and the PDF share one HarfBuzz text engine, so what you see
+is what prints (see [`docs/AUDIT.md`](docs/AUDIT.md)).
+
+## Development
+
+```bash
+npm install          # installs root, backend and frontend
+npm run dev          # backend (:4000) + Vite (:5173)
+npm test             # backend (node:test), frontend/shared (Vitest), Playwright E2E + visual fidelity
+```
+
+Without MySQL variables the backend uses JSON files in `backend/data`. `PDF_ENGINE=legacy` switches
+back to the v1 PDF renderer for comparison.
 
 ## Hostinger deployment
 

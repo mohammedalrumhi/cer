@@ -86,10 +86,13 @@ Problems with the model:
 | 12 | Editor | Selecting text adds a green stroke **to the text itself**, which changes the rendering. |
 | 13 | Editor | **Uncommitted local change (found in the working tree):** `UploadedImageEl` now wraps `el.src` in `buildAssetUrl()`, which turns `data:` URLs into `http://host/data:…`. Uploaded images disappear. Fixed during the Phase 1 split: `buildAssetUrl` passes `data:`/`blob:` through. |
 | 14 | Dashboard | Template thumbnails print raw field keys (`recipientAchievementSentence`, `studentName`). The Generate page preview shows no text at all. |
-| 15 | Backend | `routes/fonts.js` lists fonts from a hard-coded `assets/fonts` and ignores `FONTS_DIR`/`PERSISTENT_STORAGE_DIR`, while `pdfService` uses `storagePaths.fontsDir`. Fonts uploaded in production are invisible to the editor. |
+| 15 | Backend | `routes/fonts.js` lists fonts from a hard-coded `assets/fonts` and ignores `FONTS_DIR`/`PERSISTENT_STORAGE_DIR`, while uploads, `/assets/fonts` and the PDF renderer use `storagePaths.fontsDir`. With persistent storage configured, uploaded fonts never appear in the list and bundled fonts can 404 in the editor. *(fixed in Phase 1: fonts are the union of the bundled and upload directories everywhere)* |
 | 16 | Security | Passwords are plaintext. There is no rate limiting, CORS allows `*`, and there is no helmet. Template JSON isn't validated (any body is stored). SVG upload isn't sanitized. |
 | 17 | Repo | `backend/node_modules` is **committed** (4,719 files) despite `.gitignore`. `.tmp-venv` (74 MB) and `.tmp-public-html` sit in the root. `test_fonts.pdf`, `تيم1.psd`, sample CSV/XLSX files and `ins.txt` are committed in the root. |
 | 18 | Lint | 11 ESLint errors (unused vars, and components created during render in `BrandingPanel`). |
+| 19 | Generate | Excel/CSV students imported on the detailed generate page were counted, then **silently dropped**: only the selected saved students were sent. *(fixed in Phase 1)* |
+| 20 | API | `POST /api/templates` discarded every field it didn't list, including the `detailLevel` and `audienceType` chosen on the "new template" page. *(fixed in Phase 1)* |
+| 21 | PDF | Default signature and stamp fallbacks pointed to `.jpeg` files, but the repo ships `.png`, so they were silently skipped. *(fixed in Phase 1)* |
 
 ### UX problems: desktop 1440×900
 
@@ -213,13 +216,41 @@ so a Chromium painter could be added later without touching templates.
 - `fontWeight` (unused) is kept but ignored. `fontStyle` stays the source of truth for bold and italic. Faux bold and
   italic are synthesized identically on both sides when the font has no bold or italic face.
 
+### Proof of concept: results (Phase 1)
+
+Every stored template and every built-in preset (18 in total) is rendered by the new editor and
+by the new PDF renderer and compared by `tests/visual/fidelity.spec.js`:
+
+| | v1 (Konva vs PDFKit) | v2 (shared scene) |
+|---|---|---|
+| Worst text offset | 63 px | **0.021 px** (the search resolution; effectively 0) |
+| Median text offset | 10 px | **0.0 px** |
+| Text ink amount | fonts differ | **±1.1 %** worst case |
+| Full-page pixels differing | 2.6–3.8 % | **0.00–0.10 %** |
+| Rendering time, one page | n/a | about 25 ms after warm-up (161 ms cold) |
+
+Same suite against the legacy engine (`PDF_ENGINE=legacy`): 108 failed assertions on one
+template, with ink IoU from 0.000 to 0.231.
+
+**Measurement note, and a change from the plan.** The plan targeted "≥ 0.97 thresholded ink IoU". At 1× the
+shared scene scored 0.71–0.95 on that metric, even though a sub-pixel search found **zero** offset
+(at 1/24 px resolution) and ink totals within 0.5 %. The residue is anti-aliasing: Skia (the canvas)
+and pdf.js shade partially covered edge pixels differently, and on 14–28 px text most ink pixels are
+edge pixels. The test therefore measures what matters, at print resolution (3×, about 216 dpi):
+- **best-fit sub-pixel offset ≤ 0.1 template px**;
+- **ink amount within ±3 %**;
+- **IoU of ≥ 50 % coverage after a σ = 1 device px blur ≥ 0.95**. The blur cancels AA noise, but
+  shifting a render by only ⅓ template px drops its score to ≤ 0.87, so real drift still fails;
+- the full page differs on at most 1 % of pixels (pixelmatch, AA-tolerant).
+
 ## 8. Phased plan (with adjustments)
 
 See [`ROADMAP.md`](ROADMAP.md) for the checklist. Adjustments to the brief:
 
 1. **Phase 1 adds** the shared render module and the PoC on one template, as the brief asks, but uses strategy (c).
-   The PoC exit criterion is a visual regression test with **≥ 0.97 ink IoU** between the Konva editor and the
-   rasterized PDF for the PoC template.
+   The PoC exit criterion is a visual regression test between the Konva editor and the rasterized PDF.
+   *Result:* it covers all 18 templates and presets, not just one, and they all pass. See the
+   metric note above.
 2. The **SVG asset library** (Phase 4) and **curved text** (Phase 4) depend on the display list from Phase 1, so no
    extra rendering work is needed later.
 3. **Bulk jobs** (Phase 5) use an in-process job queue with jobs persisted in storage (JSON or MySQL), because

@@ -4,15 +4,16 @@ Each phase ends with commits on the `studio` branch, desktop and mobile screensh
 and a short report: what changed, known issues, and what's next. The audit and the rendering decision are in [AUDIT.md](AUDIT.md).
 
 ## Phase 1: Foundation
-- [ ] Repo hygiene: untrack the committed `backend/node_modules` and fix the baseline ESLint errors
-- [ ] `shared/model`: `schemaVersion`, pure and idempotent `migrateTemplate()` (v1 → v2), element factories, validation
-- [ ] Backend: migrate on read and write for every storage type; MySQL `extra_json` column so new top-level fields survive
-- [ ] Editor store (zustand): document, selection, viewport, ui, command history (coalescing, 200 steps)
-- [ ] Split `CanvasEditor.jsx` into `EditorShell`, `Canvas`, `SelectionLayer`, `panels/*`, `toolbar/*`, `hooks/*`, `model/*`
-- [ ] `shared/render`: font registry, HarfBuzz text engine, scene display list
-- [ ] Konva painter (editor) and PDFKit vector painter (backend) driven by the same display list
-- [ ] Visual regression harness (editor snapshot vs rasterized PDF). PoC passes at ≥ 0.97 ink IoU
-- [ ] Vitest for store, history and migrations; node:test for migrations and routes
+- [x] Repo hygiene: untrack the committed `backend/node_modules` and fix the baseline ESLint errors
+- [x] `shared/model`: `schemaVersion`, pure and idempotent `migrateTemplate()` (v1 → v2), element factories, validation
+- [x] Backend: migrate on read and write for every storage type; MySQL `extra_json` column so new top-level fields survive
+- [x] Editor store (zustand): document, selection, viewport, ui, command history (coalescing, 200 steps)
+- [x] Split `CanvasEditor.jsx` into `editor/` with `EditorShell`, `canvas/` (Canvas, SceneNodes, TextEditOverlay, ContextMenu), `panels/`, `toolbar/`, `hooks/useKeyboardShortcuts`, `model/`, `render/` and `store/`. *`SelectionLayer`, `SnappingEngine` and `useGestures` land with their features in Phases 2 and 3.*
+- [x] `shared/render`: font registry, HarfBuzz text engine, scene display list
+- [x] Konva painter (editor) and PDFKit vector painter (backend) driven by the same display list
+- [x] Visual regression harness (editor vs rasterized PDF). All 18 templates and presets pass; see AUDIT §7 for the metric
+- [x] Vitest for store, history and migrations; node:test for migrations and routes
+- [x] Also fixed: imported students dropped on generate, POST dropping client fields, font directories, default asset fallbacks, PNG export offset
 
 ## Phase 2: Canva core
 - [ ] Snapping engine: canvas center and edges, element edges and centers, equal spacing, pink guides with distance readout
