@@ -214,3 +214,62 @@ export async function previewTemplate(payload) {
   });
   return response.data;
 }
+
+/* ── Studio: assets, versions, conflict-aware saves ─────────────────────────── */
+
+export async function fetchAssets() {
+  const { data } = await api.get('/assets');
+  return Array.isArray(data) ? data : [];
+}
+
+export async function uploadAsset(file) {
+  const formData = new FormData();
+  formData.append('file', file);
+  const { data } = await api.post('/assets', formData);
+  return data;
+}
+
+export async function deleteAsset(id) {
+  await api.delete(`/assets/${encodeURIComponent(id)}`);
+}
+
+/** Save with optimistic concurrency: rejects with `{ conflict: true, currentVersion }` on 409. */
+export async function saveTemplate(id, template, baseVersion) {
+  try {
+    const { data } = await api.put(`/templates/${id}`, { ...template, baseVersion });
+    return data;
+  } catch (error) {
+    if (error?.response?.status === 409) {
+      const conflict = new Error('conflict');
+      conflict.conflict = true;
+      conflict.currentVersion = error.response.data?.currentVersion;
+      throw conflict;
+    }
+    throw error;
+  }
+}
+
+export async function fetchVersions(templateId) {
+  const { data } = await api.get(`/templates/${templateId}/versions`);
+  return data;
+}
+
+export async function createVersion(templateId, name) {
+  const { data } = await api.post(`/templates/${templateId}/versions`, { name });
+  return data;
+}
+
+export async function fetchVersion(templateId, versionId) {
+  const { data } = await api.get(`/templates/${templateId}/versions/${versionId}`);
+  return data;
+}
+
+export async function restoreVersion(templateId, versionId) {
+  const { data } = await api.post(`/templates/${templateId}/versions/${versionId}/restore`);
+  return data;
+}
+
+export async function fetchBackgrounds() {
+  const { data } = await api.get('/backgrounds');
+  return Array.isArray(data) ? data : [];
+}

@@ -1,10 +1,11 @@
 // Editor happy path on desktop and mobile viewports (see playwright.config.js projects).
 import { expect, test } from '@playwright/test';
-import { authed, authenticate, login } from '../support/api.js';
+import { authenticate, login } from '../support/api.js';
+import { drag, editorState, elementById, openEditor, scratchTemplate, screenPoint } from '../support/editor.js';
 
-const TEMPLATE_ID = 'c0574e38-b6a6-4770-b0a9-4637ab6d1e61';
-
+const SOURCE_ID = 'c0574e38-b6a6-4770-b0a9-4637ab6d1e61';
 let token;
+let templateId;
 
 test.beforeAll(async () => {
   token = await login();
@@ -12,108 +13,73 @@ test.beforeAll(async () => {
 
 test.beforeEach(async ({ context, page }) => {
   await authenticate(context, token);
-  await page.goto(`/templates/${TEMPLATE_ID}/edit`);
-  await page.locator('[data-testid=editor-canvas][data-scene-ready=true]').waitFor();
-  // The UI web font changes the toolbar height when it arrives, which moves the canvas.
-  await page.evaluate(() => document.fonts.ready);
+  templateId = await scratchTemplate(token, SOURCE_ID);
+  await openEditor(page, templateId);
 });
-
-const state = (page, fn) => page.evaluate(fn);
-
-/** Screen position of a document point. */
-async function screenPoint(page, id, fx = 0.5, fy = 0.5) {
-  return page.evaluate(({ elementId, rx, ry }) => {
-    const { document, viewport } = window.__cerEditor.store.getState();
-    const element = document.elements.find((el) => el.id === elementId);
-    const node = window.__cerEditor.stage().findOne(`#${elementId}`);
-    const height = element.height ?? node.height();
-    const rect = window.document.querySelector('[data-testid=editor-canvas]').getBoundingClientRect();
-    return {
-      x: rect.left + viewport.x + (element.x + element.width * rx) * viewport.zoom,
-      y: rect.top + viewport.y + (element.y + height * ry) * viewport.zoom,
-    };
-  }, { elementId: id, rx: fx, ry: fy });
-}
-
-async function elementX(page, id) {
-  return page.evaluate((elementId) => window.__cerEditor.store.getState().document.elements.find((el) => el.id === elementId).x, id);
-}
 
 test('select, drag, undo and redo an element', async ({ page }) => {
-  const start = await elementX(page, 'student-name');
+  const start = (await elementById(page, 'student-name')).x;
   const point = await screenPoint(page, 'student-name');
+  await page.keyboard.down('Alt'); // no snapping, so the move is exact
+  await drag(page, point, { x: point.x + 60, y: point.y + 30 });
+  await page.keyboard.up('Alt');
 
-  await page.mouse.move(point.x, point.y);
-  await page.mouse.down();
-  await page.mouse.move(point.x + 20, point.y + 10, { steps: 4 });
-  await page.mouse.move(point.x + 60, point.y + 30, { steps: 4 });
-  await page.mouse.up();
-
-  expect(await state(page, () => window.__cerEditor.store.getState().selection.ids)).toEqual(['student-name']);
-  const zoom = await state(page, () => window.__cerEditor.store.getState().viewport.zoom);
-  const moved = await elementX(page, 'student-name');
+  const { selection, past } = await editorState(page);
+  expect(selection).toEqual(['student-name']);
+  const zoom = await page.evaluate(() => window.__cerEditor.store.getState().viewport.zoom);
+  const moved = (await elementById(page, 'student-name')).x;
   expect(moved - start).toBeCloseTo(60 / zoom, 0);
-  // One drag = one undo step.
-  expect(await state(page, () => window.__cerEditor.store.getState().history.past.length)).toBe(1);
+  expect(past).toBe(1); // one drag = one undo step
 
-  await page.keyboard.press('ControlOrMeta+z');
-  expect(await elementX(page, 'student-name')).toBe(start);
-  await page.keyboard.press('ControlOrMeta+Shift+z');
-  expect(await elementX(page, 'student-name')).toBe(moved);
+  await page.getByTestId('undo').click();
+  expect((await elementById(page, 'student-name')).x).toBe(start);
+  await page.getByTestId('redo').click();
+  expect((await elementById(page, 'student-name')).x).toBe(moved);
 });
 
-test('nudges with arrow keys and saves across a reload', async ({ page, isMobile }) => {
+test('nudges with arrow keys and autosaves across a reload', async ({ page, isMobile }) => {
   test.skip(isMobile, 'keyboard shortcuts are desktop-only');
   const point = await screenPoint(page, 'body-2');
   await page.mouse.click(point.x, point.y);
-  const start = await elementX(page, 'body-2');
+  const start = (await elementById(page, 'body-2')).x;
   await page.keyboard.press('Shift+ArrowRight');
   await page.keyboard.press('ArrowRight');
-  expect(await elementX(page, 'body-2')).toBe(start + 11);
-
-  await page.getByRole('button', { name: 'حفظ' }).click();
-  await expect(page.getByRole('status')).toHaveText('تم الحفظ بنجاح');
+  expect((await elementById(page, 'body-2')).x).toBe(start + 11);
+  await expect(page.getByTestId('save-status')).toHaveAttribute('data-status', 'saved', { timeout: 10000 });
   await page.reload();
   await page.locator('[data-testid=editor-canvas][data-scene-ready=true]').waitFor();
-  expect(await elementX(page, 'body-2')).toBe(start + 11);
-
-  // Restore the shared fixture for other tests.
-  const api = authed(token);
-  const template = await api.get(`/templates/${TEMPLATE_ID}`);
-  template.elements = template.elements.map((el) => (el.id === 'body-2' ? { ...el, x: start } : el));
-  await fetch(`http://localhost:4310/api/templates/${TEMPLATE_ID}`, {
-    method: 'PUT',
-    headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
-    body: JSON.stringify(template),
-  });
+  expect((await elementById(page, 'body-2')).x).toBe(start + 11);
 });
 
 test('context menu duplicates the selection', async ({ page, isMobile }) => {
-  test.skip(isMobile, 'long-press menu arrives in phase 3');
-  const before = await state(page, () => window.__cerEditor.store.getState().document.elements.length);
+  test.skip(isMobile, 'right-click is desktop-only');
+  const before = (await editorState(page)).document.elements.length;
   const point = await screenPoint(page, 'title');
   await page.mouse.click(point.x, point.y, { button: 'right' });
   await page.getByRole('menuitem', { name: /تكرار/ }).click();
-  expect(await state(page, () => window.__cerEditor.store.getState().document.elements.length)).toBe(before + 1);
-  const selected = await state(page, () => window.__cerEditor.store.getState().selection.ids);
-  expect(selected).toHaveLength(1);
-  expect(selected[0]).not.toBe('title');
+  const after = await editorState(page);
+  expect(after.document.elements.length).toBe(before + 1);
+  expect(after.selection).toHaveLength(1);
+  expect(after.selection[0]).not.toBe('title');
 });
 
-test('edits text in place', async ({ page }) => {
+test('edits text in place as one undo step', async ({ page }) => {
   const point = await screenPoint(page, 'body-2');
   await page.mouse.dblclick(point.x, point.y);
   const editor = page.getByRole('textbox', { name: 'تحرير النص' });
   await expect(editor).toBeVisible();
-  await editor.fill('مع خالص الشكر\nوالتقدير');
+  await editor.fill('مع خالص الشكر');
+  await editor.pressSequentially('\nوالتقدير');
   await editor.press('ControlOrMeta+Enter');
   await expect(editor).toBeHidden();
-  const text = await state(page, () => window.__cerEditor.store.getState().document.elements.find((el) => el.id === 'body-2').text);
-  expect(text).toBe('مع خالص الشكر\nوالتقدير');
+  const { document, past } = await editorState(page);
+  expect(document.elements.find((el) => el.id === 'body-2').text).toBe('مع خالص الشكر\nوالتقدير');
+  expect(past).toBe(1);
 });
 
 test('previews the PDF', async ({ page, isMobile }) => {
-  const trigger = isMobile ? page.getByRole('button', { name: 'معاينة' }) : page.getByRole('button', { name: 'معاينة PDF' });
-  const [popup] = await Promise.all([page.waitForEvent('popup'), trigger.click()]);
+  test.skip(isMobile, 'the file menu is checked on desktop');
+  await page.getByTestId('editor-more').click();
+  const [popup] = await Promise.all([page.waitForEvent('popup'), page.getByRole('menuitem', { name: 'معاينة PDF' }).click()]);
   expect(popup.url()).toMatch(/^blob:/);
 });

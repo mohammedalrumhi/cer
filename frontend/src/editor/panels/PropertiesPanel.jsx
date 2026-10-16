@@ -1,402 +1,178 @@
-import {
-  AlignCenter,
-  AlignLeft,
-  AlignRight,
-  Bold,
-  BringToFront,
-  ChevronDown,
-  ChevronUp,
-  EyeOff,
-  Italic,
-  Lock,
-  LockOpen,
-  SendToBack,
-  Trash2,
-  Underline,
-} from 'lucide-react';
-import { DYNAMIC_IMAGE_FIELDS, DYNAMIC_TEXT_FIELDS, ELEMENT_LABELS } from '../model/elements';
+import { Eye, EyeOff, FileCog, Lock, LockOpen, PanelLeftClose } from 'lucide-react';
+import { S, FIELD_LABELS } from '../../strings.ar';
+import { Button, IconButton } from '../../ui/Button';
+import { formatNumber } from '../../ui/format';
+import { Segmented } from '../../ui/Segmented';
+import { Slider } from '../../ui/Slider';
+import { TEMPLATE_AUDIENCE_OPTIONS, TEMPLATE_DETAIL_OPTIONS } from '../../utils/templateMetadata';
+import { selectionInfo } from '../actions';
+import { common, usePatch, useSeal, useSelectedElements } from '../controls/selection';
+import { NumberField, Row, Section } from '../controls/fields';
+import { editableText } from '../model/textSource';
+import { fromDisplayTemplate, toDisplayTemplate } from '../model/fieldTokens';
+import { isTextElement } from '../model/elements';
+import { pageSizeLabel } from '../model/pageSizes';
+import { useEditor, useEditorStoreApi } from '../store/EditorStoreContext';
 
-function Row({ label, children }) {
+const DYNAMIC_FIELDS = ['studentName', 'recipientTitle', 'recipientAchievementSentence', 'issueDate', 'dateLabel', 'recitalType', 'surahRange', 'programName', 'calendar', 'mistakesCount', 'teacherName', 'schoolName', 'serial'];
+
+function DocumentProperties() {
+  const store = useEditorStoreApi();
+  const document = useEditor((state) => state.document);
+  const update = (patch, label = 'إعدادات القالب') => store.getState().updateDocument(patch, { label, coalesceKey: `doc:${Object.keys(patch).join(',')}` });
   return (
-    <div className="flex items-center gap-2">
-      <span className="w-16 shrink-0 text-right text-xs text-slate-500">{label}</span>
-      <div className="flex-1">{children}</div>
-    </div>
-  );
-}
-
-function NumberInput({ value, onChange, min, max, step = 1, className = '' }) {
-  return (
-    <input
-      type="number"
-      value={value ?? 0}
-      min={min}
-      max={max}
-      step={step}
-      onChange={(e) => onChange(Number(e.target.value))}
-      className={`w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-300 ${className}`}
-    />
-  );
-}
-
-export default function PropertiesPanel({ element, fontOptions = [], onChange, onRemove, onLayerOp, isMobile = false, onClose }) {
-  if (!element) {
-    return (
-      <div
-        className={`flex shrink-0 flex-col items-center justify-center bg-white p-6 ${isMobile ? 'w-full border-t border-slate-200' : 'h-full w-64 border-r border-slate-200'}`}
-        
-      >
-        <p className="text-center text-xs text-slate-400">اختر عنصراً لتعديل خصائصه</p>
-      </div>
-    );
-  }
-
-  const isText = element.type === 'text' || element.type === 'dynamicText';
-  const isShape = element.type === 'rect' || element.type === 'circle';
-  const isImage = element.type === 'image' || element.type === 'dynamicImage';
-
-  const fontStyle = element.fontStyle || 'normal';
-  const isBold = fontStyle.includes('bold');
-  const isItalic = fontStyle.includes('italic');
-
-  function toggleBold() {
-    const next = isItalic ? (isBold ? 'italic' : 'bold italic') : (isBold ? 'normal' : 'bold');
-    onChange(element.id, { fontStyle: next });
-  }
-
-  function toggleItalic() {
-    const next = isBold ? (isItalic ? 'bold' : 'bold italic') : (isItalic ? 'normal' : 'italic');
-    onChange(element.id, { fontStyle: next });
-  }
-
-  const iconBtn = 'rounded-lg border border-slate-200 p-1.5 text-slate-600 hover:bg-slate-100';
-  const activeIconBtn = 'rounded-lg border border-emerald-400 bg-emerald-50 p-1.5 text-emerald-700';
-
-  return (
-    <div
-      className={`flex shrink-0 flex-col overflow-y-auto bg-white ${isMobile ? 'max-h-[80vh] w-full rounded-3xl border border-slate-200 shadow-2xl' : 'h-full w-64 border-r border-slate-200'}`}
-      
-    >
-      {/* Header */}
-      <div className="sticky top-0 flex items-center justify-between border-b border-slate-100 bg-white px-4 py-3">
-        <span className="text-xs font-semibold text-slate-700">
-          {ELEMENT_LABELS[element.type] || 'عنصر'}
-        </span>
-        <div className="flex items-center gap-2">
-          {isMobile && (
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-lg px-2 py-1 text-xs font-semibold text-slate-500 hover:bg-slate-100"
-            >
-              إغلاق
-            </button>
-          )}
-          <button
-            onClick={() => onRemove(element.id)}
-            className="rounded-lg p-1 text-rose-400 hover:bg-rose-50 hover:text-rose-600"
-            title="حذف العنصر"
-          >
-            <Trash2 size={14} />
-          </button>
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-3 p-4">
-        {/* Dynamic field */}
-        {element.type === 'dynamicText' && (
-          <Row label="الحقل">
-            <select
-              value={element.field || 'studentName'}
-              onChange={(e) => onChange(element.id, { field: e.target.value })}
-              className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs outline-none focus:border-emerald-400"
-            >
-              {DYNAMIC_TEXT_FIELDS.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </select>
-          </Row>
-        )}
-        {element.type === 'dynamicText' && (
-          <Row label="القالب">
-            <textarea
-              value={element.dynamicTextTemplate || ''}
-              rows={4}
-              placeholder={'{{value}}\n\nمثال:\nتبارك مؤسسة دار الإتقان العالي بنجاح\n{{recipientTitle}}'}
-              onChange={(e) => onChange(element.id, { dynamicTextTemplate: e.target.value })}
-              className="w-full resize-y rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-300"
-            />
-          </Row>
-        )}
-        {element.type === 'dynamicImage' && (
-          <Row label="المصدر">
-            <select
-              value={element.field || 'logo'}
-              onChange={(e) => onChange(element.id, { field: e.target.value })}
-              className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs outline-none focus:border-emerald-400"
-            >
-              {DYNAMIC_IMAGE_FIELDS.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </select>
-          </Row>
-        )}
-
-        {/* Static text */}
-        {element.type === 'text' && (
-          <Row label="النص">
-            <textarea
-              value={element.text || ''}
-              rows={2}
-              onChange={(e) => onChange(element.id, { text: e.target.value })}
-              className="w-full resize-none rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-300"
-            />
-          </Row>
-        )}
-
-        {/* Position & Size */}
-        <div className="rounded-xl bg-slate-50 p-3">
-          <p className="mb-2 text-xs font-semibold text-slate-600">الموضع والحجم</p>
-          <div className="grid grid-cols-2 gap-2">
-            <label className="block text-xs text-slate-500">
-              X
-              <NumberInput value={element.x} onChange={(v) => onChange(element.id, { x: v })} />
-            </label>
-            <label className="block text-xs text-slate-500">
-              Y
-              <NumberInput value={element.y} onChange={(v) => onChange(element.id, { y: v })} />
-            </label>
-            <label className="block text-xs text-slate-500">
-              العرض
-              <NumberInput value={element.width} min={5} onChange={(v) => onChange(element.id, { width: v })} />
-            </label>
-            {(isImage || isShape || element.type === 'line') && (
-              <label className="block text-xs text-slate-500">
-                الارتفاع
-                <NumberInput value={element.height} min={5} onChange={(v) => onChange(element.id, { height: v })} />
-              </label>
-            )}
-            <label className="block text-xs text-slate-500">
-              الدوران °
-              <NumberInput value={element.rotation ?? 0} min={-360} max={360} onChange={(v) => onChange(element.id, { rotation: v })} />
-            </label>
-          </div>
-        </div>
-
-        {/* Opacity */}
-        <Row label="الشفافية">
-          <div className="flex items-center gap-2">
-            <input
-              type="range"
-              min={0}
-              max={1}
-              step={0.05}
-              value={element.opacity ?? 1}
-              onChange={(e) => onChange(element.id, { opacity: Number(e.target.value) })}
-              className="flex-1 accent-emerald-600"
-            />
-            <span className="w-8 text-right text-xs tabular-nums text-slate-500">
-              {Math.round((element.opacity ?? 1) * 100)}%
-            </span>
-          </div>
+    <>
+      <Section title="القالب">
+        <label className="flex flex-col gap-1">
+          <span className="text-xs text-fg-muted">{S.editor.rename}</span>
+          <input className="field field-sm" value={document.name || ''} onChange={(e) => update({ name: e.target.value }, 'اسم القالب')} onKeyDown={(e) => e.stopPropagation()} data-testid="doc-name" />
+        </label>
+        <Row label="الفئة">
+          <Segmented size="sm" fullWidth value={document.audienceType || 'student'} onChange={(audienceType) => update({ audienceType })} options={TEMPLATE_AUDIENCE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))} />
         </Row>
+        <Row label="التفاصيل">
+          <Segmented size="sm" fullWidth value={document.detailLevel || 'simple'} onChange={(detailLevel) => update({ detailLevel })} options={TEMPLATE_DETAIL_OPTIONS.map((o) => ({ value: o.value, label: o.label }))} />
+        </Row>
+      </Section>
+      <Section title="الصفحة">
+        <p className="text-sm font-semibold">{pageSizeLabel(document)}</p>
+        <p className="text-xs text-fg-muted">{`${formatNumber(Math.round(document.width))} × ${formatNumber(Math.round(document.height))} بكسل`}</p>
+        <Button size="sm" icon={FileCog} onClick={() => store.getState().setUi({ dialog: 'pageSetup' })} data-testid="open-page-setup">{S.editor.pageSetup}</Button>
+      </Section>
+      <Section title="الأرقام في الشهادة">
+        <Segmented
+          size="sm"
+          fullWidth
+          value={document.digits || 'keep'}
+          onChange={(digits) => update({ digits }, 'نمط الأرقام')}
+          options={[{ value: 'arabic', label: '١٢٣ عربية' }, { value: 'latin', label: 'غربية 123' }, { value: 'keep', label: 'كما كُتبت' }]}
+        />
+      </Section>
+    </>
+  );
+}
 
-        {/* Text properties */}
-        {isText && (
-          <div className="rounded-xl bg-slate-50 p-3">
-            <p className="mb-2 text-xs font-semibold text-slate-600">النص</p>
-            <div className="flex flex-col gap-2">
-              <Row label="الخط">
-                <select
-                  value={element.fontFamily || fontOptions[0]?.value || 'Amiri-Regular'}
-                  onChange={(e) => onChange(element.id, { fontFamily: e.target.value })}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs outline-none focus:border-emerald-400"
-                >
-                  {fontOptions.map((o) => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
-                  ))}
-                </select>
-              </Row>
-              <Row label="الحجم">
-                <NumberInput
-                  value={element.fontSize ?? 28}
-                  min={6}
-                  max={200}
-                  onChange={(v) => onChange(element.id, { fontSize: v })}
-                />
-              </Row>
-              <Row label="اللون">
-                <input
-                  type="color"
-                  value={element.fill || '#0f172a'}
-                  onChange={(e) => onChange(element.id, { fill: e.target.value })}
-                  className="h-8 w-full cursor-pointer rounded-lg border border-slate-200"
-                />
-              </Row>
-              {/* Style toggles */}
-              <Row label="النمط">
-                <div className="flex gap-1">
-                  <button onClick={toggleBold} className={isBold ? activeIconBtn : iconBtn} title="غامق">
-                    <Bold size={13} />
-                  </button>
-                  <button onClick={toggleItalic} className={isItalic ? activeIconBtn : iconBtn} title="مائل">
-                    <Italic size={13} />
-                  </button>
-                  <button
-                    onClick={() => onChange(element.id, { textDecoration: element.textDecoration === 'underline' ? '' : 'underline' })}
-                    className={element.textDecoration === 'underline' ? activeIconBtn : iconBtn}
-                    title="تسطير"
-                  >
-                    <Underline size={13} />
-                  </button>
-                </div>
-              </Row>
-              {/* Alignment */}
-              <Row label="المحاذاة">
-                <div className="flex gap-1">
-                  {[
-                    { val: 'right', icon: AlignRight },
-                    { val: 'center', icon: AlignCenter },
-                    { val: 'left', icon: AlignLeft },
-                  ].map(({ val, icon }) => {
-                    const Comp = icon;
-                    return (
-                    <button
-                      key={val}
-                      onClick={() => onChange(element.id, { align: val })}
-                      className={(element.align || 'center') === val ? activeIconBtn : iconBtn}
-                    >
-                      <Comp size={13} />
-                    </button>
-                    );
-                  })}
-                </div>
-              </Row>
-              <Row label="تباعد السطور">
-                <NumberInput
-                  value={element.lineHeight ?? 1.4}
-                  min={0.5}
-                  max={5}
-                  step={0.5}
-                  onChange={(v) => onChange(element.id, { lineHeight: v })}
-                />
-              </Row>
-              <Row label="التمدد">
-                <select
-                  value={element.growDirection || 'right'}
-                  onChange={(e) => onChange(element.id, { growDirection: e.target.value })}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs outline-none focus:border-emerald-400"
-                >
-                  <option value="right">يمين</option>
-                  <option value="left">يسار</option>
-                  <option value="center">من الوسط</option>
-                </select>
-              </Row>
-            </div>
-          </div>
-        )}
-
-        {/* Shape properties */}
-        {isShape && (
-          <div className="rounded-xl bg-slate-50 p-3">
-            <p className="mb-2 text-xs font-semibold text-slate-600">الشكل</p>
-            <div className="flex flex-col gap-2">
-              <Row label="التعبئة">
-                <input
-                  type="color"
-                  value={element.fill || '#e2e8f0'}
-                  onChange={(e) => onChange(element.id, { fill: e.target.value })}
-                  className="h-8 w-full cursor-pointer rounded-lg border border-slate-200"
-                />
-              </Row>
-              <Row label="الحدود">
-                <input
-                  type="color"
-                  value={element.stroke || '#94a3b8'}
-                  onChange={(e) => onChange(element.id, { stroke: e.target.value })}
-                  className="h-8 w-full cursor-pointer rounded-lg border border-slate-200"
-                />
-              </Row>
-              <Row label="سماكة">
-                <NumberInput
-                  value={element.strokeWidth ?? 2}
-                  min={0}
-                  max={30}
-                  onChange={(v) => onChange(element.id, { strokeWidth: v })}
-                />
-              </Row>
-              {element.type === 'rect' && (
-                <Row label="دائرية">
-                  <NumberInput
-                    value={element.cornerRadius ?? 0}
-                    min={0}
-                    max={200}
-                    onChange={(v) => onChange(element.id, { cornerRadius: v })}
-                  />
-                </Row>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Line properties */}
-        {element.type === 'line' && (
-          <div className="rounded-xl bg-slate-50 p-3">
-            <p className="mb-2 text-xs font-semibold text-slate-600">الخط</p>
-            <div className="flex flex-col gap-2">
-              <Row label="اللون">
-                <input
-                  type="color"
-                  value={element.stroke || '#0f172a'}
-                  onChange={(e) => onChange(element.id, { stroke: e.target.value })}
-                  className="h-8 w-full cursor-pointer rounded-lg border border-slate-200"
-                />
-              </Row>
-              <Row label="السماكة">
-                <NumberInput
-                  value={element.strokeWidth ?? 3}
-                  min={1}
-                  max={50}
-                  onChange={(v) => onChange(element.id, { strokeWidth: v })}
-                />
-              </Row>
-            </div>
-          </div>
-        )}
-
-        {/* Layer controls */}
-        <div className="rounded-xl bg-slate-50 p-3">
-          <p className="mb-2 text-xs font-semibold text-slate-600">الطبقات</p>
-          <div className="flex flex-wrap gap-1">
-            <button onClick={() => onLayerOp('bringToFront')} title="إلى المقدمة" className={iconBtn}>
-              <BringToFront size={14} />
-            </button>
-            <button onClick={() => onLayerOp('bringForward')} title="للأمام" className={iconBtn}>
-              <ChevronUp size={14} />
-            </button>
-            <button onClick={() => onLayerOp('sendBackward')} title="للخلف" className={iconBtn}>
-              <ChevronDown size={14} />
-            </button>
-            <button onClick={() => onLayerOp('sendToBack')} title="للخلفية" className={iconBtn}>
-              <SendToBack size={14} />
-            </button>
-            <button
-              onClick={() => onChange(element.id, { locked: !element.locked })}
-              title={element.locked ? 'إلغاء القفل' : 'قفل'}
-              className={element.locked ? activeIconBtn : iconBtn}
-            >
-              {element.locked ? <Lock size={14} /> : <LockOpen size={14} />}
-            </button>
-            <button
-              onClick={() => onChange(element.id, { visible: element.visible === false })}
-              title={element.visible === false ? 'إظهار' : 'إخفاء'}
-              className={element.visible === false ? activeIconBtn : iconBtn}
-            >
-              <EyeOff size={14} />
-            </button>
-          </div>
-        </div>
+function GeometrySection({ elements }) {
+  const patch = usePatch();
+  const single = elements.length === 1 ? elements[0] : null;
+  if (!single) return null;
+  const isLine = single.type === 'line';
+  const hasHeight = !isTextElement(single) && !isLine;
+  const set = (key) => (value) => patch({ [key]: value }, { label: 'الموضع والحجم' });
+  return (
+    <Section title="الموضع والحجم">
+      <div className="grid grid-cols-2 gap-2">
+        <NumberField label="س" value={single.x} onChange={set('x')} testId="prop-x" />
+        <NumberField label="ص" value={single.y} onChange={set('y')} testId="prop-y" />
+        <NumberField label="العرض" value={single.width} min={1} onChange={set('width')} testId="prop-width" />
+        {hasHeight && <NumberField label="الارتفاع" value={single.height} min={1} onChange={set('height')} testId="prop-height" />}
+        <NumberField label="الدوران" value={single.rotation || 0} min={-360} max={360} suffix="°" onChange={set('rotation')} testId="prop-rotation" />
       </div>
-    </div>
+    </Section>
+  );
+}
+
+function TextContentSection({ element }) {
+  const patch = usePatch();
+  const seal = useSeal();
+  const source = editableText(element);
+  return (
+    <Section title={element.type === 'text' ? 'النص' : 'محتوى الحقل'}>
+      {element.type === 'dynamicText' && (
+        <Row label="الحقل">
+          <select className="field field-sm" value={element.field || 'studentName'} onChange={(e) => patch({ field: e.target.value, dynamicTextTemplate: '' }, { label: 'الحقل', coalesce: false })}>
+            {DYNAMIC_FIELDS.map((key) => <option key={key} value={key}>{FIELD_LABELS[key]}</option>)}
+            {!DYNAMIC_FIELDS.includes(element.field) && <option value={element.field}>{element.field}</option>}
+          </select>
+        </Row>
+      )}
+      {element.type === 'dateField' && (
+        <>
+          <Row label="التقويم">
+            <Segmented size="sm" fullWidth value={element.date?.calendar || 'hijri'} onChange={(calendar) => patch({ date: { ...element.date, calendar } }, { label: 'التقويم', coalesce: false })} options={[{ value: 'hijri', label: 'هجري' }, { value: 'gregorian', label: 'ميلادي' }]} />
+          </Row>
+          <Row label="الصيغة">
+            <Segmented size="sm" fullWidth value={element.date?.style || 'long'} onChange={(style) => patch({ date: { ...element.date, style } }, { label: 'صيغة التاريخ', coalesce: false })} options={[{ value: 'long', label: 'كاملة' }, { value: 'numeric', label: 'أرقام' }]} />
+          </Row>
+          <Row label="المصدر">
+            <Segmented size="sm" fullWidth value={element.date?.source || 'issue'} onChange={(source) => patch({ date: { ...element.date, source } }, { label: 'مصدر التاريخ', coalesce: false })} options={[{ value: 'issue', label: 'تاريخ الإصدار' }, { value: 'today', label: 'اليوم' }]} />
+          </Row>
+        </>
+      )}
+      <textarea
+        className="field min-h-20 resize-y text-sm"
+        dir="auto"
+        value={toDisplayTemplate(source.value)}
+        onChange={(e) => patch({ [source.key]: fromDisplayTemplate(e.target.value) }, { label: 'تعديل النص' })}
+        onBlur={seal}
+        onKeyDown={(e) => e.stopPropagation()}
+        data-testid="prop-text"
+        aria-label="النص"
+      />
+      <p className="text-2xs text-fg-subtle">اسحب حقلًا من لوحة «الحقول» وأفلته فوق النص لإدراجه، أو اكتب الحقل بين قوسين مزدوجين.</p>
+      <Row label="الارتفاع">
+        <NumberField value={Number(element.height) || 0} min={0} onChange={(height) => patch({ height: height || undefined }, { label: 'ارتفاع الصندوق' })} />
+        <Segmented size="sm" value={element.verticalAlign || 'top'} onChange={(verticalAlign) => patch({ verticalAlign }, { label: 'المحاذاة الرأسية', coalesce: false })} options={[{ value: 'top', label: 'أعلى' }, { value: 'middle', label: 'وسط' }, { value: 'bottom', label: 'أسفل' }]} />
+      </Row>
+    </Section>
+  );
+}
+
+function ElementProperties({ elements }) {
+  const store = useEditorStoreApi();
+  const patch = usePatch();
+  const seal = useSeal();
+  const info = selectionInfo(store.getState());
+  const single = elements.length === 1 ? elements[0] : null;
+  const opacity = common(elements, (el) => (el.opacity === undefined ? 1 : Number(el.opacity))) ?? 1;
+  const typeLabel = single ? S.editor.types[single.type] : info.units === 1 && info.grouped ? S.editor.types.group : S.editor.types.multiple(formatNumber(elements.length));
+  return (
+    <>
+      <Section
+        title={typeLabel}
+        action={(
+          <div className="flex gap-1">
+            <IconButton icon={info.allLocked ? Lock : LockOpen} size="xs" label={info.allLocked ? S.editor.menu.unlock : S.editor.menu.lock} active={info.allLocked} onClick={() => store.getState().toggleLocked()} />
+            <IconButton icon={info.allHidden ? EyeOff : Eye} size="xs" label={info.allHidden ? S.editor.menu.show : S.editor.menu.hide} onClick={() => store.getState().toggleHidden()} />
+          </div>
+        )}
+      >
+        {single && (
+          <input className="field field-sm" placeholder="اسم العنصر (اختياري)" value={single.name || ''} onChange={(e) => patch({ name: e.target.value }, { label: 'إعادة تسمية' })} onKeyDown={(e) => e.stopPropagation()} aria-label="اسم العنصر" />
+        )}
+        <Row label="الشفافية">
+          <Slider className="flex-1" label="الشفافية" min={0} max={100} value={Math.round(opacity * 100)} onChange={(value) => patch({ opacity: value / 100 }, { label: 'الشفافية' })} onCommit={seal} showValue suffix="٪" />
+        </Row>
+      </Section>
+      <GeometrySection elements={elements} />
+      {single && isTextElement(single) && <TextContentSection element={single} />}
+      {single?.type === 'dynamicImage' && (
+        <Section title="مصدر الصورة">
+          <Segmented size="sm" fullWidth value={single.field || 'logo'} onChange={(field) => patch({ field }, { label: 'مصدر الصورة', coalesce: false })} options={[{ value: 'logo', label: 'الشعار' }, { value: 'signature', label: 'التوقيع' }, { value: 'stamp', label: 'الختم' }]} />
+        </Section>
+      )}
+    </>
+  );
+}
+
+/** Properties on the left (RTL inline-end): document settings, or the selection's details. */
+export default function PropertiesPanel({ overlay = false }) {
+  const store = useEditorStoreApi();
+  const elements = useSelectedElements();
+  const mode = useEditor((state) => state.ui.mode);
+  return (
+    <aside
+      aria-label={S.editor.properties}
+      data-testid="properties-panel"
+      className={`flex w-[280px] shrink-0 animate-panel-in-start flex-col border-s border-border bg-surface ${overlay ? 'absolute inset-y-0 end-0 z-30 shadow-lg' : ''}`}
+    >
+      <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
+        <h2 className="text-sm font-bold">{S.editor.properties}</h2>
+        <IconButton icon={PanelLeftClose} size="xs" label={S.editor.hideProperties} onClick={() => store.getState().setUi({ propertiesOpen: false })} />
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto" onBlurCapture={() => store.getState().sealHistory()}>
+        {mode === 'preview' || elements.length === 0 ? <DocumentProperties /> : <ElementProperties elements={elements} />}
+      </div>
+    </aside>
   );
 }

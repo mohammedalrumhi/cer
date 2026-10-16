@@ -133,6 +133,21 @@ function createMysqlStorage() {
 
     // Databases created before extra_json existed.
     await ensureColumn(pool, 'templates', 'extra_json', 'LONGTEXT NULL');
+    await ensureColumn(pool, 'students', 'extra_json', 'LONGTEXT NULL');
+    await ensureColumn(pool, 'branding', 'extra_json', 'LONGTEXT NULL');
+
+    // Generic records: template versions, assets, generation jobs, issued certificates.
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS records (
+        collection VARCHAR(64) NOT NULL,
+        id VARCHAR(128) NOT NULL,
+        owner_id VARCHAR(128) NULL,
+        created_at VARCHAR(40) NULL,
+        data_json LONGTEXT NOT NULL,
+        PRIMARY KEY (collection, id),
+        KEY records_owner (collection, owner_id)
+      ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
+    `);
   }
 
   async function seedFromFiles() {
@@ -200,6 +215,8 @@ function createMysqlStorage() {
   function mapBrandingRow(row) {
     if (!row) return { ...BRANDING_EMPTY };
     return {
+      // Brand colours, saved text styles and other newer settings.
+      ...parseJsonColumn(row.extra_json, {}),
       schoolName: row.school_name,
       logoPath: row.logo_path,
       signaturePath: row.signature_path,
@@ -254,11 +271,12 @@ function createMysqlStorage() {
     async updateBranding(patch) {
       const current = await this.getBranding();
       const next = { ...current, ...patch };
+      const { schoolName, logoPath, signaturePath, stampPath, ...extra } = next;
       await pool.query(
-        `INSERT INTO branding (id, school_name, logo_path, signature_path, stamp_path, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?)
-         ON DUPLICATE KEY UPDATE school_name = VALUES(school_name), logo_path = VALUES(logo_path), signature_path = VALUES(signature_path), stamp_path = VALUES(stamp_path), updated_at = VALUES(updated_at)`,
-        ['default', next.schoolName, next.logoPath, next.signaturePath, next.stampPath, new Date().toISOString()]
+        `INSERT INTO branding (id, school_name, logo_path, signature_path, stamp_path, updated_at, extra_json)
+         VALUES (?, ?, ?, ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE school_name = VALUES(school_name), logo_path = VALUES(logo_path), signature_path = VALUES(signature_path), stamp_path = VALUES(stamp_path), updated_at = VALUES(updated_at), extra_json = VALUES(extra_json)`,
+        ['default', schoolName, logoPath, signaturePath, stampPath, new Date().toISOString(), JSON.stringify(extra)]
       );
       return next;
     },
@@ -365,6 +383,28 @@ function createMysqlStorage() {
     },
     async deleteTemplate(id) {
       const [result] = await pool.query('DELETE FROM templates WHERE id = ?', [id]);
+      return result.affectedRows > 0;
+    },
+    async listRecords(collection, { ownerId } = {}) {
+      const [rows] = ownerId === undefined
+        ? await pool.query('SELECT data_json FROM records WHERE collection = ? ORDER BY created_at ASC', [collection])
+        : await pool.query('SELECT data_json FROM records WHERE collection = ? AND owner_id = ? ORDER BY created_at ASC', [collection, ownerId]);
+      return rows.map((row) => parseJsonColumn(row.data_json, null)).filter(Boolean);
+    },
+    async getRecord(collection, id) {
+      const [rows] = await pool.query('SELECT data_json FROM records WHERE collection = ? AND id = ? LIMIT 1', [collection, id]);
+      return rows[0] ? parseJsonColumn(rows[0].data_json, null) : null;
+    },
+    async putRecord(collection, record) {
+      await pool.query(
+        `INSERT INTO records (collection, id, owner_id, created_at, data_json) VALUES (?, ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE owner_id = VALUES(owner_id), data_json = VALUES(data_json)`,
+        [collection, record.id, record.ownerId ?? null, record.createdAt || new Date().toISOString(), JSON.stringify(record)]
+      );
+      return record;
+    },
+    async deleteRecord(collection, id) {
+      const [result] = await pool.query('DELETE FROM records WHERE collection = ? AND id = ?', [collection, id]);
       return result.affectedRows > 0;
     },
     async findUserByCredentials(username, password) {

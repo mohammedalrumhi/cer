@@ -2,7 +2,7 @@ import { memo } from 'react';
 import { Group, Image as KonvaImage, Rect, Shape, Text } from 'react-konva';
 import { filteredImage, imageSourceUrl } from '../render/imageSource';
 import { useImage } from '../render/useImage';
-import { canvasPaint, paintImageOp, paintShapeOp, paintTextOp } from '../render/paintOps';
+import { canvasPaint, paintImageOp, paintShapeOp, paintTextOp, path2D } from '../render/paintOps';
 
 /*
  * Konva nodes for scene ops (shared/render/scene.js). Each op is one Konva Shape positioned at
@@ -36,8 +36,23 @@ function boxHit(op) {
   };
 }
 
+/** Shapes with no fill (frames, outlines) are clickable only along their strokes, so they don't block the page. */
+function strokeHit(op) {
+  return (context, shape) => {
+    const ctx = context._context;
+    ctx.strokeStyle = shape.colorKey;
+    ctx.lineJoin = 'round';
+    for (const item of op.items) {
+      if (!item.d) continue;
+      ctx.lineWidth = Math.max(12, (item.strokeWidth || 0) + 8);
+      ctx.stroke(path2D(item.d));
+    }
+  };
+}
+
 function ShapeNode({ op }) {
-  return <Shape {...nodeProps(op)} fill="#000" sceneFunc={(context) => paintShapeOp(context._context, op)} hitFunc={boxHit(op)} />;
+  const outlineOnly = op.items.length > 0 && op.items.every((item) => !item.fill) && !op.originY;
+  return <Shape {...nodeProps(op)} fill="#000" sceneFunc={(context) => paintShapeOp(context._context, op)} hitFunc={outlineOnly ? strokeHit(op) : boxHit(op)} />;
 }
 
 function TextNode({ op, engine }) {

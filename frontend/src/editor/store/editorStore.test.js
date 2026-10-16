@@ -227,6 +227,6 @@ describe('editor store: viewport', () => {
 
   it('clamps zoom', () => {
     s().zoomTo(100);
-    expect(s().viewport.zoom).toBe(5);
+    expect(s().viewport.zoom).toBe(4);
   });
 });

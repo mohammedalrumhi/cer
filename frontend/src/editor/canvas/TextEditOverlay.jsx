@@ -1,18 +1,22 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useEditorStoreApi } from '../store/EditorStoreContext';
 import { ensureCssFontFace, loadRenderKit } from '../render/renderKit';
+import { fromDisplayTemplate, toDisplayTemplate } from '../model/fieldTokens';
+import { editableText } from '../model/textSource';
 
 /**
- * In-place text editing: a textarea over the element, matching its box, rotation and font.
- * The canvas hides the element meanwhile. Enter adds a line; Ctrl/⌘+Enter or blur commits;
- * Escape cancels.
+ * In-place text editing: a textarea over the element (same box, rotation, size and font face).
+ * Typing updates the document live and coalesces into a single undo step. Enter adds a line;
+ * Ctrl/⌘+Enter, Escape or a click outside finishes. Bound text edits its template, so
+ * "{{studentName}}" can be surrounded by words.
  */
-export default function TextEditOverlay({ element, viewport }) {
+export default function TextEditOverlay({ element, op, viewport }) {
   const store = useEditorStoreApi();
   const ref = useRef(null);
-  const [value, setValue] = useState(String(element.text ?? ''));
   const [fontFamily, setFontFamily] = useState('');
-  const doneRef = useRef(false);
+  const source = editableText(element);
+  const [value, setValue] = useState(() => toDisplayTemplate(source.value));
+  const coalesceKey = `text-edit:${element.id}`;
 
   useEffect(() => {
     let alive = true;
@@ -38,18 +42,22 @@ export default function TextEditOverlay({ element, viewport }) {
     node.style.height = `${node.scrollHeight}px`;
   }, [value, fontFamily, viewport.zoom]);
 
-  function finish(save) {
-    if (doneRef.current) return;
-    doneRef.current = true;
+  function change(next) {
+    setValue(next);
+    store.getState().updateElement(element.id, { [source.key]: fromDisplayTemplate(next) }, { label: 'تعديل النص', coalesceKey });
+  }
+
+  function finish() {
     const state = store.getState();
+    state.sealHistory();
     state.setUi({ editingTextId: null });
-    if (save && value !== element.text) state.updateElement(element.id, { text: value }, { label: 'تعديل النص' });
   }
 
   const zoom = viewport.zoom;
-  const fontSize = (Number(element.fontSize) || 28) * zoom;
+  const fontSize = (op?.layout?.fontSize || Number(element.fontSize) || 28) * zoom;
   const bold = String(element.fontStyle || '').includes('bold');
   const italic = String(element.fontStyle || '').includes('italic');
+  const fill = typeof element.fill === 'string' ? element.fill : element.fill?.stops?.[0]?.color || '#0f172a';
 
   return (
     <textarea
@@ -57,22 +65,20 @@ export default function TextEditOverlay({ element, viewport }) {
       dir="auto"
       value={value}
       aria-label="تحرير النص"
-      onChange={(event) => setValue(event.target.value)}
-      onBlur={() => finish(true)}
+      spellCheck={false}
+      onChange={(event) => change(event.target.value)}
+      onBlur={finish}
       onKeyDown={(event) => {
         event.stopPropagation();
-        if (event.key === 'Escape') {
+        if (event.key === 'Escape' || (event.key === 'Enter' && (event.ctrlKey || event.metaKey))) {
           event.preventDefault();
-          finish(false);
-        } else if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
-          event.preventDefault();
-          finish(true);
+          finish();
         }
       }}
       style={{
         position: 'absolute',
         left: viewport.x + (Number(element.x) || 0) * zoom,
-        top: viewport.y + (Number(element.y) || 0) * zoom,
+        top: viewport.y + ((Number(element.y) || 0) + (op?.offsetY || 0)) * zoom,
         width: (Number(element.width) || 200) * zoom,
         transform: `rotate(${Number(element.rotation) || 0}deg)`,
         transformOrigin: 'top left',
@@ -81,11 +87,10 @@ export default function TextEditOverlay({ element, viewport }) {
         fontWeight: bold ? 700 : 400,
         fontStyle: italic ? 'italic' : 'normal',
         lineHeight: Number(element.lineHeight) || 1.4,
-        letterSpacing: `${(Number(element.letterSpacing) || 0) * zoom}px`,
-        color: element.fill || '#0f172a',
-        textAlign: element.align || 'center',
-        background: 'rgba(255,255,255,0.85)',
-        outline: '2px solid #10b981',
+        color: fill,
+        textAlign: element.align === 'justify' ? 'justify' : element.align || 'center',
+        background: 'rgba(255,255,255,0.88)',
+        outline: '2px solid var(--selection)',
         border: 'none',
         borderRadius: 4,
         padding: 0,
@@ -93,6 +98,7 @@ export default function TextEditOverlay({ element, viewport }) {
         resize: 'none',
         overflow: 'hidden',
         whiteSpace: 'pre-wrap',
+        caretColor: 'var(--primary)',
         zIndex: 20,
       }}
     />

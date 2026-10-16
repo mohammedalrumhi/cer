@@ -219,9 +219,11 @@ export function getRecipientAchievementSentenceForTemplate(template, studentName
 }
 
 export function normalizeTemplateMetadata(template = {}) {
+  // A name the user gave wins; the generated "colour - detail - audience" label is only a fallback.
+  const ownName = typeof template.name === 'string' ? template.name.trim() : '';
   return {
     ...template,
-    name: getTemplateDisplayName(template),
+    name: ownName || getTemplateDisplayName(template),
     ...TemplateProfile.fromTemplate(template).toJSON(),
   };
 }

@@ -75,7 +75,7 @@ async function exportEditorElement(page, id, scale) {
   const { dataUrl, region } = await page.evaluate(({ elementId, pixelRatio }) => {
     const stage = window.__cerEditor.stage();
     const pageGroup = stage.findOne('.page');
-    const ui = stage.find('.ui');
+    const ui = [...stage.find('.ui'), ...stage.find('.guides')];
     const children = pageGroup.getChildren();
     const previous = { visible: children.map((node) => node.visible()), x: pageGroup.x(), y: pageGroup.y(), scale: pageGroup.scaleX() };
     children.forEach((node) => node.visible(node.id() === elementId));
@@ -129,7 +129,8 @@ for (const [index, target] of targets.entries()) {
     writeFileSync(`${OUT}/${slug}-pdf.png`, pdfPage);
     writeFileSync(`${OUT}/${slug}-diff.png`, diffPng);
 
-    // Each text element alone, forced to opaque black so ink is comparable.
+    // Each text element alone, forced to opaque black so ink is comparable (never saved).
+    await page.evaluate(() => window.__cerEditor.stopAutosave());
     const texts = document.elements.filter((el) => ['text', 'dynamicText', 'dateField'].includes(el.type) && el.visible !== false);
     await page.evaluate((ids) => {
       window.__cerEditor.store.getState().updateElements(ids, (el) => ({ ...el, fill: '#000000', opacity: 1 }));

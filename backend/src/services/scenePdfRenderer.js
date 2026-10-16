@@ -240,8 +240,11 @@ function paintOp(doc, op, deps) {
 function paintCertificate(doc, scene, deps, { x = 0, y = 0, scale = 1 } = {}) {
   doc.save();
   if (x || y) doc.translate(x, y);
-  if (scale !== 1) doc.scale(scale, scale);
-  doc.rect(0, 0, scene.width, scene.height).clip();
+  if (scale !== 1) {
+    doc.scale(scale, scale);
+    // On a shared sheet, keep each certificate inside its own slot.
+    doc.rect(0, 0, scene.width, scene.height).clip();
+  }
   paintBackground(doc, scene, deps.loadBackground);
   for (const op of scene.ops) paintOp(doc, op, deps);
   doc.restore();

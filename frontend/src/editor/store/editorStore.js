@@ -1,9 +1,32 @@
 import { createStore } from 'zustand/vanilla';
-import { cloneElement, migrateTemplate } from '@shared/model/index.js';
+import { cloneElement, createId, migrateTemplate } from '@shared/model/index.js';
+import { alignMoves, distributeMoves, expandToGroups } from '../canvas/align.js';
 import { createHistory, pushCommand, redoCommand, sealHistory, undoCommand } from './history.js';
 
-export const ZOOM_MIN = 0.05;
-export const ZOOM_MAX = 5;
+export const ZOOM_MIN = 0.1;
+export const ZOOM_MAX = 4;
+export const ZOOM_STEPS = [0.1, 0.25, 0.33, 0.5, 0.67, 0.75, 0.9, 1, 1.25, 1.5, 2, 3, 4];
+
+export function nextZoomStep(current, direction) {
+  const eps = 0.001;
+  const step = direction > 0
+    ? ZOOM_STEPS.find((s) => s > current + eps)
+    : [...ZOOM_STEPS].reverse().find((s) => s < current - eps);
+  return step ?? (direction > 0 ? ZOOM_MAX : ZOOM_MIN);
+}
+
+/** Deep copies with fresh ids; elements that shared a group share a new group. */
+export function cloneWithGroups(elements, offset) {
+  const groups = new Map();
+  return elements.map((element) => {
+    const copy = cloneElement(element, offset);
+    if (element.groupId) {
+      if (!groups.has(element.groupId)) groups.set(element.groupId, createId('grp'));
+      copy.groupId = groups.get(element.groupId);
+    }
+    return copy;
+  });
+}
 export const PASTE_OFFSET = 20;
 const CLIPBOARD_KEY = 'cer:clipboard';
 
@@ -13,7 +36,10 @@ const CLIPBOARD_KEY = 'cer:clipboard';
  * @property {object} savedDocument       last document known to be persisted
  * @property {{ ids: string[] }} selection
  * @property {{ zoom: number, x: number, y: number, width: number, height: number }} viewport
- * @property {{ tool: string, activePanel: string|null, mobileSheet: 'closed'|'half'|'full', showGrid: boolean, editingTextId: string|null }} ui
+ * @property {{ tool: string, activePanel: string|null, propertiesOpen: boolean, mode: 'design'|'preview', previewIndex: number,
+ *   editingTextId: string|null, cropId: string|null, shortcutsOpen: boolean, dialog: string|null, mobileSheet: string, showGrid: boolean }} ui
+ * @property {Map<string, {x:number,y:number,width:number,height:number}>} boxes  element bounds from the latest scene
+ * @property {number} serverVersion          template version the document is based on (optimistic saves)
  * @property {import('./history.js').History} history
  * @property {{ label: string, before: object, selectionBefore: string[] } | null} transaction
  */
@@ -152,17 +178,40 @@ export function createEditorStore(template, { now = () => Date.now() } = {}) {
       savedDocument: initial,
       selection: { ids: [] },
       viewport: { zoom: 1, x: 0, y: 0, width: 0, height: 0 },
-      ui: { tool: 'select', activePanel: null, mobileSheet: 'closed', showGrid: false, editingTextId: null },
+      ui: {
+        tool: 'select',
+        activePanel: 'elements',
+        propertiesOpen: true,
+        mode: 'design',
+        previewIndex: 0,
+        editingTextId: null,
+        cropId: null,
+        shortcutsOpen: false,
+        dialog: null,
+        mobileSheet: 'closed',
+        showGrid: false,
+      },
+      boxes: new Map(),
+      serverVersion: Number(initial?.version) || 1,
       history: createHistory(),
       transaction: null,
 
       /* ── document lifecycle ─────────────────────────────────────── */
       loadDocument(nextTemplate) {
         const document = migrateTemplate(nextTemplate);
-        set({ document, savedDocument: document, selection: { ids: [] }, history: createHistory(), transaction: null });
+        set({ document, savedDocument: document, selection: { ids: [] }, history: createHistory(), transaction: null, serverVersion: Number(document.version) || 1 });
       },
-      markSaved(document = get().document) {
-        set({ savedDocument: document });
+      markSaved(document = get().document, serverVersion) {
+        set(serverVersion ? { savedDocument: document, serverVersion } : { savedDocument: document });
+      },
+      setServerVersion(serverVersion) {
+        set({ serverVersion });
+      },
+      /** Replace the whole design as one undoable step (apply a template, restore a version). */
+      replaceDocument(nextTemplate, { label = 'استبدال التصميم' } = {}) {
+        const current = get().document;
+        const next = migrateTemplate({ ...nextTemplate, id: current.id, name: nextTemplate.name ?? current.name, version: current.version });
+        commit(label, () => next, { selectionAfter: [] });
       },
 
       /* ── document commands ──────────────────────────────────────── */
@@ -195,9 +244,7 @@ export function createEditorStore(template, { now = () => Date.now() } = {}) {
       },
       duplicateElements(ids = get().selection.ids) {
         const targets = new Set(ids);
-        const copies = get().document.elements
-          .filter((element) => targets.has(element.id))
-          .map((element) => cloneElement(element, { dx: PASTE_OFFSET, dy: PASTE_OFFSET }));
+        const copies = cloneWithGroups(get().document.elements.filter((element) => targets.has(element.id)), { dx: PASTE_OFFSET, dy: PASTE_OFFSET });
         get().addElements(copies, { label: 'تكرار' });
         return copies;
       },
@@ -206,6 +253,62 @@ export function createEditorStore(template, { now = () => Date.now() } = {}) {
           const elements = reorder(doc.elements, ids, action);
           return elements.every((element, index) => element === doc.elements[index]) ? doc : { ...doc, elements };
         });
+      },
+      /** Move one element to a stacking index (layers panel drag). */
+      moveElementTo(id, index) {
+        commit('ترتيب الطبقات', (doc) => {
+          const from = doc.elements.findIndex((element) => element.id === id);
+          if (from < 0) return doc;
+          const to = Math.max(0, Math.min(doc.elements.length - 1, index));
+          if (from === to) return doc;
+          const elements = [...doc.elements];
+          const [moved] = elements.splice(from, 1);
+          elements.splice(to, 0, moved);
+          return { ...doc, elements };
+        });
+      },
+      /** Shift elements by per-id offsets as one step (align, distribute). */
+      applyMoves(moves, label) {
+        if (!moves.length) return;
+        const byId = new Map(moves.map((move) => [move.id, move]));
+        get().updateElements([...byId.keys()], (element) => {
+          const move = byId.get(element.id);
+          return { ...element, x: Math.round(((Number(element.x) || 0) + move.dx) * 100) / 100, y: Math.round(((Number(element.y) || 0) + move.dy) * 100) / 100 };
+        }, { label });
+      },
+      alignSelection(mode, options) {
+        const state = get();
+        const selected = state.document.elements.filter((element) => state.selection.ids.includes(element.id) && !element.locked);
+        const page = { width: Number(state.document.width) || 1123, height: Number(state.document.height) || 794 };
+        state.applyMoves(alignMoves(selected, state.boxes, mode, page, options), 'محاذاة');
+      },
+      distributeSelection(axis) {
+        const state = get();
+        const selected = state.document.elements.filter((element) => state.selection.ids.includes(element.id) && !element.locked);
+        state.applyMoves(distributeMoves(selected, state.boxes, axis), 'توزيع');
+      },
+      groupSelection() {
+        const { ids } = get().selection;
+        if (ids.length < 2) return;
+        const groupId = createId('grp');
+        get().updateElements(ids, (element) => ({ ...element, groupId }), { label: 'تجميع' });
+      },
+      ungroupSelection() {
+        get().updateElements(get().selection.ids, (element) => {
+          if (!element.groupId) return element;
+          const { groupId: _drop, ...rest } = element;
+          return rest;
+        }, { label: 'فك التجميع' });
+      },
+      toggleLocked(ids = get().selection.ids) {
+        const targets = get().document.elements.filter((element) => ids.includes(element.id));
+        const lock = !targets.every((element) => element.locked);
+        get().updateElements(ids, (element) => ({ ...element, locked: lock }), { label: lock ? 'قفل' : 'فتح القفل' });
+      },
+      toggleHidden(ids = get().selection.ids) {
+        const targets = get().document.elements.filter((element) => ids.includes(element.id));
+        const hide = !targets.every((element) => element.visible === false);
+        get().updateElements(ids, (element) => ({ ...element, visible: !hide }), { label: hide ? 'إخفاء' : 'إظهار' });
       },
       nudge(ids, dx, dy) {
         const key = `nudge:${[...ids].sort().join(',')}`;
@@ -278,7 +381,7 @@ export function createEditorStore(template, { now = () => Date.now() } = {}) {
       paste() {
         const source = readClipboard() || memoryClipboard;
         if (!source?.length) return [];
-        const copies = source.map((element) => cloneElement(element, { dx: PASTE_OFFSET, dy: PASTE_OFFSET }));
+        const copies = cloneWithGroups(source, { dx: PASTE_OFFSET, dy: PASTE_OFFSET });
         // Successive pastes cascade instead of stacking on the same spot.
         memoryClipboard = copies;
         writeClipboard(copies);
@@ -290,6 +393,18 @@ export function createEditorStore(template, { now = () => Date.now() } = {}) {
       select(ids) {
         const existing = new Set(get().document.elements.map((element) => element.id));
         set({ selection: { ids: [...new Set(ids)].filter((id) => existing.has(id)) } });
+      },
+      /** Click selection: whole groups, Shift adds/removes. */
+      selectExpanded(ids, { additive = false } = {}) {
+        const all = get().document.elements;
+        const expanded = expandToGroups(ids, all);
+        if (!additive) {
+          get().select(expanded);
+          return;
+        }
+        const current = get().selection.ids;
+        const allIn = expanded.every((id) => current.includes(id));
+        get().select(allIn ? current.filter((id) => !expanded.includes(id)) : [...current, ...expanded]);
       },
       toggleSelect(id) {
         const { ids } = get().selection;
@@ -337,9 +452,19 @@ export function createEditorStore(template, { now = () => Date.now() } = {}) {
         });
       },
 
-      /* ── ui ─────────────────────────────────────────────────────── */
+      stepZoom(direction) {
+        get().zoomTo(nextZoomStep(get().viewport.zoom, direction));
+      },
+
+      /* ── ui ───────────────────────────────────────────────────────── */
       setUi(patch) {
         set((state) => ({ ui: { ...state.ui, ...patch } }));
+      },
+      togglePanel(id) {
+        set((state) => ({ ui: { ...state.ui, activePanel: state.ui.activePanel === id ? null : id } }));
+      },
+      setBoxes(boxes) {
+        set({ boxes });
       },
     };
   });

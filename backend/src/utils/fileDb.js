@@ -3,11 +3,9 @@ const path = require('path');
 const { dataDir } = require('./storagePaths');
 
 function ensureFile(fileName, fallbackValue) {
-  if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
-  }
-
   const target = path.join(dataDir, fileName);
+  fs.mkdirSync(path.dirname(target), { recursive: true });
+
   if (!fs.existsSync(target)) {
     fs.writeFileSync(target, JSON.stringify(fallbackValue, null, 2), 'utf8');
   }
@@ -23,7 +21,10 @@ function readJson(fileName, fallbackValue) {
 
 function writeJson(fileName, data, fallbackValue) {
   const target = ensureFile(fileName, fallbackValue);
-  fs.writeFileSync(target, JSON.stringify(data, null, 2), 'utf8');
+  // Write-then-rename so a crash mid-write never leaves a truncated JSON file.
+  const temp = `${target}.${process.pid}.tmp`;
+  fs.writeFileSync(temp, JSON.stringify(data, null, 2), 'utf8');
+  fs.renameSync(temp, target);
 }
 
 module.exports = {

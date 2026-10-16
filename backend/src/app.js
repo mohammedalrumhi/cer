@@ -8,6 +8,8 @@ const { createTemplatesRouter } = require('./routes/templates');
 const { createBrandingRouter } = require('./routes/branding');
 const { createStudentsRouter } = require('./routes/students');
 const { createCertificatesRouter } = require('./routes/certificates');
+const { createAssetsRouter } = require('./routes/assets');
+const { createBackgroundsRouter } = require('./routes/backgrounds');
 const fontsRouter = require('./routes/fonts');
 const { createAuthRouter } = require('./routes/auth');
 const { requireAuth } = require('./middleware/auth');
@@ -81,6 +83,8 @@ function createApp({ storage: rawStorage }) {
   app.use('/api/students', requireAuth, createStudentsRouter({ storage }));
   app.use('/api/certificates', requireAuth, createCertificatesRouter({ storage }));
   app.use('/api/fonts', requireAuth, fontsRouter);
+  app.use('/api/assets', requireAuth, createAssetsRouter({ storage }));
+  app.use('/api/backgrounds', requireAuth, createBackgroundsRouter());
 
   if (frontendDistDir) {
     app.get(/^(?!\/api(?:\/|$)|\/uploads(?:\/|$)|\/assets\/fonts(?:\/|$)).*/, (_req, res) => {

@@ -1,265 +1,79 @@
-import { ArrowRight, Download, Eye, Redo2, Save, Undo2, ZoomIn, ZoomOut } from 'lucide-react';
-import { TEMPLATE_AUDIENCE_OPTIONS, TEMPLATE_DETAIL_OPTIONS } from '../../utils/templateMetadata';
+import { ArrowRight, Download, Eye, FileCog, FileStack, FileText, History, ImageUp, MoreHorizontal, PanelLeft, PenLine, Redo2, Type, Undo2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { S } from '../../strings.ar';
+import { IconButton } from '../../ui/Button';
+import { Dropdown, DropdownContent, DropdownItem, DropdownSeparator, DropdownTrigger } from '../../ui/Dropdown';
+import { Segmented } from '../../ui/Segmented';
+import { SaveStatus } from '../layout/SaveStatus';
+import { selectCanRedo, selectCanUndo } from '../store/editorStore';
+import { useEditor, useEditorStoreApi } from '../store/EditorStoreContext';
 
-export default function TopBar({
-  templateName,
-  onNameChange,
-  detailLevel,
-  onDetailLevelChange,
-  audienceType,
-  onAudienceTypeChange,
-  canUndo,
-  canRedo,
-  onUndo,
-  onRedo,
-  onSave,
-  saving,
-  onPreview,
-  previewing,
-  onExportPng,
-  zoom,
-  onZoom,
-  onZoomFit,
-  dirty,
-  onBack,
-  onImportDesign,
-  onUploadFont,
-  isMobile = false,
-}) {
-  if (isMobile) {
-    return (
-      <div
-        className="shrink-0 border-b border-slate-200 bg-white px-3 py-3 shadow-sm"
-        style={{ userSelect: 'none', zIndex: 40 }}
-      >
-        <div className="flex items-center gap-2">
-          <button
-            onClick={onBack}
-            title="العودة"
-            className="rounded-xl p-2 text-slate-500 hover:bg-slate-100"
-          >
-            <ArrowRight size={18} />
-          </button>
-
-          <input
-                        value={templateName}
-            onChange={(e) => onNameChange(e.target.value)}
-            className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-800 outline-none transition focus:border-emerald-400 focus:ring-1 focus:ring-emerald-300"
-          />
-
-          <button
-            onClick={onSave}
-            disabled={saving}
-            className="flex min-h-10 items-center gap-1.5 rounded-xl bg-emerald-700 px-4 py-2 text-xs font-semibold text-white transition hover:bg-emerald-600 disabled:opacity-60"
-          >
-            <Save size={14} />
-            {saving ? '...' : 'حفظ'}
-          </button>
-        </div>
-
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <select
-            value={detailLevel}
-            onChange={(e) => onDetailLevelChange(e.target.value)}
-            className="min-h-10 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 outline-none focus:border-emerald-400"
-            title="مستوى القالب"
-          >
-            {TEMPLATE_DETAIL_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>{option.label}</option>
-            ))}
-          </select>
-          <select
-            value={audienceType}
-            onChange={(e) => onAudienceTypeChange(e.target.value)}
-            className="min-h-10 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 outline-none focus:border-emerald-400"
-            title="فئة القالب"
-          >
-            {TEMPLATE_AUDIENCE_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>{option.label}</option>
-            ))}
-          </select>
-          <button
-            onClick={onPreview}
-            disabled={previewing}
-            className="flex min-h-10 items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
-          >
-            <Eye size={14} />
-            معاينة
-          </button>
-          <button
-            onClick={onExportPng}
-            className="flex min-h-10 items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
-          >
-            <Download size={14} />
-            PNG
-          </button>
-          <label className="flex min-h-10 cursor-pointer items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50">
-            استيراد تصميم
-            <input type="file" accept=".png,.jpg,.jpeg,.webp" className="hidden" onChange={onImportDesign} />
-          </label>
-          <label className="flex min-h-10 cursor-pointer items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50">
-            رفع خط
-            <input type="file" accept=".ttf,.otf,font/ttf,font/otf" className="hidden" onChange={onUploadFont} />
-          </label>
-          {dirty && (
-            <span className="rounded-full bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700">
-              تغييرات غير محفوظة
-            </span>
-          )}
-        </div>
-      </div>
-    );
-  }
+/** Top bar: back, name, undo/redo, design/preview, save status, file actions and "generate". */
+export default function TopBar({ onBack, onPreviewPdf, previewing, onExportPng, onImportDesign, onUploadFont, saveHandlers }) {
+  const store = useEditorStoreApi();
+  const name = useEditor((state) => state.document.name);
+  const id = useEditor((state) => state.document.id);
+  const mode = useEditor((state) => state.ui.mode);
+  const propertiesOpen = useEditor((state) => state.ui.propertiesOpen);
+  const canUndo = useEditor(selectCanUndo);
+  const canRedo = useEditor(selectCanRedo);
 
   return (
-    <div
-      className="flex shrink-0 items-center gap-2 border-b border-slate-200 bg-white px-3 py-2 shadow-sm"
-      style={{ userSelect: 'none', zIndex: 40 }}
-    >
-      <div className="flex w-full items-center gap-2">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={onBack}
-            title="العودة"
-            className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"
-          >
-            <ArrowRight size={16} />
-          </button>
-
-          <div className="h-5 w-px bg-slate-200" />
-
-          <input
-                        value={templateName}
-            onChange={(e) => onNameChange(e.target.value)}
-            className="w-44 rounded-lg border border-transparent bg-transparent px-2 py-1 text-sm font-semibold text-slate-800 outline-none transition hover:border-slate-300 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-300"
-          />
-          {dirty && (
-            <span className="text-xs text-amber-500" title="تغييرات غير محفوظة">
-              ●
-            </span>
-          )}
-        </div>
-
-        <div className="min-w-0 flex-1 flex-wrap items-center gap-2 flex">
-          <select
-            value={detailLevel}
-            onChange={(e) => onDetailLevelChange(e.target.value)}
-            className="min-h-10 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 outline-none focus:border-emerald-400"
-            title="مستوى القالب"
-          >
-            {TEMPLATE_DETAIL_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>{option.label}</option>
-            ))}
-          </select>
-          <select
-            value={audienceType}
-            onChange={(e) => onAudienceTypeChange(e.target.value)}
-            className="min-h-10 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 outline-none focus:border-emerald-400"
-            title="فئة القالب"
-          >
-            {TEMPLATE_AUDIENCE_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>{option.label}</option>
-            ))}
-          </select>
-
-          <div className="h-5 w-px bg-slate-200" />
-
-          <button
-            onClick={onUndo}
-            disabled={!canUndo}
-            title="تراجع (Ctrl+Z)"
-            className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 disabled:opacity-30"
-          >
-            <Undo2 size={16} />
-          </button>
-          <button
-            onClick={onRedo}
-            disabled={!canRedo}
-            title="إعادة (Ctrl+Y)"
-            className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 disabled:opacity-30"
-          >
-            <Redo2 size={16} />
-          </button>
-
-          <div className="h-5 w-px bg-slate-200" />
-
-          <button
-            onClick={() => onZoom(Math.max(0.1, zoom - 0.1))}
-            title="تصغير"
-            className="rounded-lg p-2 text-slate-600 hover:bg-slate-100"
-          >
-            <ZoomOut size={16} />
-          </button>
-          <span className="w-12 text-center text-xs font-semibold tabular-nums text-slate-600">
-            {Math.round(zoom * 100)}%
-          </span>
-          <button
-            onClick={() => onZoom(Math.min(3, zoom + 0.1))}
-            title="تكبير"
-            className="rounded-lg p-2 text-slate-600 hover:bg-slate-100"
-          >
-            <ZoomIn size={16} />
-          </button>
-          <button
-            onClick={() => onZoom(1)}
-            title="100%"
-            className="rounded-lg px-2 py-1 text-xs text-slate-500 hover:bg-slate-100"
-          >
-            1:1
-          </button>
-          <button
-            onClick={onZoomFit}
-            title="ملاءمة الشاشة"
-            className="rounded-lg px-2 py-1 text-xs text-slate-500 hover:bg-slate-100"
-          >
-            احتواء
-          </button>
-          <input
-            type="range"
-            min="10"
-            max="300"
-            step="5"
-            value={Math.round(zoom * 100)}
-            onChange={(e) => onZoom(Number(e.target.value) / 100)}
-            className="w-28 accent-emerald-600"
-            title="مستوى التكبير"
-          />
-        </div>
-
-        <div className="ml-auto flex flex-wrap items-center gap-2">
-          <button
-            onClick={onPreview}
-            disabled={previewing}
-            className="flex min-h-10 items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
-          >
-            <Eye size={14} />
-            {previewing ? 'جاري...' : 'معاينة PDF'}
-          </button>
-          <button
-            onClick={onExportPng}
-            className="flex min-h-10 items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
-          >
-            <Download size={14} />
-            PNG
-          </button>
-          <label className="flex min-h-10 cursor-pointer items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50">
-            استيراد تصميم
-            <input type="file" accept=".png,.jpg,.jpeg,.webp" className="hidden" onChange={onImportDesign} />
-          </label>
-          <label className="flex min-h-10 cursor-pointer items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50">
-            رفع خط
-            <input type="file" accept=".ttf,.otf,font/ttf,font/otf" className="hidden" onChange={onUploadFont} />
-          </label>
-          <button
-            onClick={onSave}
-            disabled={saving}
-            className="flex min-h-10 items-center gap-1.5 rounded-lg bg-emerald-700 px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-600 disabled:opacity-60"
-          >
-            <Save size={14} />
-            {saving ? 'جاري الحفظ...' : 'حفظ'}
-          </button>
-        </div>
+    <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border bg-surface px-3 shadow-xs" style={{ userSelect: 'none', zIndex: 40 }}>
+      <IconButton icon={ArrowRight} label={S.editor.back} onClick={onBack} />
+      <img src="/assets/logo.png" alt="" className="hidden size-8 rounded-sm bg-white object-contain p-0.5 ring-1 ring-black/5 sm:block" />
+      <label className="group relative flex min-w-0 items-center">
+        <input
+          value={name || ''}
+          onChange={(e) => store.getState().updateDocument({ name: e.target.value }, { label: 'اسم القالب', coalesceKey: 'doc:name' })}
+          onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Enter') e.currentTarget.blur(); }}
+          onBlur={() => store.getState().sealHistory()}
+          aria-label={S.editor.rename}
+          placeholder={S.editor.untitled}
+          className="w-40 rounded-sm border border-transparent bg-transparent px-2 py-1 text-sm font-bold outline-none transition hover:border-border focus:border-primary lg:w-56"
+          data-testid="editor-name"
+        />
+        <PenLine size={13} className="pointer-events-none absolute end-2 text-fg-subtle opacity-0 group-hover:opacity-100" aria-hidden />
+      </label>
+      <span className="mx-1 h-6 w-px bg-border" />
+      <IconButton icon={Undo2} label={S.editor.undo} shortcut="MOD+Z" disabled={!canUndo} onClick={() => store.getState().undo()} data-testid="undo" />
+      <IconButton icon={Redo2} label={S.editor.redo} shortcut="MOD+Shift+Z" disabled={!canRedo} onClick={() => store.getState().redo()} data-testid="redo" />
+      <span className="mx-1 h-6 w-px bg-border" />
+      <Segmented
+        size="sm"
+        label="وضع العرض"
+        value={mode}
+        onChange={(next) => {
+          store.getState().setUi({ mode: next, editingTextId: null, cropId: null });
+          if (next === 'preview') store.getState().clearSelection();
+        }}
+        options={[{ value: 'design', label: S.editor.design, icon: PenLine }, { value: 'preview', label: S.editor.preview, icon: Eye }]}
+      />
+      <div className="ms-auto flex items-center gap-2">
+        <SaveStatus {...saveHandlers} />
+        <Dropdown>
+          <DropdownTrigger asChild>
+            <button type="button" aria-label={S.editor.more} className="inline-flex h-9 items-center gap-1.5 rounded-sm border border-border px-3 text-xs font-semibold hover:bg-surface-2" data-testid="editor-more">
+              <MoreHorizontal size={16} /> <span className="hidden md:inline">{S.editor.more}</span>
+            </button>
+          </DropdownTrigger>
+          <DropdownContent>
+            <DropdownItem icon={FileText} onSelect={onPreviewPdf} disabled={previewing}>{previewing ? S.editor.previewing : S.editor.previewPdf}</DropdownItem>
+            <DropdownItem icon={Download} onSelect={onExportPng}>{S.editor.exportPng}</DropdownItem>
+            <DropdownSeparator />
+            <DropdownItem icon={FileCog} onSelect={() => store.getState().setUi({ dialog: 'pageSetup' })}>{S.editor.pageSetup}</DropdownItem>
+            <DropdownItem icon={History} onSelect={() => store.getState().setUi({ dialog: 'versions' })}>{S.editor.versions}</DropdownItem>
+            <DropdownSeparator />
+            <DropdownItem icon={ImageUp} onSelect={onImportDesign}>{S.editor.importDesign}</DropdownItem>
+            <DropdownItem icon={Type} onSelect={onUploadFont}>{S.editor.uploadFont}</DropdownItem>
+            <DropdownSeparator />
+            <DropdownItem icon={PanelLeft} onSelect={() => store.getState().setUi({ propertiesOpen: !propertiesOpen })}>{propertiesOpen ? S.editor.hideProperties : S.editor.showProperties}</DropdownItem>
+          </DropdownContent>
+        </Dropdown>
+        <Link to={`/generate?template=${encodeURIComponent(id)}`} className="inline-flex h-9 items-center gap-1.5 rounded-sm bg-gold px-3 text-xs font-bold text-white shadow-sm transition hover:-translate-y-px hover:shadow-md" data-testid="editor-generate">
+          <FileStack size={16} /> <span className="hidden sm:inline">{S.editor.generate}</span>
+        </Link>
       </div>
-    </div>
+    </header>
   );
 }

@@ -8,6 +8,12 @@ function createMemoryStorage(seed = {}) {
     students: clone(seed.students || []),
     templates: clone(seed.templates || []),
     users: clone(seed.users || []),
+    records: new Map(), // collection → Map(id → record)
+  };
+
+  const bucket = (collection) => {
+    if (!state.records.has(collection)) state.records.set(collection, new Map());
+    return state.records.get(collection);
   };
 
   return {
@@ -56,6 +62,20 @@ function createMemoryStorage(seed = {}) {
       if (next.length === state.templates.length) return false;
       state.templates = next;
       return true;
+    },
+    async listRecords(collection, { ownerId } = {}) {
+      return clone([...bucket(collection).values()].filter((record) => ownerId === undefined || record.ownerId === ownerId));
+    },
+    async getRecord(collection, id) {
+      const record = bucket(collection).get(id);
+      return record ? clone(record) : null;
+    },
+    async putRecord(collection, record) {
+      bucket(collection).set(record.id, clone(record));
+      return clone(record);
+    },
+    async deleteRecord(collection, id) {
+      return bucket(collection).delete(id);
     },
     async findUserByCredentials(username, password) {
       const user = state.users.find((item) => item.username === username && item.password === password);

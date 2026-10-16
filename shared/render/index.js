@@ -10,3 +10,4 @@ export * from './filters.js';
 export * from './textTransforms.js';
 export { code128Modules, encodeCode128 } from './code128.js';
 export { qrMatrix } from './qr.js';
+export * from './svgShapes.js';

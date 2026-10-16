@@ -67,7 +67,8 @@ test('templates endpoint exposes one detailed template with selectable color var
 
   const detailedStudentTemplate = response.body.find((template) => template.id === 'itqan-template-5-students');
   assert.ok(detailedStudentTemplate);
-  assert.equal(detailedStudentTemplate.name, 'مفصل - الطلاب');
+  // The stored (user-given) name is kept; it is no longer replaced by a generated label.
+  assert.equal(detailedStudentTemplate.name, 'قالب 5 - الطلاب');
   assert.ok(Array.isArray(detailedStudentTemplate.availableBackgroundVariants));
   assert.ok(detailedStudentTemplate.availableBackgroundVariants.some((variant) => variant.label === 'أخضر زمردي'));
   assert.ok(detailedStudentTemplate.availableBackgroundVariants.some((variant) => variant.label === 'كهرماني'));
