@@ -22,6 +22,9 @@ backend/uploads/*
 !backend/uploads/itqan-stamp.png
 !backend/uploads/itqan-template-5.png
 !backend/uploads/itqan-template-5-*.png
+# built-in background library (routes/backgrounds.js)
+!backend/uploads/itqan-bg-*.png
+!backend/uploads/itqan-frame-*.jpg
 
 # test artifacts
 test-results/
