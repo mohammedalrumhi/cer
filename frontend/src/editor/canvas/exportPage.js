@@ -11,7 +11,7 @@
  */
 export function exportPageDataUrl(stage, document, _viewport, { scale = 2, mimeType = 'image/png' } = {}) {
   const page = stage.findOne('.page');
-  const hidden = [...stage.find('.ui'), ...stage.find('.grid'), ...stage.find('.page-shadow')].filter((node) => node.visible());
+  const hidden = [...stage.find('.ui'), ...stage.find('.grid'), ...stage.find('.page-shadow'), ...stage.find('.ui-placeholder'), ...stage.find('.guides')].filter((node) => node.visible());
   const previous = { x: page.x(), y: page.y(), scaleX: page.scaleX(), scaleY: page.scaleY() };
 
   hidden.forEach((node) => node.hide());

@@ -7,6 +7,7 @@
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 import { templatePresets } from '../../frontend/src/data/presets.js';
+import { studioElementsTemplate } from './fixtures/studioElements.js';
 import { authed, authenticate, login } from '../support/api.js';
 import { rasterizePdf } from '../support/pdfRaster.js';
 import { inkIoU, pageDiff } from '../support/imageCompare.js';
@@ -14,6 +15,9 @@ import { inkIoU, pageDiff } from '../support/imageCompare.js';
 // Text is compared at print resolution (3 px per template px ≈ 216 dpi for A4 templates), where
 // the remaining differences between rasterisers (Skia vs pdf.js anti-aliasing) are negligible.
 const TEXT_SCALE = 3;
+// Small text is measured at a higher resolution (≥ 80 device px per em), so anti-aliased edge
+// pixels don't dominate thin strokes; the thresholds stay the same.
+const textScale = (element) => Math.min(8, Math.max(TEXT_SCALE, Math.ceil(80 / (Number(element.fontSize) || 28))));
 const MIN_TEXT_IOU = 0.95; // blurred ≥50 % coverage IoU; a ⅓ px shift already scores ≤ 0.87
 const MAX_TEXT_OFFSET = 0.1; // template px, best-fit sub-pixel offset between editor and PDF
 const MAX_INK_DIFFERENCE = 0.03;
@@ -27,7 +31,9 @@ const storedTemplates = JSON.parse(readFileSync(new URL('../../backend/data/temp
 const targets = [
   ...storedTemplates.map((template) => ({ key: template.id, label: template.id.slice(0, 34) })),
   ...templatePresets.map((preset) => ({ key: `preset:${preset.id}`, preset: preset.id, label: `preset:${preset.id}` })),
+  { key: 'fixture:studio-elements', preset: 'studio-elements', label: 'fixture:studio-elements' },
 ];
+const FIXTURES = [{ id: 'studio-elements', payload: studioElementsTemplate }];
 
 let token;
 let api;
@@ -38,7 +44,7 @@ test.beforeAll(async () => {
   token = await login();
   api = authed(token);
   const existing = await api.get('/templates');
-  for (const preset of templatePresets) {
+  for (const preset of [...templatePresets, ...FIXTURES]) {
     let template = existing.find((item) => item.e2ePreset === preset.id);
     if (!template) template = await (await api.post('/templates', { ...preset.payload, e2ePreset: preset.id })).json();
     presetTemplateIds.set(preset.id, template.id);
@@ -49,7 +55,7 @@ test.beforeAll(async () => {
 test.afterAll(() => {
   const rows = readdirSync(`${OUT}/rows`).sort().map((file) => JSON.parse(readFileSync(`${OUT}/rows/${file}`, 'utf8')));
   writeFileSync(`${OUT}/report.json`, JSON.stringify(rows, null, 2));
-  const lines = rows.map((row) => `${row.label.padEnd(36)} text=${String(row.textCount).padStart(2)}  minIoU=${row.minIoU.toFixed(3)}  meanIoU=${row.meanIoU.toFixed(3)}  maxOffset=${(row.maxDelta / TEXT_SCALE).toFixed(3)}px  page=${(row.pageMismatch * 100).toFixed(2)}%`);
+  const lines = rows.map((row) => `${row.label.padEnd(36)} text=${String(row.textCount).padStart(2)}  minIoU=${row.minIoU.toFixed(3)}  meanIoU=${row.meanIoU.toFixed(3)}  maxOffset=${row.maxOffset.toFixed(3)}px  page=${(row.pageMismatch * 100).toFixed(2)}%`);
   console.log(`\nEditor ↔ PDF fidelity (${rows.length} templates)\n${lines.join('\n')}`);
 });
 
@@ -124,7 +130,7 @@ for (const [index, target] of targets.entries()) {
     writeFileSync(`${OUT}/${slug}-diff.png`, diffPng);
 
     // Each text element alone, forced to opaque black so ink is comparable.
-    const texts = document.elements.filter((el) => (el.type === 'text' || el.type === 'dynamicText') && el.visible !== false);
+    const texts = document.elements.filter((el) => ['text', 'dynamicText', 'dateField'].includes(el.type) && el.visible !== false);
     await page.evaluate((ids) => {
       window.__cerEditor.store.getState().updateElements(ids, (el) => ({ ...el, fill: '#000000', opacity: 1 }));
     }, texts.map((el) => el.id));
@@ -132,15 +138,16 @@ for (const [index, target] of targets.entries()) {
 
     const results = [];
     for (const element of texts) {
-      const { png: editorPng, region } = await exportEditorElement(page, element.id, TEXT_SCALE);
+      const scale = textScale(element);
+      const { png: editorPng, region } = await exportEditorElement(page, element.id, scale);
       const isolated = {
         ...document,
         background: { type: 'solid', color: '#ffffff', customLayout: true },
         elements: [{ ...element, fill: '#000000', opacity: 1 }],
       };
-      const pdfPng = await rasterizePdf(context, await pdfFor(isolated, sampleStudent, branding), { scale: TEXT_SCALE, region });
-      const metrics = inkIoU(editorPng, pdfPng, { width: region.width * TEXT_SCALE, height: region.height * TEXT_SCALE });
-      if (metrics.inkPixels > 0) results.push({ id: element.id, ...metrics });
+      const pdfPng = await rasterizePdf(context, await pdfFor(isolated, sampleStudent, branding), { scale, region });
+      const metrics = inkIoU(editorPng, pdfPng, { width: region.width * scale, height: region.height * scale });
+      if (metrics.inkPixels > 0) results.push({ id: element.id, scale, ...metrics, offset: Math.max(metrics.dx, metrics.dy) / scale });
       if (metrics.inkPixels > 0 && metrics.iou < MIN_TEXT_IOU) {
         writeFileSync(`${OUT}/${slug}-${element.id}-editor.png`, editorPng);
         writeFileSync(`${OUT}/${slug}-${element.id}-pdf.png`, pdfPng);
@@ -154,7 +161,7 @@ for (const [index, target] of targets.entries()) {
       textCount: results.length,
       minIoU: ious.length ? Math.min(...ious) : 1,
       meanIoU: ious.length ? ious.reduce((a, b) => a + b, 0) / ious.length : 1,
-      maxDelta: Math.max(0, ...results.map((r) => Math.max(r.dx, r.dy))),
+      maxOffset: Math.max(0, ...results.map((r) => r.offset)),
       pageMismatch: ratio,
       elements: results,
     };
@@ -163,7 +170,7 @@ for (const [index, target] of targets.entries()) {
 
     for (const result of results) {
       expect.soft(result.iou, `${target.label} › ${result.id} ink IoU`).toBeGreaterThanOrEqual(MIN_TEXT_IOU);
-      expect.soft(Math.max(result.dx, result.dy) / TEXT_SCALE, `${target.label} › ${result.id} offset`).toBeLessThanOrEqual(MAX_TEXT_OFFSET);
+      expect.soft(result.offset, `${target.label} › ${result.id} offset`).toBeLessThanOrEqual(MAX_TEXT_OFFSET);
       expect.soft(Math.abs(result.inkRatio - 1), `${target.label} › ${result.id} ink amount`).toBeLessThanOrEqual(MAX_INK_DIFFERENCE);
     }
     expect.soft(ratio, `${target.label} full-page mismatch`).toBeLessThanOrEqual(MAX_PAGE_MISMATCH);

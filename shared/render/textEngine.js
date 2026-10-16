@@ -237,12 +237,27 @@ export function createTextEngine({ hb, bidi }) {
         if (previousCluster !== null && glyph.cluster !== previousCluster && letterSpacing) {
           if (para.gapAfter[Math.min(previousCluster, glyph.cluster)]) pen += letterSpacing;
         }
-        glyphs.push({ key: run.entry.key, gid: glyph.gid, x: pen + glyph.dx * scale, y: -glyph.dy * scale, s: scale });
+        glyphs.push({ key: run.entry.key, gid: glyph.gid, x: pen + glyph.dx * scale, y: -glyph.dy * scale, s: scale, c: glyph.cluster });
         pen += glyph.ax * scale;
         previousCluster = glyph.cluster;
       }
     }
     return { glyphs, width: pen };
+  }
+
+  /** Spread the free space of a line over its inter-word spaces (visual order is kept). */
+  function justifyLine(para, glyphs, width, maxWidth) {
+    const isSpace = (glyph) => BREAK_SPACE.test(para.text[glyph.c] || '');
+    const spaces = glyphs.filter(isSpace).length;
+    if (!spaces) return { glyphs, width };
+    const extra = (maxWidth - width) / spaces;
+    let shift = 0;
+    const out = glyphs.map((glyph) => {
+      const moved = shift ? { ...glyph, x: glyph.x + shift } : glyph;
+      if (isSpace(glyph)) shift += extra;
+      return moved;
+    });
+    return { glyphs: out, width: maxWidth };
   }
 
   /**
@@ -258,6 +273,7 @@ export function createTextEngine({ hb, bidi }) {
    * @param {'auto'|'rtl'|'ltr'} [spec.direction]
    * @param {{ mode: 'none'|'shrink', minScale?: number, minFontSize?: number }} [spec.autoFit]
    * @param {boolean} [spec.underline]
+   * @param {boolean} [spec.strike]
    */
   function layoutText(spec) {
     const primary = fonts.get(spec.fontKey);
@@ -290,22 +306,28 @@ export function createTextEngine({ hb, bidi }) {
     const lines = [];
     let overflow = false;
     for (const para of paragraphs) {
-      for (const [start, end] of lineBreaks(para, size, maxWidth, letterSpacing)) {
-        const { glyphs, width } = start < end ? positionLine(para, start, end, size, letterSpacing) : { glyphs: [], width: 0 };
+      const breaks = lineBreaks(para, size, maxWidth, letterSpacing);
+      breaks.forEach(([start, end], index) => {
+        let { glyphs, width } = start < end ? positionLine(para, start, end, size, letterSpacing) : { glyphs: [], width: 0 };
         if (width > maxWidth + 0.5) overflow = true;
+        const lastOfParagraph = index === breaks.length - 1;
+        if (align === 'justify' && !lastOfParagraph && width < maxWidth) {
+          ({ glyphs, width } = justifyLine(para, glyphs, width, maxWidth));
+        }
         const x = align === 'right' ? maxWidth - width
           : align === 'left' ? 0
             : align === 'justify' ? (para.baseLevel % 2 ? maxWidth - width : 0)
               : (maxWidth - width) / 2;
         lines.push({ x, baseline: firstBaseline + lines.length * lineHeightPx, width, rtl: para.baseLevel % 2 === 1, glyphs });
-      }
+      });
     }
 
-    const decorations = spec.underline
-      ? lines.filter((line) => line.width > 0).map((line) => ({
-        x: line.x, y: line.baseline + Math.round(size / 4), width: line.width, thickness: size / 15,
-      }))
-      : [];
+    const decorations = [];
+    for (const line of lines) {
+      if (line.width <= 0) continue;
+      if (spec.underline) decorations.push({ kind: 'underline', x: line.x, y: line.baseline + Math.round(size / 4), width: line.width, thickness: size / 15 });
+      if (spec.strike) decorations.push({ kind: 'strike', x: line.x, y: line.baseline - size * 0.28, width: line.width, thickness: size / 15 });
+    }
 
     return {
       fontSize: size,

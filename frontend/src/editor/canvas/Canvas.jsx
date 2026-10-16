@@ -3,7 +3,7 @@ import { Group, Layer, Line, Rect, Stage, Transformer } from 'react-konva';
 import { buildAssetUrl } from '../../api/client';
 import { useEditor, useEditorStoreApi } from '../store/EditorStoreContext';
 import { createElementAt, isTextElement } from '../model/elements';
-import { BackgroundImage, SceneNode } from './SceneNodes';
+import { BackgroundFill, BackgroundImage, SceneNode } from './SceneNodes';
 import { useSceneOps } from './useSceneOps';
 import ContextMenu from './ContextMenu';
 import TextEditOverlay from './TextEditOverlay';
@@ -40,7 +40,7 @@ export default function Canvas({ stageRef, branding, onInsertText }) {
   const tool = useEditor((state) => state.ui.tool);
   const showGrid = useEditor((state) => state.ui.showGrid);
   const editingTextId = useEditor((state) => state.ui.editingTextId);
-  const { ops, engine, ready } = useSceneOps(document, branding);
+  const { ops, scene, engine, ready } = useSceneOps(document, branding);
   // Every text op laid out means fonts are loaded; tests wait on this (data-scene-ready).
   const sceneReady = ready && ops.every((op) => op.kind !== 'text' || !op.text || op.layout);
 
@@ -317,7 +317,7 @@ export default function Canvas({ stageRef, branding, onInsertText }) {
             onDragEnd={handleDragEnd}
           >
             <Rect name="page-shadow" width={width} height={height} fill="#fff" shadowColor="#0f172a" shadowOpacity={0.18} shadowBlur={24} shadowOffsetY={6} listening={false} />
-            <Rect name="page-background" width={width} height={height} fill={document.background?.color || '#f8f4ea'} />
+            <BackgroundFill scene={scene} />
             <BackgroundImage src={buildAssetUrl(document.background?.imagePath)} width={width} height={height} />
             {ops.map((op) => (op.id === editingTextId ? null : (
               <SceneNode
@@ -325,7 +325,6 @@ export default function Canvas({ stageRef, branding, onInsertText }) {
                 op={op}
                 engine={engine}
                 branding={branding}
-                draggable={!spaceDown && !elementsById.get(op.id)?.locked}
               />
             )))}
             {showGrid && <Group name="grid" listening={false}><GridLines width={width} height={height} /></Group>}

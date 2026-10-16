@@ -1,7 +1,10 @@
 import { createId } from './ids.js';
 
 /**
- * @typedef {'text'|'dynamicText'|'image'|'dynamicImage'|'rect'|'circle'|'line'} ElementType
+ * @typedef {'text'|'dynamicText'|'dateField'|'image'|'dynamicImage'|'frame'|'rect'|'circle'|'polygon'|'star'|'line'|'shape'|'ornament'|'icon'|'qrcode'|'barcode'} ElementType
+ *
+ * Paint (fill): a colour string, null for none, or a gradient
+ *   { type: 'linear', angle, stops: [{ offset, color }] } | { type: 'radial', stops }  (see shared/render/paint.js)
  *
  * @typedef {object} AutoFit
  * @property {'none'|'shrink'} mode   shrink: reduce font size until the longest line fits `width`
@@ -20,12 +23,23 @@ import { createId } from './ids.js';
  * @property {number} opacity    0..1
  * @property {boolean} locked
  * @property {boolean} visible
+ * @property {string|null} [groupId]   elements sharing a groupId select and move together
  */
 
-export const ELEMENT_TYPES = ['text', 'dynamicText', 'image', 'dynamicImage', 'rect', 'circle', 'line'];
-export const TEXT_TYPES = new Set(['text', 'dynamicText']);
-export const IMAGE_TYPES = new Set(['image', 'dynamicImage']);
-export const SHAPE_TYPES = new Set(['rect', 'circle', 'line']);
+export const ELEMENT_TYPES = [
+  'text', 'dynamicText', 'dateField',
+  'image', 'dynamicImage', 'frame',
+  'rect', 'circle', 'polygon', 'star', 'line', 'shape', 'ornament', 'icon',
+  'qrcode', 'barcode',
+];
+export const TEXT_TYPES = new Set(['text', 'dynamicText', 'dateField']);
+export const IMAGE_TYPES = new Set(['image', 'dynamicImage', 'frame']);
+export const SHAPE_TYPES = new Set(['rect', 'circle', 'polygon', 'star', 'line', 'shape']);
+/** Types whose aspect ratio is locked while resizing. */
+export const RATIO_LOCKED_TYPES = new Set(['image', 'dynamicImage', 'icon', 'qrcode', 'ornament']);
+
+export const NO_EFFECTS = Object.freeze({ shadow: null, outline: null, highlight: null });
+export const NO_FILTERS = Object.freeze({ brightness: 0, contrast: 0, saturation: 0, blur: 0, grayscale: false });
 
 export const DEFAULT_FONT_FAMILY = 'Amiri-Regular';
 export const DEFAULT_AUTO_FIT = Object.freeze({ mode: 'shrink', minScale: 0.72, minFontSize: 12 });
@@ -46,8 +60,12 @@ export function isImageElement(element) {
 
 const BASE_DEFAULTS = { rotation: 0, opacity: 1, locked: false, visible: true };
 
+const TEXT_EXTRAS = { verticalAlign: 'top', kashida: 0, effects: { shadow: null, outline: null, highlight: null } };
+const IMAGE_EXTRAS = { fit: 'fill', crop: null, flipX: false, flipY: false, filters: { ...NO_FILTERS }, cornerRadius: 0, border: null };
+
 const TYPE_DEFAULTS = {
   text: {
+    ...TEXT_EXTRAS,
     width: 300,
     text: 'نص جديد',
     fontFamily: DEFAULT_FONT_FAMILY,
@@ -62,6 +80,7 @@ const TYPE_DEFAULTS = {
     autoFit: { mode: 'none' },
   },
   dynamicText: {
+    ...TEXT_EXTRAS,
     width: 400,
     field: 'studentName',
     fontFamily: DEFAULT_FONT_FAMILY,
@@ -75,11 +94,34 @@ const TYPE_DEFAULTS = {
     growDirection: 'right',
     autoFit: { ...DEFAULT_AUTO_FIT },
   },
-  rect: { width: 200, height: 120, fill: '#e2e8f0', stroke: '#94a3b8', strokeWidth: 2, cornerRadius: 0 },
-  circle: { width: 120, height: 120, fill: '#e2e8f0', stroke: '#94a3b8', strokeWidth: 2 },
-  line: { width: 300, height: 4, stroke: '#0f172a', strokeWidth: 3 },
-  image: { width: 200, height: 150, src: '' },
-  dynamicImage: { field: 'logo' },
+  dateField: {
+    ...TEXT_EXTRAS,
+    width: 360,
+    fontFamily: DEFAULT_FONT_FAMILY,
+    fontSize: 24,
+    fontStyle: 'normal',
+    textDecoration: '',
+    fill: '#1b2a23',
+    align: 'center',
+    lineHeight: 1.4,
+    letterSpacing: 0,
+    autoFit: { ...DEFAULT_AUTO_FIT },
+    date: { calendar: 'hijri', style: 'long', source: 'issue' },
+    dynamicTextTemplate: '',
+  },
+  rect: { width: 200, height: 120, fill: '#d3eadf', stroke: null, strokeWidth: 0, cornerRadius: 0, dash: null },
+  circle: { width: 120, height: 120, fill: '#d3eadf', stroke: null, strokeWidth: 0, dash: null },
+  polygon: { width: 160, height: 150, sides: 6, fill: '#0f6b52', stroke: null, strokeWidth: 0, cornerRadius: 0, dash: null },
+  star: { width: 160, height: 160, points: 5, innerRadius: 0.48, fill: '#b8893c', stroke: null, strokeWidth: 0, cornerRadius: 0, dash: null },
+  line: { width: 300, height: 4, stroke: '#1b2a23', strokeWidth: 3, dash: null, lineCap: 'round', startHead: 'none', endHead: 'none' },
+  shape: { width: 360, height: 90, shape: 'ribbon', fill: '#0f6b52', stroke: null, strokeWidth: 0, dash: null },
+  ornament: { width: 160, height: 160, ornament: 'star8', color: '#b8893c', accentColor: '#0f6b52', strokeWidth: 2 },
+  icon: { width: 96, height: 96, iconName: 'star', paths: [], color: '#0f6b52', strokeWidth: 2 },
+  image: { ...IMAGE_EXTRAS, width: 200, height: 150, src: '' },
+  dynamicImage: { ...IMAGE_EXTRAS, field: 'logo' },
+  frame: { ...IMAGE_EXTRAS, width: 240, height: 240, shape: 'circle', src: '', fit: 'cover' },
+  qrcode: { width: 140, height: 140, value: '{{verifyUrl}}', color: '#111111', background: '#ffffff', ecLevel: 'M' },
+  barcode: { width: 300, height: 96, value: '{{serial}}', color: '#111111', background: null, showText: true },
 };
 
 /**

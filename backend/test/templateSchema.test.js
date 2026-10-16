@@ -6,6 +6,11 @@ const { createMemoryStorage } = require('../src/storage/memoryStorage');
 const { readJson } = require('../src/utils/fileDb');
 const { loadModel } = require('../src/shared');
 
+let CURRENT_SCHEMA_VERSION;
+test.before(async () => {
+  ({ CURRENT_SCHEMA_VERSION } = await loadModel());
+});
+
 const USERS = [{ id: 'admin-1', username: 'admin', password: 'admin123', name: 'مدير النظام' }];
 
 async function setup(templates) {
@@ -40,7 +45,7 @@ test('API serves stored v1 templates upgraded, without rewriting storage on read
   const { app, storage, auth } = await setup([legacy]);
 
   const { body } = await request(app).get('/api/templates/legacy-1').set(auth).expect(200);
-  assert.equal(body.schemaVersion, 2);
+  assert.equal(body.schemaVersion, CURRENT_SCHEMA_VERSION);
   assert.equal(body.elements.length, 6, 'legacy background decoration becomes 5 editable elements');
   assert.equal(body.elements[5].id, 'name');
   assert.deepEqual(body.elements[5].autoFit, { mode: 'shrink', minScale: 0.72, minFontSize: 12 });
@@ -56,7 +61,7 @@ test('saving stores the upgraded template and preserves unknown fields', async (
     .expect(201);
 
   const saved = (await storage.listTemplates())[0];
-  assert.equal(saved.schemaVersion, 2);
+  assert.equal(saved.schemaVersion, CURRENT_SCHEMA_VERSION);
   const rect = saved.elements.find((el) => el.id === 'r');
   assert.equal(rect.fill, null);
   assert.equal(rect.vendorFlag, 'keep');
@@ -66,16 +71,16 @@ test('saving stores the upgraded template and preserves unknown fields', async (
     .expect(200);
   const updated = (await storage.listTemplates())[0];
   assert.deepEqual(updated.elements.at(-1), { id: 't', type: 'text', text: 'نص', x: 1, y: 2 }, 'v2 payloads are stored as sent');
-  assert.equal(updated.schemaVersion, 2);
+  assert.equal(updated.schemaVersion, CURRENT_SCHEMA_VERSION);
 });
 
 test('creating a template keeps client metadata such as audienceType and schemaVersion', async () => {
   const { app, auth } = await setup([]);
   const { body } = await request(app).post('/api/templates').set(auth)
-    .send({ name: 'x', audienceType: 'adult', schemaVersion: 2, background: { type: 'solid', color: '#fff' }, elements: [] })
+    .send({ name: 'x', audienceType: 'adult', schemaVersion: CURRENT_SCHEMA_VERSION, background: { type: 'solid', color: '#fff' }, elements: [] })
     .expect(201);
   assert.equal(body.audienceType, 'adult');
-  assert.equal(body.schemaVersion, 2);
+  assert.equal(body.schemaVersion, CURRENT_SCHEMA_VERSION);
   assert.equal(body.elements.length, 0, 'a v2 payload is not re-migrated (no legacy decoration added)');
 });
 

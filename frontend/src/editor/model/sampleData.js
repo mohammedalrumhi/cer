@@ -16,6 +16,8 @@ export const SAMPLE_STUDENT = Object.freeze({
   calendar: 'التقويم',
   mistakesCount: 'عدد الأخطاء',
   teacherName: 'المعلم',
+  serial: '2026-000123',
+  verifyUrl: 'https://example.org/verify/2026-000123',
 });
 
 const RECIPIENT = {

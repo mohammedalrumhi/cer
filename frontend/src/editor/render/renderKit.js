@@ -13,9 +13,10 @@ const fontLoads = new Map();
 export function loadRenderKit() {
   if (!kitPromise) {
     kitPromise = (async () => {
-      const [hb, fonts] = await Promise.all([import('harfbuzzjs'), fetchFonts().catch(() => [])]);
+      const [hb, fonts, qr] = await Promise.all([import('harfbuzzjs'), fetchFonts().catch(() => []), import('qrcode-generator')]);
       return {
         engine: createTextEngine({ hb, bidi: bidiFactory() }),
+        qrcode: qr.default || qr,
         registry: createFontRegistry(fonts.map((font) => font.fileName)),
         fonts,
       };

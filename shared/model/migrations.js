@@ -5,8 +5,10 @@ import { DEFAULT_AUTO_FIT, DEFAULT_FONT_FAMILY, DYNAMIC_IMAGE_SIZES } from './el
  *   1 — implicit (no `schemaVersion`); two renderers disagreed about defaults.
  *   2 — explicit defaults that reproduce what v1 *printed*, text auto-fit made explicit,
  *       legacy background decoration materialised as editable elements.
+ *   3 — studio: page setup (margins, bleed), digit style, optimistic `version`. Purely additive:
+ *       new element types and properties default to what v2 rendered, so nothing moves.
  */
-export const CURRENT_SCHEMA_VERSION = 2;
+export const CURRENT_SCHEMA_VERSION = 3;
 
 function toNumber(value, fallback) {
   const number = Number(value);
@@ -137,8 +139,35 @@ function migrateV1ToV2(template) {
   return next;
 }
 
+/*
+ * v2 → v3
+ *  - `digits: 'keep'`: v2 printed numbers as typed. (New templates default to Arabic-Indic.)
+ *  - `page`: margin and bleed guides; zero for existing templates.
+ *  - `version`: optimistic-concurrency counter maintained by the server.
+ */
+function migrateV2ToV3(template) {
+  const next = { ...template };
+  if (!['arabic', 'latin', 'keep'].includes(next.digits)) next.digits = 'keep';
+  const page = next.page && typeof next.page === 'object' ? next.page : {};
+  const margins = page.margins && typeof page.margins === 'object' ? page.margins : {};
+  next.page = {
+    ...page,
+    margins: {
+      top: toNumber(margins.top, 0),
+      right: toNumber(margins.right, 0),
+      bottom: toNumber(margins.bottom, 0),
+      left: toNumber(margins.left, 0),
+    },
+    bleed: toNumber(page.bleed, 0),
+  };
+  next.version = Number.isInteger(next.version) && next.version > 0 ? next.version : 1;
+  next.schemaVersion = 3;
+  return next;
+}
+
 const MIGRATIONS = {
   1: migrateV1ToV2,
+  2: migrateV2ToV3,
 };
 
 export function getSchemaVersion(template) {

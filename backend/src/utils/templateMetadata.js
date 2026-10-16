@@ -37,6 +37,26 @@ const COLOR_LABEL_BY_HEX = new Map([
   ['#3c7f98', 'محيطي'],
   ['#70879c', 'فولاذي'],
   ['#cf8a2f', 'كهرماني'],
+  ['#c8a97e', 'شمبانيا'],
+  ['#8ca9c9', 'بودري'],
+  ['#8aa089', 'مريمي'],
+  ['#d49aa6', 'وردي ناعم'],
+  ['#b7b0a3', 'لؤلؤي'],
+  ['#9aaab5', 'ضبابي'],
+  ['#a5b97a', 'فستقي'],
+  ['#7fb3d5', 'سماوي ناعم'],
+  ['#d3ba84', 'فانيلا'],
+  ['#d7a1ab', 'ماء الورد'],
+  ['#7faa90', 'أوكالبتوس'],
+  ['#86b9b1', 'أوبال'],
+  ['#dfc277', 'كريمي'],
+  ['#e2aa84', 'مشمشي ناعم'],
+  ['#aab8c3', 'سحابي'],
+  ['#93bfd9', 'أزرق ثلجي'],
+  ['#79c3c0', 'مائي ناعم'],
+  ['#cfaa8d', 'لوزي'],
+  ['#b29bcb', 'ليلكي ناعم'],
+  ['#e2bb6f', 'شمسي ناعم'],
   ['#148fad', 'أزرق'],
   ['#0f4a3c', 'أخضر'],
   ['#1a5c3a', 'أخضر'],
@@ -186,7 +206,9 @@ class RecipientDescriptor {
 
 function resolveRecipientDescriptor(template, studentName, options = {}) {
   const templateProfile = TemplateProfile.fromTemplate(template);
-  const gender = detectGenderFromName(studentName, options.rules || DEFAULT_FEMININE_RULES);
+  const gender = options.gender === RecipientGender.FEMALE || options.gender === RecipientGender.MALE
+    ? options.gender
+    : detectGenderFromName(studentName, options.rules || DEFAULT_FEMININE_RULES);
   const title = RECIPIENT_TITLES[templateProfile.audienceType][gender];
 
   return new RecipientDescriptor({ templateProfile, gender, title });

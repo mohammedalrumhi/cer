@@ -198,7 +198,7 @@ describe('editor store: elements', () => {
   it('migrates legacy templates on load', () => {
     const { s } = setup();
     s().loadDocument({ id: 'old', width: 100, height: 100, background: { customLayout: true }, elements: [{ id: 'r', type: 'rect', x: 0, y: 0 }] });
-    expect(s().document.schemaVersion).toBe(2);
+    expect(s().document.schemaVersion).toBe(3);
     expect(s().document.elements[0].fill).toBeNull();
     expect(selectCanUndo(s())).toBe(false);
   });
