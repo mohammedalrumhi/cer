@@ -1,36 +1,32 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ImageUp, LayoutTemplate, Sparkles } from 'lucide-react';
 import { createTemplate, uploadTemplateDesign } from '../api/client';
 import { defaultTemplatePayload, templatePresets } from '../data/presets';
-import {
-  TEMPLATE_AUDIENCE_OPTIONS,
-  TEMPLATE_DETAIL_OPTIONS,
-  TemplateAudienceType,
-  TemplateDetailLevel,
-} from '../utils/templateMetadata';
+import { S } from '../strings.ar';
+import { Button } from '../ui/Button';
+import { cx } from '../ui/cx';
+import { Field, PageHeader } from '../ui/Field';
+import { Segmented } from '../ui/Segmented';
+import { Banner } from '../ui/States';
+import { TemplateAudienceType, TemplateDetailLevel } from '../utils/templateMetadata';
 
 function readImageDimensions(file) {
   return new Promise((resolve, reject) => {
     const objectUrl = URL.createObjectURL(file);
     const image = new window.Image();
-    image.onload = () => {
-      resolve({ width: image.width, height: image.height });
-      URL.revokeObjectURL(objectUrl);
-    };
-    image.onerror = () => {
-      reject(new Error('Invalid image file'));
-      URL.revokeObjectURL(objectUrl);
-    };
+    image.onload = () => { resolve({ width: image.width, height: image.height }); URL.revokeObjectURL(objectUrl); };
+    image.onerror = () => { reject(new Error('invalid image')); URL.revokeObjectURL(objectUrl); };
     image.src = objectUrl;
   });
 }
 
 export default function TemplateNew() {
   const navigate = useNavigate();
-  const [name, setName] = useState('قالب جديد');
+  const [name, setName] = useState('');
   const [orientation, setOrientation] = useState(defaultTemplatePayload.orientation);
-  const [detailLevel, setDetailLevel] = useState(defaultTemplatePayload.detailLevel || TemplateDetailLevel.SIMPLE);
-  const [audienceType, setAudienceType] = useState(defaultTemplatePayload.audienceType || TemplateAudienceType.STUDENT);
+  const [detailLevel, setDetailLevel] = useState(TemplateDetailLevel.SIMPLE);
+  const [audienceType, setAudienceType] = useState(TemplateAudienceType.STUDENT);
   const [presetId, setPresetId] = useState(templatePresets[0].id);
   const [designFile, setDesignFile] = useState(null);
   const [processing, setProcessing] = useState(false);
@@ -38,160 +34,112 @@ export default function TemplateNew() {
 
   async function handleSubmit(event) {
     event.preventDefault();
-
     try {
       setProcessing(true);
       setError('');
       let payload;
-
       if (designFile) {
-        const [{ width, height }, uploaded] = await Promise.all([
-          readImageDimensions(designFile),
-          uploadTemplateDesign(designFile),
-        ]);
-
+        const [{ width, height }, uploaded] = await Promise.all([readImageDimensions(designFile), uploadTemplateDesign(designFile)]);
         payload = {
-          name: name.trim() || 'قالب من تصميم خارجي',
+          name: name.trim() || S.template.untitled,
           width,
           height,
           orientation: width >= height ? 'landscape' : 'portrait',
           detailLevel,
           audienceType,
-          background: {
-            type: 'image',
-            color: '#ffffff',
-            accentColor: '#0f4a3c',
-            imagePath: uploaded.path,
-            customLayout: true,
-          },
+          background: { type: 'image', color: '#ffffff', accentColor: '#0f4a3c', imagePath: uploaded.path, customLayout: true },
           elements: [],
         };
       } else {
-        const selectedPreset = templatePresets.find((item) => item.id === presetId) || defaultTemplatePayload;
-        payload = {
-          ...selectedPreset.payload,
-          name: name.trim() || selectedPreset.payload.name || 'قالب جديد',
-          orientation,
-          detailLevel,
-          audienceType,
-        };
+        const preset = templatePresets.find((item) => item.id === presetId) || templatePresets[0];
+        payload = { ...preset.payload, name: name.trim() || preset.label, orientation, detailLevel, audienceType };
       }
-
       const template = await createTemplate(payload);
       navigate(`/templates/${template.id}/edit`);
     } catch {
-      setError('فشل إنشاء القالب. حاول مرة أخرى.');
+      setError(S.newTemplate.createError);
     } finally {
       setProcessing(false);
     }
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <p className="text-sm text-slate-500">إضافة قالب جديد</p>
-        <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">قالب جديد</h1>
-      </div>
+    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+      <PageHeader eyebrow={S.newTemplate.eyebrow} title={S.newTemplate.title} />
+      {error && <Banner tone="danger">{error}</Banner>}
 
-      {error && <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{error}</div>}
-
-      <div className="grid gap-6 rounded-3xl border border-emerald-100 bg-white p-4 shadow-sm sm:p-6">
+      <section className="card flex flex-col gap-4 p-5">
         <div>
-          <h2 className="text-lg font-bold text-slate-900">اختر قالبًا جاهزًا</h2>
-          <p className="text-sm text-slate-500">ابدأ بسرعة من أحد الأنماط المصممة مسبقًا أو ارفع تصميمك كصورة.</p>
+          <h2 className="text-lg font-bold">{S.newTemplate.choosePreset}</h2>
+          <p className="text-sm text-fg-muted">{S.newTemplate.choosePresetHint}</p>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {templatePresets.map((preset) => (
-            <label
-              key={preset.id}
-              className={`cursor-pointer rounded-3xl border px-4 py-4 text-sm transition ${presetId === preset.id ? 'border-emerald-700 bg-emerald-50' : 'border-slate-200 bg-white hover:border-emerald-200'}`}
-            >
-              <input
-                type="radio"
-                name="preset"
-                value={preset.id}
-                checked={presetId === preset.id}
-                onChange={() => setPresetId(preset.id)}
-                className="sr-only"
-              />
-              <div className="font-semibold text-slate-900">{preset.label}</div>
-              <div className="mt-2 text-xs text-slate-500">{preset.payload.orientation === 'portrait' ? 'طولي' : 'عرضي'}</div>
-            </label>
-          ))}
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" role="radiogroup">
+          {templatePresets.map((preset) => {
+            const active = !designFile && presetId === preset.id;
+            return (
+              <button
+                key={preset.id}
+                type="button"
+                role="radio"
+                aria-checked={active}
+                onClick={() => { setPresetId(preset.id); setDesignFile(null); }}
+                className={cx('flex items-center gap-3 rounded-md border p-3 text-start transition', active ? 'border-primary bg-primary-50 ring-2 ring-primary/20' : 'border-border bg-surface hover:border-border-strong')}
+              >
+                <span className="grid size-10 shrink-0 place-items-center rounded-sm" style={{ background: preset.payload.background?.color, color: preset.payload.background?.accentColor }}>
+                  <LayoutTemplate size={18} aria-hidden />
+                </span>
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-semibold">{preset.label}</span>
+                  <span className="block text-xs text-fg-muted">{preset.payload.orientation === 'portrait' ? S.template.orientation.portrait : S.template.orientation.landscape}</span>
+                </span>
+              </button>
+            );
+          })}
         </div>
+      </section>
 
-        <form onSubmit={handleSubmit} className="grid gap-6">
-          <label className="space-y-2 text-sm font-semibold text-slate-700">
-            اسم القالب
-            <input
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              className="w-full rounded-2xl border border-amber-200 bg-white px-4 py-3 text-sm outline-none ring-emerald-300 focus:ring"
-              placeholder="أدخل اسم القالب"
-            />
+      <section className="card grid gap-5 p-5 md:grid-cols-2">
+        <Field label={S.newTemplate.name} className="md:col-span-2">
+          <input className="field" value={name} onChange={(e) => setName(e.target.value)} placeholder={S.newTemplate.namePlaceholder} />
+        </Field>
+        <Field label={S.newTemplate.orientation}>
+          <Segmented
+            value={orientation}
+            onChange={setOrientation}
+            fullWidth
+            options={[{ value: 'landscape', label: S.template.orientation.landscape }, { value: 'portrait', label: S.template.orientation.portrait }]}
+          />
+        </Field>
+        <Field label={S.newTemplate.audience}>
+          <Segmented
+            value={audienceType}
+            onChange={setAudienceType}
+            fullWidth
+            options={[{ value: TemplateAudienceType.STUDENT, label: S.template.audience.student }, { value: TemplateAudienceType.ADULT, label: S.template.audience.adult }]}
+          />
+        </Field>
+        <Field label={S.newTemplate.detailLevel}>
+          <Segmented
+            value={detailLevel}
+            onChange={setDetailLevel}
+            fullWidth
+            options={[{ value: TemplateDetailLevel.SIMPLE, label: S.template.detail.simple }, { value: TemplateDetailLevel.DETAILED, label: S.template.detail.detailed }]}
+          />
+        </Field>
+        <Field label={`${S.newTemplate.designImage} (${S.common.optional})`} hint={S.newTemplate.designImageHint}>
+          <label className="flex h-10 cursor-pointer items-center gap-2 rounded-sm border border-dashed border-border-strong px-3 text-sm text-fg-muted transition hover:border-primary hover:text-primary">
+            <ImageUp size={16} aria-hidden />
+            <span className="truncate">{designFile ? designFile.name : S.newTemplate.chooseImage}</span>
+            <input type="file" accept=".png,.jpg,.jpeg,.webp" className="hidden" onChange={(e) => setDesignFile(e.target.files?.[0] || null)} />
           </label>
+        </Field>
+      </section>
 
-          <label className="space-y-2 text-sm font-semibold text-slate-700">
-            الاتجاه
-            <select
-              value={orientation}
-              onChange={(event) => setOrientation(event.target.value)}
-              disabled={Boolean(designFile)}
-              className="w-full rounded-2xl border border-amber-200 bg-white px-4 py-3 text-sm outline-none ring-emerald-300 focus:ring"
-            >
-              <option value="landscape">عرضي</option>
-              <option value="portrait">طولي</option>
-            </select>
-          </label>
-
-          <label className="space-y-2 text-sm font-semibold text-slate-700">
-            مستوى القالب
-            <select
-              value={detailLevel}
-              onChange={(event) => setDetailLevel(event.target.value)}
-              className="w-full rounded-2xl border border-amber-200 bg-white px-4 py-3 text-sm outline-none ring-emerald-300 focus:ring"
-            >
-              {TEMPLATE_DETAIL_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>{option.label}</option>
-              ))}
-            </select>
-          </label>
-
-          <label className="space-y-2 text-sm font-semibold text-slate-700">
-            فئة القالب
-            <select
-              value={audienceType}
-              onChange={(event) => setAudienceType(event.target.value)}
-              className="w-full rounded-2xl border border-amber-200 bg-white px-4 py-3 text-sm outline-none ring-emerald-300 focus:ring"
-            >
-              {TEMPLATE_AUDIENCE_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>{option.label}</option>
-              ))}
-            </select>
-          </label>
-
-          <label className="space-y-2 text-sm font-semibold text-slate-700">
-            تصميم خارجي اختياري
-            <input
-              type="file"
-              accept=".png,.jpg,.jpeg,.webp"
-              onChange={(event) => setDesignFile(event.target.files?.[0] || null)}
-              className="w-full rounded-2xl border border-amber-200 bg-white px-4 py-3 text-sm outline-none ring-emerald-300 file:me-4 file:rounded-xl file:border-0 file:bg-emerald-50 file:px-3 file:py-2 file:text-emerald-700 focus:ring"
-            />
-            <p className="text-xs font-normal text-slate-500">
-              عند رفع صورة تصميم سيتم إنشاء القالب بأبعاد الصورة نفسها وستصبح الصورة خلفية القالب.
-            </p>
-          </label>
-
-          <button
-            type="submit"
-            disabled={processing}
-            className="w-full rounded-2xl bg-emerald-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-auto"
-          >
-            {processing ? 'جارٍ الإنشاء...' : 'إنشاء القالب'}
-          </button>
-        </form>
+      <div className="flex justify-end">
+        <Button type="submit" variant="primary" size="lg" icon={Sparkles} loading={processing}>
+          {processing ? S.newTemplate.creating : S.newTemplate.create}
+        </Button>
       </div>
-    </div>
+    </form>
   );
 }

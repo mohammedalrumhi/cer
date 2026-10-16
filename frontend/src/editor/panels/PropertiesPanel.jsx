@@ -44,7 +44,7 @@ export default function PropertiesPanel({ element, fontOptions = [], onChange, o
     return (
       <div
         className={`flex shrink-0 flex-col items-center justify-center bg-white p-6 ${isMobile ? 'w-full border-t border-slate-200' : 'h-full w-64 border-r border-slate-200'}`}
-        style={{ direction: 'rtl' }}
+        
       >
         <p className="text-center text-xs text-slate-400">اختر عنصراً لتعديل خصائصه</p>
       </div>
@@ -75,7 +75,7 @@ export default function PropertiesPanel({ element, fontOptions = [], onChange, o
   return (
     <div
       className={`flex shrink-0 flex-col overflow-y-auto bg-white ${isMobile ? 'max-h-[80vh] w-full rounded-3xl border border-slate-200 shadow-2xl' : 'h-full w-64 border-r border-slate-200'}`}
-      style={{ direction: 'rtl' }}
+      
     >
       {/* Header */}
       <div className="sticky top-0 flex items-center justify-between border-b border-slate-100 bg-white px-4 py-3">

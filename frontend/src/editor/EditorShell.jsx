@@ -55,7 +55,8 @@ function useFontOptions() {
     loadRenderKit().then((kit) => { if (alive) setFonts(kit.fonts); }).catch(() => {});
     return () => { alive = false; };
   }, []);
-  const options = useMemo(() => fonts.map(({ value, label }) => ({ value, label })), [fonts]);
+  // Arabic only: fonts without Arabic glyphs are not offered (they still render if a template uses one).
+  const options = useMemo(() => fonts.filter((font) => font.arabic !== false).map(({ value, label }) => ({ value, label })), [fonts]);
   return [options, setFonts];
 }
 
@@ -239,7 +240,7 @@ function EditorLayout({ templateId, branding }) {
   };
 
   return (
-    <div className="fixed inset-0 flex flex-col bg-slate-100" style={{ direction: 'ltr', zIndex: 50 }}>
+    <div className="fixed inset-0 flex flex-col bg-bg" style={{ zIndex: 50 }}>
       <TopBar
         templateName={document.name}
         onNameChange={(name) => updateMeta({ name })}

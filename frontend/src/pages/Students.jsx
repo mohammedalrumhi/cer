@@ -1,454 +1,261 @@
-import { useEffect, useState, useRef } from 'react';
-import { parseExcel, fetchStudents, saveStudents, updateStudent, deleteStudent, downloadTemplate } from '../api/client';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Download, FileSpreadsheet, PenLine, Plus, Search, Trash2, UploadCloud, UserPlus, Users } from 'lucide-react';
+import { deleteStudent, downloadTemplate, fetchStudents, parseExcel, saveStudents, updateStudent } from '../api/client';
+import { S } from '../strings.ar';
+import { Button, IconButton } from '../ui/Button';
+import { confirm } from '../ui/confirm';
+import { cx } from '../ui/cx';
+import { Dialog } from '../ui/Dialog';
+import { Field, PageHeader } from '../ui/Field';
+import { formatNumber } from '../ui/format';
+import { EmptyState, ErrorState, Skeleton } from '../ui/States';
+import { toast } from '../ui/toast';
 
-const EMPTY_STUDENT = {
-  name: '',
-  recitalType: '',
-  surahRange: '',
-  programName: '',
-  calendar: '',
-  mistakesCount: '',
-  teacherName: '',
-};
+const FIELDS = ['name', 'recitalType', 'surahRange', 'programName', 'calendar', 'mistakesCount', 'teacherName'];
+const EMPTY = Object.fromEntries(FIELDS.map((key) => [key, '']));
 
-const STUDENT_FIELDS = [
-  { key: 'name', label: 'اسم الطالب', placeholder: 'مثال: أحمد محمد' },
-  { key: 'recitalType', label: 'نوع الاستظهار', placeholder: 'مثال: نص كامل' },
-  { key: 'surahRange', label: 'نص السور (من إلى)', placeholder: 'مثال: من سورة النبأ إلى سورة الناس' },
-  { key: 'programName', label: 'اسم البرنامج', placeholder: 'مثال: برنامج الإتقان' },
-  { key: 'calendar', label: 'التقويم', placeholder: 'مثال: ممتاز' },
-  { key: 'mistakesCount', label: 'عدد الأخطاء', placeholder: 'مثال: 2' },
-  { key: 'teacherName', label: 'المعلم', placeholder: 'مثال: الأستاذ خالد' },
-];
-
-function normalizeStudent(student) {
-  if (!student || typeof student !== 'object') return { ...EMPTY_STUDENT };
-  return {
-    name: String(student.name || '').trim(),
-    recitalType: String(student.recitalType || '').trim(),
-    surahRange: String(student.surahRange || '').trim(),
-    programName: String(student.programName || '').trim(),
-    calendar: String(student.calendar || '').trim(),
-    mistakesCount: String(student.mistakesCount || '').trim(),
-    teacherName: String(student.teacherName || '').trim(),
-  };
+function normalizeSearch(value) {
+  return String(value || '').normalize('NFKC').replace(/[ً-ٰٟ]/g, '').toLowerCase().trim();
 }
 
 function escapeCsv(value) {
-  const text = String(value || '');
-  if (/[",\n]/.test(text)) {
-    return `"${text.replace(/"/g, '""')}"`;
-  }
-  return text;
+  const text = String(value ?? '');
+  return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 }
 
-function StudentForm({ value, onChange, disabled }) {
+function downloadBlob(blob, name) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = name;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 30000);
+}
+
+function StudentDialog({ open, onOpenChange, initial, onSubmit, busy }) {
+  const [form, setForm] = useState(initial || EMPTY);
+  const isEdit = Boolean(initial?.id);
   return (
-    <div className="grid gap-4 md:grid-cols-2">
-      {STUDENT_FIELDS.map((field) => (
-        <label key={field.key} className="block text-sm font-semibold text-slate-700">
-          {field.label}
-          <input
-            type="text"
-            value={value[field.key] || ''}
-            onChange={(event) => onChange(field.key, event.target.value)}
-            placeholder={field.placeholder}
-            disabled={disabled}
-            className="mt-2 w-full rounded-2xl border border-amber-200 bg-white px-4 py-3 text-sm outline-none ring-emerald-300 focus:ring disabled:cursor-not-allowed disabled:bg-slate-100"
-          />
-        </label>
-      ))}
-    </div>
+    <Dialog
+      open={open}
+      onOpenChange={onOpenChange}
+      icon={isEdit ? PenLine : UserPlus}
+      title={isEdit ? S.common.edit : S.students.addTitle}
+      size="lg"
+      footer={(
+        <>
+          <Button onClick={() => onOpenChange(false)}>{S.common.cancel}</Button>
+          <Button variant="primary" loading={busy} onClick={() => onSubmit(form)}>{isEdit ? S.common.save : S.students.addButton}</Button>
+        </>
+      )}
+    >
+      <form
+        className="grid gap-4 sm:grid-cols-2"
+        onSubmit={(event) => { event.preventDefault(); onSubmit(form); }}
+      >
+        {FIELDS.map((key) => (
+          <Field key={key} label={S.students.fields[key]} className={key === 'name' || key === 'surahRange' ? 'sm:col-span-2' : ''}>
+            <input
+              className="field"
+              value={form[key] || ''}
+              onChange={(event) => setForm((prev) => ({ ...prev, [key]: event.target.value }))}
+              placeholder={S.students.placeholders[key]}
+              autoFocus={key === 'name'}
+            />
+          </Field>
+        ))}
+        <button type="submit" className="hidden" aria-hidden tabIndex={-1} />
+      </form>
+    </Dialog>
   );
 }
 
 export default function Students() {
   const [students, setStudents] = useState([]);
-  const [studentForm, setStudentForm] = useState(EMPTY_STUDENT);
-  const [editingId, setEditingId] = useState('');
-  const [editingForm, setEditingForm] = useState(EMPTY_STUDENT);
-  const [processing, setProcessing] = useState(false);
-  const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
+  const [status, setStatus] = useState('loading');
+  const [query, setQuery] = useState('');
+  const [dialog, setDialog] = useState(null); // null | { initial }
+  const [busy, setBusy] = useState(false);
   const [dragActive, setDragActive] = useState(false);
-  const fileInputRef = useRef(null);
+  const fileRef = useRef(null);
 
-  useEffect(() => {
-    async function loadStudents() {
-      try {
-        setProcessing(true);
-        const savedStudents = await fetchStudents();
-        setStudents(savedStudents);
-      } catch {
-        setError('فشل تحميل قائمة الطلاب. حاول مرة أخرى.');
-      } finally {
-        setProcessing(false);
-      }
+  const load = useCallback(async () => {
+    try {
+      setStudents(await fetchStudents());
+      setStatus('ready');
+    } catch {
+      setStatus('error');
     }
-
-    loadStudents();
   }, []);
 
-  async function handleUpload(event) {
-    const file = event.target.files?.[0];
+  useEffect(() => { load(); }, [load]);
+
+  async function importFile(file) {
     if (!file) return;
-
-    try {
-      setProcessing(true);
-      setError('');
-      setMessage('');
-      const parsedStudents = await parseExcel(file);
-      if (parsedStudents.length === 0) {
-        setError('لم يتم العثور على بيانات طلاب صالحة في الملف.');
-        return;
-      }
-
-      const savedStudents = await saveStudents(parsedStudents);
-      setStudents(savedStudents);
-      setMessage(`تم حفظ ${parsedStudents.length} طالب/طالبة بنجاح.`);
-    } catch {
-      setError('فشل قراءة ملف Excel أو CSV. تأكد من أن الملف صالح وحاول مرة أخرى.');
-    } finally {
-      setProcessing(false);
-    }
-  }
-
-  function handleDrag(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === 'dragenter' || e.type === 'dragover') {
-      setDragActive(true);
-    } else if (e.type === 'dragleave') {
-      setDragActive(false);
-    }
-  }
-
-  async function handleDrop(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-
-    const files = e.dataTransfer.files;
-    if (files && files.length > 0) {
-      const file = files[0];
-      // Check if file is Excel or CSV
-      if (!['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel', 'text/csv'].includes(file.type) &&
-          !file.name.match(/\.(xlsx|xls|csv)$/i)) {
-        setError('يرجى اسقاط ملف Excel أو CSV فقط.');
-        return;
-      }
-
-      try {
-        setProcessing(true);
-        setError('');
-        setMessage('');
-        const parsedStudents = await parseExcel(file);
-        if (parsedStudents.length === 0) {
-          setError('لم يتم العثور على بيانات طلاب صالحة في الملف.');
-          return;
-        }
-
-        const savedStudents = await saveStudents(parsedStudents);
-        setStudents(savedStudents);
-        setMessage(`تم حفظ ${parsedStudents.length} طالب/طالبة بنجاح.`);
-      } catch {
-        setError('فشل قراءة ملف Excel أو CSV. تأكد من أن الملف صالح وحاول مرة أخرى.');
-      } finally {
-        setProcessing(false);
-      }
-    }
-  }
-
-  async function handleAddStudent() {
-    if (!studentForm.name.trim()) {
-      setError('اسم الطالب مطلوب.');
+    if (!/\.(xlsx|xls|csv)$/i.test(file.name)) {
+      toast.error(S.students.onlySheets);
       return;
     }
-
     try {
-      setProcessing(true);
-      setError('');
-      setMessage('');
-      const savedStudents = await saveStudents([normalizeStudent(studentForm)]);
-      setStudents(savedStudents);
-      setStudentForm(EMPTY_STUDENT);
-      setMessage('تم إضافة الطالب بنجاح.');
+      setBusy(true);
+      const parsed = await parseExcel(file);
+      if (parsed.length === 0) {
+        toast.error(S.students.importEmpty);
+        return;
+      }
+      const before = students.length;
+      const saved = await saveStudents(parsed);
+      setStudents(saved);
+      toast.success(S.students.imported(formatNumber(Math.max(0, saved.length - before))));
     } catch {
-      setError('تعذر إضافة الطالب. حاول مرة أخرى.');
+      toast.error(S.students.importError);
     } finally {
-      setProcessing(false);
+      setBusy(false);
     }
   }
 
-  async function handleDeleteStudent(id) {
-    try {
-      setProcessing(true);
-      setError('');
-      await deleteStudent(id);
-      setStudents((prev) => prev.filter((item) => item.id !== id));
-      setMessage('تم حذف الطالب.');
-    } catch {
-      setError('فشل حذف الطالب. حاول مرة أخرى.');
-    } finally {
-      setProcessing(false);
-    }
-  }
-
-  function handleStartEdit(student) {
-    setEditingId(student.id);
-    setEditingForm(normalizeStudent(student));
-    setError('');
-    setMessage('');
-  }
-
-  function handleCancelEdit() {
-    setEditingId('');
-    setEditingForm(EMPTY_STUDENT);
-  }
-
-  async function handleEditStudent(id) {
-    const payload = normalizeStudent(editingForm);
-    if (!payload.name) {
-      setError('الاسم لا يمكن أن يكون فارغاً.');
+  async function handleSubmit(form) {
+    const student = Object.fromEntries(FIELDS.map((key) => [key, String(form[key] || '').trim()]));
+    if (!student.name) {
+      toast.error(S.students.nameRequired);
       return;
     }
-
     try {
-      setProcessing(true);
-      setError('');
-      setMessage('');
-      const updated = await updateStudent(id, payload);
-      setStudents((prev) => prev.map((student) => (student.id === id ? updated : student)));
-      setEditingId('');
-      setEditingForm(EMPTY_STUDENT);
-      setMessage('تم تحديث بيانات الطالب بنجاح.');
+      setBusy(true);
+      if (dialog?.initial?.id) {
+        const updated = await updateStudent(dialog.initial.id, { ...dialog.initial, ...student });
+        setStudents((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
+        toast.success(S.students.updated);
+      } else {
+        setStudents(await saveStudents([student]));
+        toast.success(S.students.added);
+      }
+      setDialog(null);
     } catch {
-      setError('فشل تحديث بيانات الطالب. حاول مرة أخرى.');
+      toast.error(S.students.saveError);
     } finally {
-      setProcessing(false);
+      setBusy(false);
+    }
+  }
+
+  async function handleDelete(student) {
+    const ok = await confirm({ title: S.students.deleteTitle, body: S.students.deleteBody(student.name), confirmLabel: S.common.delete, danger: true });
+    if (!ok) return;
+    try {
+      await deleteStudent(student.id);
+      setStudents((prev) => prev.filter((item) => item.id !== student.id));
+      toast.success(S.students.deleted);
+    } catch {
+      toast.error(S.students.deleteError);
+    }
+  }
+
+  async function handleDownloadSample() {
+    try {
+      const { blob, filename } = await downloadTemplate();
+      downloadBlob(blob, filename);
+    } catch {
+      toast.error(S.common.errorGeneric);
     }
   }
 
   function handleExportCsv() {
-    const headers = STUDENT_FIELDS.map((field) => field.label).join(',');
-    const rows = students.map((student) =>
-      STUDENT_FIELDS.map((field) => escapeCsv(student[field.key])).join(',')
-    );
-    const csvContent = [headers].concat(rows).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = 'students.csv';
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-    URL.revokeObjectURL(url);
+    const header = FIELDS.map((key) => S.students.fields[key]);
+    const rows = students.map((student) => FIELDS.map((key) => escapeCsv(student[key])));
+    const csv = `${String.fromCharCode(0xfeff)}${[header, ...rows].map((row) => row.join(',')).join('\n')}`;
+    downloadBlob(new Blob([csv], { type: 'text/csv;charset=utf-8' }), 'الطلاب.csv');
   }
 
-  async function handleDownloadTemplate() {
-    try {
-      setProcessing(true);
-      setError('');
-      const { blob, filename } = await downloadTemplate();
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement('a');
-      anchor.href = url;
-      anchor.download = filename;
-      document.body.appendChild(anchor);
-      anchor.click();
-      anchor.remove();
-      URL.revokeObjectURL(url);
-      setMessage('تم تحميل الملف النموذجي بنجاح.');
-    } catch {
-      setError('فشل تحميل الملف النموذجي. حاول مرة أخرى.');
-    } finally {
-      setProcessing(false);
-    }
-  }
+  const filtered = useMemo(() => {
+    const q = normalizeSearch(query);
+    if (!q) return students;
+    return students.filter((student) => normalizeSearch(FIELDS.map((key) => student[key]).join(' ')).includes(q));
+  }, [students, query]);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <p className="text-sm text-slate-500">صفحة الطلاب</p>
-        <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">استيراد وإدارة الطلاب</h1>
-      </div>
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        eyebrow={S.students.eyebrow}
+        title={S.students.title}
+        subtitle={S.students.subtitle}
+        actions={(
+          <>
+            <Button icon={Download} onClick={handleDownloadSample}>{S.students.downloadSample}</Button>
+            <Button variant="primary" icon={Plus} onClick={() => setDialog({ initial: null })}>{S.students.addTitle}</Button>
+          </>
+        )}
+      />
 
-      {error && <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{error}</div>}
-      {message && <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">{message}</div>}
-
-      <section className="rounded-3xl border border-emerald-100 bg-white p-4 shadow-sm sm:p-6">
-        <h2 className="mb-4 text-lg font-bold text-slate-900">إضافة طالب جديد</h2>
-        <StudentForm
-          value={studentForm}
-          onChange={(key, nextValue) => setStudentForm((prev) => ({ ...prev, [key]: nextValue }))}
-          disabled={processing}
-        />
-        <div className="mt-4 flex justify-stretch sm:justify-end">
-          <button
-            type="button"
-            onClick={handleAddStudent}
-            disabled={processing}
-            className="w-full rounded-2xl bg-emerald-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-auto"
-          >
-            إضافة
-          </button>
+      <section
+        onDragEnter={(e) => { e.preventDefault(); setDragActive(true); }}
+        onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
+        onDragLeave={(e) => { e.preventDefault(); setDragActive(false); }}
+        onDrop={(e) => { e.preventDefault(); setDragActive(false); importFile(e.dataTransfer.files?.[0]); }}
+        className={cx(
+          'flex flex-col items-center gap-3 rounded-lg border-2 border-dashed p-8 text-center transition-colors',
+          dragActive ? 'border-primary bg-primary-50' : 'border-border-strong bg-surface',
+        )}
+      >
+        <span className="grid size-12 place-items-center rounded-md bg-gold-50 text-gold-600"><FileSpreadsheet size={24} aria-hidden /></span>
+        <div>
+          <h2 className="text-md font-bold">{dragActive ? S.students.dropHere : S.students.importTitle}</h2>
+          <p className="text-sm text-fg-muted">{S.students.importHint}</p>
         </div>
+        <Button variant="soft" icon={UploadCloud} loading={busy} onClick={() => fileRef.current?.click()}>{S.students.importButton}</Button>
+        <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => { importFile(e.target.files?.[0]); e.target.value = ''; }} />
       </section>
 
-      <section className="rounded-3xl border border-emerald-100 bg-white p-4 shadow-sm sm:p-6">
-        <h2 className="mb-4 text-lg font-bold text-slate-900">رفع ملف Excel أو CSV</h2>
-        
-        {/* Drag and Drop Area */}
-        <div
-          onDragEnter={handleDrag}
-          onDragLeave={handleDrag}
-          onDragOver={handleDrag}
-          onDrop={handleDrop}
-          className={`relative cursor-pointer rounded-3xl border-2 border-dashed p-5 text-center transition sm:p-8 ${
-            dragActive
-              ? 'border-emerald-500 bg-emerald-50'
-              : 'border-slate-300 bg-slate-50 hover:border-slate-400 hover:bg-slate-100'
-          }`}
-        >
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".xlsx,.xls,.csv"
-            onChange={handleUpload}
-            className="absolute inset-0 cursor-pointer opacity-0"
-          />
-          <div className="pointer-events-none">
-            <svg className="mx-auto h-12 w-12 text-slate-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            <p className="text-sm font-semibold text-slate-700">
-              {dragActive ? 'أفلت الملف هنا' : 'اسحب ملف Excel أو CSV هنا'}
-            </p>
-            <p className="mt-1 text-xs text-slate-500">أو اضغط لاختيار ملف</p>
+      <section className="card flex flex-col gap-4 p-4 sm:p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-bold">{S.students.listTitle}</h2>
+            {status === 'ready' && <span className="rounded-full bg-primary-50 px-2.5 py-0.5 text-xs font-semibold text-primary">{S.students.count(formatNumber(students.length))}</span>}
+          </div>
+          <div className="flex w-full items-center gap-2 sm:w-auto">
+            <label className="relative flex-1 sm:w-72">
+              <Search size={16} className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 text-fg-subtle" aria-hidden />
+              <input type="search" className="field ps-9" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={S.students.searchPlaceholder} aria-label={S.common.search} />
+            </label>
+            <Button onClick={handleExportCsv} disabled={students.length === 0}>{S.students.exportCsv}</Button>
           </div>
         </div>
 
-        <p className="mt-3 text-xs text-slate-500">
-          الأعمدة المدعومة: اسم الطالب، نوع الاستظهار، نص السور، اسم البرنامج، التقويم، عدد الأخطاء، المعلم.
-        </p>
-        {processing && <p className="mt-4 text-slate-500">جاري استيراد الطلاب...</p>}
-      </section>
-
-      <section className="rounded-3xl border border-blue-100 bg-linear-to-br from-blue-50 to-cyan-50 p-4 shadow-sm sm:p-6">
-        <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
-          <div>
-            <h3 className="text-base font-bold text-slate-900">📥 هل تريد ملف نموذجي؟</h3>
-            <p className="mt-1 text-sm text-slate-600">
-              حمّل الملف النموذجي مع أمثلة على البيانات الصحيحة وأضف طلابك مباشرة.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={handleDownloadTemplate}
-            disabled={processing}
-            className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-auto"
-          >
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v4a2 2 0 002 2h12a2 2 0 002-2v-4m-4-4l-4 4m0 0l-4-4m4 4V4" />
-            </svg>
-            تحميل الملف النموذجي
-          </button>
-        </div>
-      </section>
-
-      <section className="rounded-3xl border border-emerald-100 bg-white p-4 shadow-sm sm:p-6">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-bold text-slate-900">قائمة الطلاب المحفوظين</h2>
-            <p className="text-sm text-slate-500">يمكنك تعديل كل بيانات الطالب أو تصدير القائمة لملف CSV.</p>
-          </div>
-          <button
-            type="button"
-            onClick={handleExportCsv}
-            disabled={students.length === 0}
-            className="min-h-11 rounded-2xl border border-emerald-700 bg-emerald-700 px-4 py-2 text-xs font-semibold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:bg-slate-300"
-          >
-            تصدير CSV
-          </button>
-        </div>
-        <div className="mb-4">
-          <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
-            {students.length} طالب
-          </span>
-        </div>
-        {students.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-center text-slate-500">
-            لا يوجد طلاب محفوظين حتى الآن.
-          </div>
-        ) : (
-          <div className="grid gap-3">
-            {students.map((student) => (
-              <div key={student.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
-                {editingId === student.id ? (
-                  <div className="space-y-3">
-                    <StudentForm
-                      value={editingForm}
-                      onChange={(key, nextValue) => setEditingForm((prev) => ({ ...prev, [key]: nextValue }))}
-                      disabled={processing}
-                    />
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleEditStudent(student.id)}
-                        disabled={processing}
-                        className="rounded-2xl bg-emerald-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-400"
-                      >
-                        حفظ
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleCancelEdit}
-                        className="rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
-                      >
-                        إلغاء
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="min-w-0 space-y-2 text-sm text-slate-700">
-                      <div className="text-base font-semibold text-slate-900">{student.name}</div>
-                      <div className="grid gap-1 text-xs text-slate-500 sm:grid-cols-2">
-                        {STUDENT_FIELDS.filter((field) => field.key !== 'name').map((field) => (
-                          <div key={field.key}>
-                            {field.label}: {student[field.key] || '—'}
-                          </div>
-                        ))}
+        {status === 'loading' && <div className="space-y-2">{Array.from({ length: 5 }, (_, i) => <Skeleton key={i} className="h-12" />)}</div>}
+        {status === 'error' && <ErrorState body={S.students.loadError} onRetry={() => { setStatus('loading'); load(); }} />}
+        {status === 'ready' && students.length === 0 && (
+          <EmptyState icon={Users} title={S.students.emptyTitle} body={S.students.emptyBody} action={<Button variant="primary" icon={Plus} onClick={() => setDialog({ initial: null })}>{S.students.addTitle}</Button>} />
+        )}
+        {status === 'ready' && students.length > 0 && filtered.length === 0 && <EmptyState icon={Search} title={S.students.noResults} compact />}
+        {status === 'ready' && filtered.length > 0 && (
+          <div className="overflow-x-auto rounded-md border border-border">
+            <table className="w-full min-w-[720px] text-sm">
+              <thead className="bg-surface-2 text-xs text-fg-muted">
+                <tr>
+                  {FIELDS.map((key) => <th key={key} scope="col" className="px-3 py-2.5 text-start font-semibold">{S.students.fields[key]}</th>)}
+                  <th scope="col" className="w-24 px-3 py-2.5"><span className="sr-only">{S.common.edit}</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((student) => (
+                  <tr key={student.id} className="border-t border-border transition-colors hover:bg-surface-2/60">
+                    {FIELDS.map((key) => (
+                      <td key={key} className={cx('px-3 py-2.5', key === 'name' ? 'font-semibold' : 'text-fg-muted')}>{student[key] || '—'}</td>
+                    ))}
+                    <td className="px-2 py-1.5">
+                      <div className="flex justify-end gap-1">
+                        <IconButton icon={PenLine} label={S.common.edit} onClick={() => setDialog({ initial: student })} />
+                        <IconButton icon={Trash2} label={S.common.delete} variant="danger" onClick={() => handleDelete(student)} />
                       </div>
-                    </div>
-                    <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-                      <button
-                        type="button"
-                        onClick={() => handleStartEdit(student)}
-                        className="min-h-11 rounded-2xl border border-amber-200 bg-amber-100 px-4 py-2 text-xs font-semibold text-amber-900 transition hover:bg-amber-200"
-                      >
-                        تعديل
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteStudent(student.id)}
-                        disabled={processing}
-                        className="min-h-11 rounded-2xl border border-rose-200 bg-white px-4 py-2 text-xs font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed"
-                      >
-                        حذف
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </section>
+
+      <StudentDialog key={dialog ? dialog.initial?.id || 'new' : 'closed'} open={Boolean(dialog)} onOpenChange={(open) => { if (!open) setDialog(null); }} initial={dialog?.initial} onSubmit={handleSubmit} busy={busy} />
     </div>
   );
 }
-
-
-

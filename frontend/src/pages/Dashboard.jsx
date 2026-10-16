@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Search, X } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { FileStack, LayoutTemplate, Plus, Search, Users, X } from 'lucide-react';
 import { TemplateCard } from '../components/TemplateCard';
 import { BrandingPanel } from '../components/BrandingPanel';
 import {
@@ -8,69 +9,79 @@ import {
   removeTemplate,
   updateBranding,
   uploadLogo,
-  uploadStamp,
   uploadSignature,
+  uploadStamp,
 } from '../api/client';
+import { S } from '../strings.ar';
+import { confirm } from '../ui/confirm';
+import { PageHeader } from '../ui/Field';
+import { formatNumber } from '../ui/format';
+import { EmptyState, ErrorState, Skeleton } from '../ui/States';
+import { toast } from '../ui/toast';
+
+const UPLOADERS = { logo: uploadLogo, signature: uploadSignature, stamp: uploadStamp };
 
 function normalizeSearchText(value) {
-  return String(value || '')
-    .trim()
-    .normalize('NFKC')
-    .replace(/[\u064B-\u065F\u0670]/g, '')
-    .toLowerCase();
+  return String(value || '').trim().normalize('NFKC').replace(/[ً-ٰٟ]/g, '').toLowerCase();
 }
 
-function extractColorLabel(templateName) {
-  const match = String(templateName || '').match(/لون\s+(.+?)\s+-/);
-  return match?.[1] || '';
+function QuickAction({ to, icon: Icon, title, hint, tone = 'primary' }) {
+  return (
+    <Link to={to} className="card hover-lift flex items-center gap-4 p-4">
+      <span className={`grid size-12 shrink-0 place-items-center rounded-md text-white shadow-sm ${tone === 'gold' ? 'bg-gold' : 'bg-brand'}`}>
+        <Icon size={22} aria-hidden />
+      </span>
+      <span className="min-w-0">
+        <span className="block text-sm font-bold">{title}</span>
+        <span className="block text-xs text-fg-muted">{hint}</span>
+      </span>
+    </Link>
+  );
 }
 
-function extractVariantLabels(template) {
-  if (!Array.isArray(template?.availableBackgroundVariants)) return '';
-  return template.availableBackgroundVariants.map((variant) => variant.label).join(' ');
+function CardSkeleton() {
+  return (
+    <div className="card overflow-hidden">
+      <Skeleton className="h-48 rounded-none" />
+      <div className="space-y-2 p-4">
+        <Skeleton className="h-4 w-2/3" />
+        <Skeleton className="h-3 w-1/2" />
+      </div>
+    </div>
+  );
 }
 
 export default function Dashboard() {
   const [templates, setTemplates] = useState([]);
-  const [branding, setBranding] = useState({ schoolName: '' });
+  const [branding, setBranding] = useState(null);
   const [schoolName, setSchoolName] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [status, setStatus] = useState('loading');
   const [savingBranding, setSavingBranding] = useState(false);
-  const [error, setError] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [query, setQuery] = useState('');
 
-  function getUploadErrorMessage(err, fallback) {
-    return err?.response?.data?.message || fallback;
-  }
-
-  useEffect(() => {
-    async function loadData() {
-      try {
-        setLoading(true);
-        const [templateData, brandingData] = await Promise.all([fetchTemplates(), fetchBranding()]);
-        setTemplates(templateData);
-        setBranding(brandingData);
-        setSchoolName(brandingData.schoolName || '');
-      } catch {
-        setError('فشل في تحميل البيانات. حاول مرة أخرى.');
-      } finally {
-        setLoading(false);
-      }
+  const load = useCallback(async () => {
+    try {
+      const [templateData, brandingData] = await Promise.all([fetchTemplates(), fetchBranding()]);
+      setTemplates(templateData);
+      setBranding(brandingData);
+      setSchoolName(brandingData.schoolName || '');
+      setStatus('ready');
+    } catch {
+      setStatus('error');
     }
-
-    loadData();
   }, []);
 
-  async function handleDeleteTemplate(id) {
-    if (!window.confirm('هل أنت متأكد أنك تريد حذف هذا القالب؟')) {
-      return;
-    }
+  useEffect(() => { load(); }, [load]);
 
+  async function handleDelete(template) {
+    const ok = await confirm({ title: S.dashboard.deleteTitle, body: S.dashboard.deleteBody(template.name), confirmLabel: S.common.delete, danger: true });
+    if (!ok) return;
     try {
-      await removeTemplate(id);
-      setTemplates((prev) => prev.filter((item) => item.id !== id));
+      await removeTemplate(template.id);
+      setTemplates((prev) => prev.filter((item) => item.id !== template.id));
+      toast.success(S.dashboard.deleted);
     } catch {
-      setError('حدث خطأ أثناء حذف القالب. حاول مرة أخرى.');
+      toast.error(S.dashboard.deleteError);
     }
   }
 
@@ -79,176 +90,107 @@ export default function Dashboard() {
       setSavingBranding(true);
       const updated = await updateBranding({ schoolName });
       setBranding(updated);
-      setError('');
+      toast.success(S.branding.saved);
     } catch {
-      setError('تعذر حفظ هوية المدرسة. حاول مرة أخرى.');
+      toast.error(S.branding.saveError);
     } finally {
       setSavingBranding(false);
     }
   }
 
-  async function handleUploadLogo(file) {
+  async function handleUpload(kind, file) {
     try {
-      const updated = await uploadLogo(file);
+      const updated = await UPLOADERS[kind](file);
       setBranding(updated);
-      setSchoolName(updated.schoolName || '');
-      setError('');
-    } catch (err) {
-      setError(getUploadErrorMessage(err, 'فشل رفع الشعار. تأكد من نوع الملف وحاول مرة أخرى.'));
+      toast.success(S.branding.uploadedOk(S.branding[kind]));
+    } catch {
+      toast.error(S.branding.uploadError);
     }
   }
 
-  async function handleUploadSignature(file) {
-    try {
-      const updated = await uploadSignature(file);
-      setBranding(updated);
-      setError('');
-    } catch (err) {
-      setError(getUploadErrorMessage(err, 'فشل رفع التوقيع. تأكد من نوع الملف وحاول مرة أخرى.'));
-    }
-  }
-
-  async function handleUploadStamp(file) {
-    try {
-      const updated = await uploadStamp(file);
-      setBranding(updated);
-      setError('');
-    } catch (err) {
-      setError(getUploadErrorMessage(err, 'فشل رفع الختم. تأكد من نوع الملف وحاول مرة أخرى.'));
-    }
-  }
-
-  function clearTemplateFilters() {
-    setSearchQuery('');
-  }
-
-  const filteredTemplates = useMemo(() => {
-    const normalizedQuery = normalizeSearchText(searchQuery);
-
-    const next = templates
-      .map((template) => {
-        const nameText = normalizeSearchText(template.name);
-        const colorLabel = normalizeSearchText(extractColorLabel(template.name));
-        const variantLabels = normalizeSearchText(extractVariantLabels(template));
-        const colorHex = normalizeSearchText(template.background?.accentColor || template.background?.color || '');
-        const updatedAt = new Date(template.updatedAt || 0).getTime();
-
-        let score = 0;
-        if (!normalizedQuery) {
-          score = updatedAt;
-        } else {
-          if (colorLabel === normalizedQuery) score += 500;
-          else if (colorLabel.startsWith(normalizedQuery)) score += 350;
-          else if (colorLabel.includes(normalizedQuery)) score += 250;
-
-          if (variantLabels.includes(normalizedQuery)) score += 220;
-
-          if (nameText.startsWith(normalizedQuery)) score += 180;
-          else if (nameText.includes(normalizedQuery)) score += 120;
-
-          if (colorHex.includes(normalizedQuery)) score += 80;
-        }
-
-        return { template, score, updatedAt };
-      })
-      .filter((item) => !normalizedQuery || item.score > 0)
-      .sort((left, right) => {
-        if (left.score !== right.score) return right.score - left.score;
-        return right.updatedAt - left.updatedAt;
-      })
-      .map((item) => item.template);
-
-    return next;
-  }, [templates, searchQuery]);
-
-  const hasActiveFilters = Boolean(searchQuery);
+  const filtered = useMemo(() => {
+    const q = normalizeSearchText(query);
+    const sorted = [...templates].sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
+    if (!q) return sorted;
+    return sorted.filter((template) => {
+      const haystack = normalizeSearchText([
+        template.name,
+        ...(template.availableBackgroundVariants || []).map((variant) => variant.label),
+      ].join(' '));
+      return haystack.includes(q);
+    });
+  }, [templates, query]);
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <p className="text-sm text-slate-500">مرحبًا بكم في لوحة إدارة الشهادات</p>
-          <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">لوحة التحكم</h1>
-        </div>
-        <button
-          type="button"
-          onClick={handleSaveBranding}
-          disabled={savingBranding}
-          className="inline-flex min-h-11 w-full items-center justify-center rounded-2xl bg-emerald-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-auto"
-        >
-          {savingBranding ? 'جاري الحفظ...' : 'حفظ هوية المدرسة'}
-        </button>
-      </div>
+    <div className="flex flex-col gap-8">
+      <PageHeader eyebrow={S.dashboard.greeting} title={S.dashboard.title} subtitle={S.dashboard.subtitle} />
 
-      {error && <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{error}</div>}
+      <section aria-label={S.dashboard.quickActions} className="grid gap-3 md:grid-cols-3">
+        <QuickAction to="/templates/new" icon={Plus} title={S.dashboard.actionNewTemplate} hint={S.dashboard.actionNewTemplateHint} tone="gold" />
+        <QuickAction to="/generate" icon={FileStack} title={S.dashboard.actionGenerate} hint={S.dashboard.actionGenerateHint} />
+        <QuickAction to="/students" icon={Users} title={S.dashboard.actionStudents} hint={S.dashboard.actionStudentsHint} />
+      </section>
 
-      <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
-        <BrandingPanel
-          branding={branding}
-          onSchoolNameChange={setSchoolName}
-          onUploadLogo={handleUploadLogo}
-          onUploadSignature={handleUploadSignature}
-          onUploadStamp={handleUploadStamp}
-        />
-
-        <section className="min-w-0 rounded-3xl border border-emerald-100 bg-white p-4 shadow-sm sm:p-6">
-          <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 className="text-xl font-bold text-slate-900">قوالب الشهادات</h2>
-              <p className="text-sm text-slate-500">ابحث مباشرة باسم اللون أو اسم القالب للوصول السريع إلى التعديل.</p>
-            </div>
-            <span className="whitespace-nowrap rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
-              {filteredTemplates.length} / {templates.length} قالب
-            </span>
-          </div>
-
-          <div className="mb-6 rounded-3xl border border-slate-200 bg-slate-50 p-4">
-            <label className="relative block">
-              <Search className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <input
-                value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
-                placeholder="ابحث باللون أولاً، مثال: زمردي، عنابي، كهرماني..."
-                className="w-full rounded-2xl border border-slate-200 bg-white py-3 pr-10 pl-4 text-sm text-slate-800 outline-none ring-emerald-300 focus:ring"
-              />
-            </label>
-
-            <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm">
-                {hasActiveFilters ? 'نتائج البحث ترتب اللون أولاً' : 'اكتب اسم اللون وستظهر أقرب القوالب أولاً'}
-              </div>
-
-              {hasActiveFilters && (
-                <button
-                  type="button"
-                  onClick={clearTemplateFilters}
-                  className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-100"
-                >
-                  <X size={14} />
-                  مسح البحث
-                </button>
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <section className="flex min-w-0 flex-col gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl font-bold">{S.dashboard.templatesTitle}</h2>
+              {status === 'ready' && (
+                <span className="rounded-full bg-primary-50 px-2.5 py-0.5 text-xs font-semibold text-primary">
+                  {S.dashboard.templatesCount(formatNumber(templates.length))}
+                </span>
               )}
             </div>
+            <label className="relative w-full sm:w-72">
+              <Search size={16} className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 text-fg-subtle" aria-hidden />
+              <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={S.dashboard.searchPlaceholder} className="field ps-9 pe-9" aria-label={S.common.search} />
+              {query && (
+                <button type="button" onClick={() => setQuery('')} aria-label={S.common.clearSearch} className="absolute end-2 top-1/2 grid size-7 -translate-y-1/2 place-items-center rounded-xs text-fg-subtle hover:bg-surface-2">
+                  <X size={14} />
+                </button>
+              )}
+            </label>
           </div>
 
-          {loading ? (
-            <div className="text-slate-500">جاري التحميل...</div>
-          ) : templates.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-emerald-200 p-8 text-center text-slate-500">
-              لم يتم العثور على قوالب. أنشئ قالبًا جديدًا من القائمة الجانبية.
+          {status === 'loading' && (
+            <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-3">
+              {Array.from({ length: 6 }, (_, i) => <CardSkeleton key={i} />)}
             </div>
-          ) : filteredTemplates.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-slate-500">
-              لا توجد قوالب مطابقة للبحث الحالي. جرّب اسم لون مختلف أو امسح البحث.
-            </div>
-          ) : (
-            <div className="grid gap-4 sm:grid-cols-2">
-              {filteredTemplates.map((template) => (
-                <TemplateCard key={template.id} template={template} onDelete={handleDeleteTemplate} />
-              ))}
+          )}
+          {status === 'error' && <ErrorState body={S.dashboard.loadError} onRetry={() => { setStatus('loading'); load(); }} />}
+          {status === 'ready' && templates.length === 0 && (
+            <EmptyState
+              icon={LayoutTemplate}
+              title={S.dashboard.emptyTitle}
+              body={S.dashboard.emptyBody}
+              action={<Link to="/templates/new" className="inline-flex h-10 items-center gap-2 rounded-sm bg-primary px-4 text-sm font-semibold text-primary-fg"><Plus size={16} />{S.nav.newTemplate}</Link>}
+            />
+          )}
+          {status === 'ready' && templates.length > 0 && filtered.length === 0 && (
+            <EmptyState icon={Search} title={S.dashboard.noResults} compact />
+          )}
+          {status === 'ready' && filtered.length > 0 && (
+            <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-3">
+              {filtered.map((template) => <TemplateCard key={template.id} template={template} onDelete={handleDelete} />)}
             </div>
           )}
         </section>
+
+        <aside className="flex flex-col gap-4">
+          {branding ? (
+            <BrandingPanel
+              branding={branding}
+              schoolName={schoolName}
+              onSchoolNameChange={setSchoolName}
+              onUpload={handleUpload}
+              onSave={handleSaveBranding}
+              saving={savingBranding}
+            />
+          ) : status === 'loading' ? (
+            <div className="card space-y-3 p-5"><Skeleton className="h-5 w-1/2" /><Skeleton className="h-10" /><Skeleton className="h-24" /></div>
+          ) : null}
+        </aside>
       </div>
     </div>
   );

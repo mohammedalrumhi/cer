@@ -14,6 +14,8 @@ test.beforeEach(async ({ context, page }) => {
   await authenticate(context, token);
   await page.goto(`/templates/${TEMPLATE_ID}/edit`);
   await page.locator('[data-testid=editor-canvas][data-scene-ready=true]').waitFor();
+  // The UI web font changes the toolbar height when it arrives, which moves the canvas.
+  await page.evaluate(() => document.fonts.ready);
 });
 
 const state = (page, fn) => page.evaluate(fn);

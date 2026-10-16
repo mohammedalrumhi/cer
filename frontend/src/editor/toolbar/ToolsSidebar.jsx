@@ -33,7 +33,7 @@ export default function ToolsSidebar({ activeTool, onToolChange, onAddElement, o
       className={isMobile
         ? 'flex w-full shrink-0 items-stretch gap-2 overflow-x-auto border-t border-slate-200 bg-white px-3 py-3'
         : 'flex h-full w-16 shrink-0 flex-col items-center gap-1 overflow-y-auto border-l border-slate-200 bg-white py-3'}
-      style={{ direction: 'ltr', paddingBottom: isMobile ? 'calc(12px + env(safe-area-inset-bottom))' : undefined }}
+      style={{ paddingBottom: isMobile ? 'calc(12px + env(safe-area-inset-bottom))' : undefined }}
     >
       {/* Drawing tools */}
       {TOOLS.map((tool) => (

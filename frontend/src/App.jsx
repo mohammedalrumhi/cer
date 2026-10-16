@@ -9,7 +9,6 @@ import TemplateEdit from './pages/TemplateEdit';
 import NotFound from './pages/NotFound';
 import Login from './pages/Login';
 import { isAuthenticated } from './api/client';
-import './App.css';
 
 function ProtectedRoute({ children }) {
   if (!isAuthenticated()) {

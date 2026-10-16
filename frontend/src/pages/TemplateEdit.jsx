@@ -1,54 +1,39 @@
-import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useCallback, useEffect, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
 import { fetchBranding, fetchTemplate } from '../api/client';
 import EditorShell from '../editor/EditorShell';
+import { S } from '../strings.ar';
+import { ErrorState, LoadingState } from '../ui/States';
 
 export default function TemplateEdit() {
   const { id } = useParams();
   const [template, setTemplate] = useState(null);
   const [branding, setBranding] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [status, setStatus] = useState('loading');
 
-  useEffect(() => {
-    async function load() {
-      try {
-        setLoading(true);
-        const [tpl, brd] = await Promise.all([fetchTemplate(id), fetchBranding().catch(() => null)]);
-        setTemplate(tpl);
-        setBranding(brd);
-      } catch {
-        setError('تعذر تحميل القالب. تأكد من أن الرابط صحيح.');
-      } finally {
-        setLoading(false);
-      }
-    }
-    if (id) load();
-  }, [id]);
+  const load = useCallback(() => Promise.all([fetchTemplate(id), fetchBranding().catch(() => null)]).then(
+    ([tpl, brd]) => {
+      setTemplate(tpl);
+      setBranding(brd);
+      setStatus('ready');
+    },
+    (error) => setStatus(error?.response?.status === 404 ? 'missing' : 'error'),
+  ), [id]);
 
-  if (loading) {
-    return (
-      <div className="flex h-screen items-center justify-center text-slate-500" dir="rtl">
-        جاري تحميل القالب...
-      </div>
-    );
+  useEffect(() => { if (id) load(); }, [id, load]);
+
+  if (status === 'loading') {
+    return <div className="grid h-screen place-items-center bg-bg"><LoadingState label={S.editorLoading.loading} /></div>;
   }
-
-  if (error || !template) {
+  if (status !== 'ready' || !template) {
     return (
-      <div className="flex h-screen items-center justify-center" dir="rtl">
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-slate-700">
-          {error || 'لم يتم العثور على القالب.'}
+      <div className="grid h-screen place-items-center bg-bg p-4">
+        <div className="flex w-full max-w-lg flex-col items-center gap-4">
+          <ErrorState title={status === 'missing' ? S.editorLoading.notFound : S.states.errorTitle} body={S.editorLoading.error} onRetry={status === 'error' ? () => { setStatus('loading'); load(); } : undefined} className="w-full" />
+          <Link to="/" className="text-sm font-semibold text-primary hover:underline">{S.notFound.home}</Link>
         </div>
       </div>
     );
   }
-
-  return (
-    <EditorShell
-      templateId={id}
-      initialTemplate={template}
-      initialBranding={branding}
-    />
-  );
+  return <EditorShell templateId={id} initialTemplate={template} initialBranding={branding} />;
 }

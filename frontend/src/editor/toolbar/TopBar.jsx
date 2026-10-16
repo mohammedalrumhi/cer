@@ -30,7 +30,7 @@ export default function TopBar({
     return (
       <div
         className="shrink-0 border-b border-slate-200 bg-white px-3 py-3 shadow-sm"
-        style={{ direction: 'ltr', userSelect: 'none', zIndex: 40 }}
+        style={{ userSelect: 'none', zIndex: 40 }}
       >
         <div className="flex items-center gap-2">
           <button
@@ -42,8 +42,7 @@ export default function TopBar({
           </button>
 
           <input
-            dir="rtl"
-            value={templateName}
+                        value={templateName}
             onChange={(e) => onNameChange(e.target.value)}
             className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-800 outline-none transition focus:border-emerald-400 focus:ring-1 focus:ring-emerald-300"
           />
@@ -115,7 +114,7 @@ export default function TopBar({
   return (
     <div
       className="flex shrink-0 items-center gap-2 border-b border-slate-200 bg-white px-3 py-2 shadow-sm"
-      style={{ direction: 'ltr', userSelect: 'none', zIndex: 40 }}
+      style={{ userSelect: 'none', zIndex: 40 }}
     >
       <div className="flex w-full items-center gap-2">
         <div className="flex items-center gap-2">
@@ -130,8 +129,7 @@ export default function TopBar({
           <div className="h-5 w-px bg-slate-200" />
 
           <input
-            dir="rtl"
-            value={templateName}
+                        value={templateName}
             onChange={(e) => onNameChange(e.target.value)}
             className="w-44 rounded-lg border border-transparent bg-transparent px-2 py-1 text-sm font-semibold text-slate-800 outline-none transition hover:border-slate-300 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-300"
           />

@@ -1,114 +1,78 @@
 import { useRef } from 'react';
-import { ImagePlus, PenSquare, Stamp } from 'lucide-react';
+import { ImagePlus, PenLine, Stamp } from 'lucide-react';
 import { buildAssetUrl } from '../api/client';
+import { S } from '../strings.ar';
+import { cx } from '../ui/cx';
 
-function AssetPreview({ title, src, emptyText, mode = 'contain' }) {
-  const uploaded = Boolean(src);
+const ASSETS = [
+  { key: 'logo', path: 'logoPath', icon: ImagePlus, label: S.branding.logo },
+  { key: 'signature', path: 'signaturePath', icon: PenLine, label: S.branding.signature },
+  { key: 'stamp', path: 'stampPath', icon: Stamp, label: S.branding.stamp },
+];
 
+function AssetTile({ label, icon: Icon, src, onPick }) {
+  const inputRef = useRef(null);
   return (
-    <div className="rounded-xl border border-amber-200 bg-white p-3">
-      <div className="mb-2 flex items-center justify-between">
-        <p className="text-xs font-semibold text-slate-700">{title}</p>
-        <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${uploaded ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
-          {uploaded ? 'مرفوع' : 'غير مرفوع'}
+    <button
+      type="button"
+      onClick={() => inputRef.current?.click()}
+      className="group flex flex-col gap-2 rounded-md border border-border bg-surface p-2 text-start transition hover:border-primary/50 hover:shadow-sm"
+    >
+      <span className="grid h-20 place-items-center overflow-hidden rounded-sm bg-white ring-1 ring-black/5">
+        {src ? <img src={src} alt={label} className="h-full w-full object-contain p-1" /> : <Icon size={22} className="text-fg-subtle" aria-hidden />}
+      </span>
+      <span className="flex items-center justify-between gap-1 px-0.5">
+        <span className="text-xs font-semibold">{label}</span>
+        <span className={cx('rounded-full px-1.5 text-2xs font-semibold', src ? 'bg-success-bg text-success' : 'bg-surface-2 text-fg-subtle')}>
+          {src ? S.branding.uploaded : S.branding.notUploaded}
         </span>
-      </div>
-
-      <div className="flex h-20 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
-        {uploaded ? (
-          <img
-            src={src}
-            alt={title}
-            className={`h-full w-full ${mode === 'cover' ? 'object-cover' : 'object-contain'}`}
-          />
-        ) : (
-          <span className="px-2 text-center text-[11px] text-slate-400">{emptyText}</span>
-        )}
-      </div>
-    </div>
+      </span>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          event.target.value = '';
+          if (file) onPick(file);
+        }}
+      />
+    </button>
   );
 }
 
-export function BrandingPanel({ branding, onSchoolNameChange, onUploadLogo, onUploadSignature, onUploadStamp }) {
-  const logoRef = useRef(null);
-  const signatureRef = useRef(null);
-  const stampRef = useRef(null);
-
-  const logoSrc = buildAssetUrl(branding?.logoPath);
-  const signatureSrc = buildAssetUrl(branding?.signaturePath);
-  const stampSrc = buildAssetUrl(branding?.stampPath);
-
+/** School name, logo, signature and stamp. Uploads apply immediately; the name is saved by the parent. */
+export function BrandingPanel({ branding, schoolName, onSchoolNameChange, onUpload, onSave, saving }) {
   return (
-    <section className="rounded-2xl border border-amber-100 bg-amber-50/60 p-4 sm:p-5">
-      <h3 className="mb-3 text-lg font-bold text-emerald-900">هوية المدرسة</h3>
-
-      <label className="mb-3 block text-sm font-semibold text-slate-700">اسم المدرسة</label>
-      <input
-        type="text"
-        className="mb-4 w-full rounded-xl border border-amber-200 bg-white px-3 py-2 text-sm outline-none ring-emerald-300 focus:ring"
-        value={branding.schoolName || ''}
-        onChange={(event) => onSchoolNameChange(event.target.value)}
-        placeholder="دار الإتقان العالي"
-      />
-
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        <button
-          type="button"
-          onClick={() => logoRef.current?.click()}
-          className="flex min-h-12 items-center justify-center gap-2 rounded-xl border border-emerald-700 bg-emerald-700 px-3 py-2 text-sm font-semibold text-white"
-        >
-          <ImagePlus size={16} />
-          رفع الشعار
-        </button>
-        <button
-          type="button"
-          onClick={() => signatureRef.current?.click()}
-          className="flex min-h-12 items-center justify-center gap-2 rounded-xl border border-amber-500 bg-amber-400 px-3 py-2 text-sm font-semibold text-emerald-950"
-        >
-          <PenSquare size={16} />
-          رفع التوقيع
-        </button>
-        <button
-          type="button"
-          onClick={() => stampRef.current?.click()}
-          className="flex min-h-12 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700"
-        >
-          <Stamp size={16} />
-          رفع الختم
-        </button>
+    <section className="card flex flex-col gap-4 p-5">
+      <div>
+        <h2 className="text-lg font-bold">{S.branding.title}</h2>
+        <p className="text-xs text-fg-muted">{S.branding.hint}</p>
       </div>
-
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        <AssetPreview title="الشعار الحالي" src={logoSrc} emptyText="لم يتم رفع شعار بعد" mode="contain" />
-        <AssetPreview title="التوقيع الحالي" src={signatureSrc} emptyText="لم يتم رفع توقيع بعد" mode="contain" />
-        <AssetPreview title="الختم الحالي" src={stampSrc} emptyText="لم يتم رفع ختم بعد" mode="contain" />
+      <label className="flex flex-col gap-1.5">
+        <span className="text-sm font-semibold">{S.branding.schoolName}</span>
+        <input className="field" value={schoolName} onChange={(event) => onSchoolNameChange(event.target.value)} placeholder={S.app.school} />
+      </label>
+      <div className="grid grid-cols-3 gap-2">
+        {ASSETS.map((asset) => (
+          <AssetTile
+            key={asset.key}
+            label={asset.label}
+            icon={asset.icon}
+            src={buildAssetUrl(branding?.[asset.path])}
+            onPick={(file) => onUpload(asset.key, file)}
+          />
+        ))}
       </div>
-
-      <input
-        ref={logoRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={(event) => event.target.files?.[0] && onUploadLogo(event.target.files[0])}
-      />
-
-      <input
-        ref={signatureRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={(event) => event.target.files?.[0] && onUploadSignature(event.target.files[0])}
-      />
-
-      <input
-        ref={stampRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={(event) => event.target.files?.[0] && onUploadStamp(event.target.files[0])}
-      />
-
-      <p className="mt-4 text-xs text-slate-500">الشعار والتوقيع سيظهران تلقائياً في القوالب الديناميكية.</p>
+      <button
+        type="button"
+        onClick={onSave}
+        disabled={saving || schoolName === (branding?.schoolName || '')}
+        className="h-10 rounded-sm bg-primary text-sm font-semibold text-primary-fg shadow-sm transition hover:bg-primary-600 disabled:opacity-50"
+      >
+        {saving ? S.common.saving : S.branding.save}
+      </button>
     </section>
   );
 }
