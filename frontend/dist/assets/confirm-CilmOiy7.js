@@ -1,0 +1,1 @@
+import{a as e}from"./EditorStoreContext-CmR91pu_.js";import{n as t}from"./strings.ar-Bm32M2J5.js";var n=e(()=>({request:null}));function r({title:e,body:r,confirmLabel:i=t.common.confirm,cancelLabel:a=t.common.cancel,danger:o=!1}){return new Promise(t=>{n.setState({request:{title:e,body:r,confirmLabel:i,cancelLabel:a,danger:o,resolve:t}})})}export{n,r as t};

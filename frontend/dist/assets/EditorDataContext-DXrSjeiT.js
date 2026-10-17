@@ -1,0 +1,1 @@
+import{r as e}from"./chunk-DECur_0Z.js";import{t}from"./react-DhTzgwgF.js";var n=e(t(),1),r=(0,n.createContext)(null);function i(){let e=(0,n.useContext)(r);if(!e)throw Error(`useEditorData must be used inside <EditorDataContext.Provider>`);return e}export{i as n,r as t};

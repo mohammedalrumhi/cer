@@ -1,0 +1,1 @@
+import{n as e}from"./chunk-DECur_0Z.js";import{t}from"./createLucideIcon-C88XSxWN.js";var n=e({__iconNode:()=>r,default:()=>i}),r=[[`path`,{d:`M21 12a9 9 0 1 1-6.219-8.56`,key:`13zald`}]],i=t(`loader-circle`,r);export{n,i as t};

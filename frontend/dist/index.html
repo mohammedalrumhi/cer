@@ -1,16 +1,58 @@
 <!doctype html>
-<html lang="en">
+<html lang="ar" dir="rtl">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/assets/logo.png" />
     <link rel="apple-touch-icon" href="/assets/logo.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>محرر الشهادات</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;700&display=swap" rel="stylesheet" />
-    <script type="module" crossorigin src="/assets/index-BGK0sHiP.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-DItbxJzz.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <title>استوديو الشهادات — دار الإتقان العالي</title>
+    <script>
+      // Apply the saved theme before first paint (see src/ui/theme.js).
+      (function () {
+        var mode = 'system';
+        try { mode = localStorage.getItem('cer:theme') || 'system'; } catch (e) {}
+        var dark = mode === 'dark' || (mode === 'system' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+      })();
+    </script>
+    <script type="module" crossorigin src="/assets/index-CwaPpsHO.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/chunk-DECur_0Z.js">
+    <link rel="modulepreload" crossorigin href="/assets/preload-helper-ca-nBW7U.js">
+    <link rel="modulepreload" crossorigin href="/assets/react-DhTzgwgF.js">
+    <link rel="modulepreload" crossorigin href="/assets/EditorStoreContext-CmR91pu_.js">
+    <link rel="modulepreload" crossorigin href="/assets/core.esm-CVR1Qn8Y.js">
+    <link rel="modulepreload" crossorigin href="/assets/createLucideIcon-C88XSxWN.js">
+    <link rel="modulepreload" crossorigin href="/assets/loader-circle-CyOpWlBg.js">
+    <link rel="modulepreload" crossorigin href="/assets/Button-S3MwHpH4.js">
+    <link rel="modulepreload" crossorigin href="/assets/es2015-C6weB0gE.js">
+    <link rel="modulepreload" crossorigin href="/assets/plus-DRG4aFQt.js">
+    <link rel="modulepreload" crossorigin href="/assets/trash-2-D09RN5mk.js">
+    <link rel="modulepreload" crossorigin href="/assets/toast-DfpKZtmm.js">
+    <link rel="modulepreload" crossorigin href="/assets/render-B9n-o0O6.js">
+    <link rel="modulepreload" crossorigin href="/assets/ColorPicker-B9LKe_oG.js">
+    <link rel="modulepreload" crossorigin href="/assets/Slider-94p6_DIA.js">
+    <link rel="modulepreload" crossorigin href="/assets/client-C6bWExa0.js">
+    <link rel="modulepreload" crossorigin href="/assets/x-Cf6qBZGO.js">
+    <link rel="modulepreload" crossorigin href="/assets/strings.ar-Bm32M2J5.js">
+    <link rel="modulepreload" crossorigin href="/assets/model-CSCPmKnu.js">
+    <link rel="modulepreload" crossorigin href="/assets/TemplateThumbnail-B6VMgCDD.js">
+    <link rel="modulepreload" crossorigin href="/assets/wand-sparkles-B_PV5wNR.js">
+    <link rel="modulepreload" crossorigin href="/assets/users-BZySH8lZ.js">
+    <link rel="modulepreload" crossorigin href="/assets/cloud-upload-BDOvdi5g.js">
+    <link rel="modulepreload" crossorigin href="/assets/shapes-CmkFes_D.js">
+    <link rel="modulepreload" crossorigin href="/assets/image-plus-DpEK07qK.js">
+    <link rel="modulepreload" crossorigin href="/assets/info-DfhOIF02.js">
+    <link rel="modulepreload" crossorigin href="/assets/palette-DNXZE6i5.js">
+    <link rel="modulepreload" crossorigin href="/assets/sparkles-CFK1Ud1P.js">
+    <link rel="modulepreload" crossorigin href="/assets/type-BjbqUaeH.js">
+    <link rel="modulepreload" crossorigin href="/assets/selection-Xr5_gyQg.js">
+    <link rel="modulepreload" crossorigin href="/assets/EditorDataContext-DXrSjeiT.js">
+    <link rel="modulepreload" crossorigin href="/assets/EditorDnd-DcXBIgxl.js">
+    <link rel="modulepreload" crossorigin href="/assets/inbox-BsgXc7X2.js">
+    <link rel="modulepreload" crossorigin href="/assets/States-7uBD0k9j.js">
+    <link rel="modulepreload" crossorigin href="/assets/confirm-CilmOiy7.js">
+    <link rel="stylesheet" crossorigin href="/assets/index-Dru98dCL.css">
   </head>
   <body>
     <div id="root"></div>
