@@ -1,3 +1,4 @@
+import { cloneElement, isValidElement } from 'react';
 import * as Menu from '@radix-ui/react-dropdown-menu';
 import { Check, ChevronLeft } from 'lucide-react';
 import { cx } from './cx';
@@ -23,12 +24,26 @@ export function DropdownContent({ children, align = 'end', side = 'bottom', clas
   );
 }
 
-export function DropdownItem({ icon: Icon, children, shortcut, danger, className, ...props }) {
-  return (
-    <Menu.Item className={cx(menuItemClass, danger && 'text-danger data-[highlighted]:bg-danger-bg', className)} {...props}>
+export function DropdownItem({ icon: Icon, children, shortcut, danger, className, asChild = false, ...props }) {
+  const content = (label) => (
+    <>
       {Icon && <Icon size={16} aria-hidden className="shrink-0 opacity-80" />}
-      <span className="flex-1">{children}</span>
+      <span className="flex-1">{label}</span>
       {shortcut && <kbd dir="ltr" className="font-sans text-[11px] text-fg-subtle">{shortcutLabel(shortcut)}</kbd>}
+    </>
+  );
+  const itemClass = cx(menuItemClass, danger && 'text-danger data-[highlighted]:bg-danger-bg', className);
+  // asChild (e.g. a router <Link>): Radix slots onto exactly one element, so the icon and label go inside it.
+  if (asChild && isValidElement(children)) {
+    return (
+      <Menu.Item asChild className={itemClass} {...props}>
+        {cloneElement(children, undefined, content(children.props.children))}
+      </Menu.Item>
+    );
+  }
+  return (
+    <Menu.Item className={itemClass} {...props}>
+      {content(children)}
     </Menu.Item>
   );
 }
