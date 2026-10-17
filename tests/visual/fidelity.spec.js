@@ -128,7 +128,7 @@ for (const [index, target] of targets.entries()) {
 
     // Full page.
     const editorPage = await exportEditorPage(page);
-    const pdfPage = await rasterizePdf(context, await pdfFor(document, sampleStudent, branding));
+    const pdfPage = await rasterizePdf(context, await pdfFor(document, sampleStudent, branding), { templateWidth: Number(document.width) || 1123 });
     const { ratio, diffPng } = pageDiff(editorPage, pdfPage, size);
     writeFileSync(`${OUT}/${slug}-editor.png`, editorPage);
     writeFileSync(`${OUT}/${slug}-pdf.png`, pdfPage);
@@ -151,7 +151,7 @@ for (const [index, target] of targets.entries()) {
         background: { type: 'solid', color: '#ffffff', customLayout: true },
         elements: [{ ...element, fill: '#000000', opacity: 1 }],
       };
-      const pdfPng = await rasterizePdf(context, await pdfFor(isolated, sampleStudent, branding), { scale, region });
+      const pdfPng = await rasterizePdf(context, await pdfFor(isolated, sampleStudent, branding), { scale, region, templateWidth: Number(isolated.width) || 1123 });
       const metrics = inkIoU(editorPng, pdfPng, { width: region.width * scale, height: region.height * scale });
       if (metrics.inkPixels > 0) results.push({ id: element.id, scale, ...metrics, offset: Math.max(metrics.dx, metrics.dy) / scale });
       if (metrics.inkPixels > 0 && metrics.iou < MIN_TEXT_IOU) {

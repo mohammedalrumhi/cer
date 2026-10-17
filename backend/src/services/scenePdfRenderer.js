@@ -228,14 +228,12 @@ function paintOp(doc, op, deps) {
 }
 
 /** One certificate onto the current page at (x, y) scaled by `scale` (2-up sheets). */
-function paintCertificate(doc, scene, deps, { x = 0, y = 0, scale = 1 } = {}) {
+function paintCertificate(doc, scene, deps, { x = 0, y = 0, scale = 1, clip = false } = {}) {
   doc.save();
   if (x || y) doc.translate(x, y);
-  if (scale !== 1) {
-    doc.scale(scale, scale);
-    // On a shared sheet, keep each certificate inside its own slot.
-    doc.rect(0, 0, scene.width, scene.height).clip();
-  }
+  if (scale !== 1) doc.scale(scale, scale);
+  // On a shared sheet, keep each certificate inside its own slot.
+  if (clip) doc.rect(0, 0, scene.width, scene.height).clip();
   paintBackground(doc, scene, deps.loadBackground);
   for (const op of scene.ops) paintOp(doc, op, deps);
   doc.restore();
@@ -275,6 +273,24 @@ const SHEET_LAYOUTS = {
   '2up': true,
 };
 
+// Templates are designed in CSS px (96 dpi; A4 landscape = 1123 × 794); PDF units are points.
+const PX_TO_PT = 0.75;
+const A4_PT = { long: 841.89, short: 595.28 };
+
+/**
+ * Printed size of one certificate: its 96-dpi size in points, scaled down to fit A4 (same
+ * orientation) when larger, so "actual size" printing never crops (e.g. 1414 × 2000 → A4).
+ */
+function physicalPage(width, height) {
+  const landscape = width >= height;
+  const maxW = landscape ? A4_PT.long : A4_PT.short;
+  const maxH = landscape ? A4_PT.short : A4_PT.long;
+  let scale = PX_TO_PT;
+  // 1 % tolerance keeps 1123 × 794 at exactly 96 dpi.
+  if (width * scale > maxW * 1.01 || height * scale > maxH * 1.01) scale = Math.min(maxW / width, maxH / height);
+  return { size: [width * scale, height * scale], scale };
+}
+
 function sheetGeometry(width, height) {
   // A4 in the same px-like units the templates use (1123 × 794 for landscape A4).
   const landscape = width >= height;
@@ -286,12 +302,13 @@ function sheetGeometry(width, height) {
   const slotW = landscape ? sheet.width - margin * 2 : sheet.width / 2 - margin * 1.5;
   const slotH = landscape ? sheet.height / 2 - margin * 1.5 : sheet.height - margin * 2;
   const scale = Math.min(slotW / width, slotH / height);
+  // Laid out in px, then converted to points (the sheet becomes a real A4 page).
   return {
-    sheet,
-    scale,
+    sheet: { width: sheet.width * PX_TO_PT, height: sheet.height * PX_TO_PT },
+    scale: scale * PX_TO_PT,
     slots: slots.map((slot) => ({
-      x: slot.x + (slotW - width * scale) / 2,
-      y: slot.y + (slotH - height * scale) / 2,
+      x: (slot.x + (slotW - width * scale) / 2) * PX_TO_PT,
+      y: (slot.y + (slotH - height * scale) / 2) * PX_TO_PT,
     })),
   };
 }
@@ -314,7 +331,8 @@ async function renderCertificatesDocument({ template: rawTemplate, students, bra
   const height = Number(template.height) || 794;
   const twoUp = SHEET_LAYOUTS[layout] && students.length > 0;
   const geometry = twoUp ? sheetGeometry(width, height) : null;
-  const pageSize = geometry ? [geometry.sheet.width, geometry.sheet.height] : [width, height];
+  const single = geometry ? null : physicalPage(width, height);
+  const pageSize = geometry ? [geometry.sheet.width, geometry.sheet.height] : single.size;
 
   const doc = new PDFDocument({
     autoFirstPage: false,
@@ -364,10 +382,10 @@ async function renderCertificatesDocument({ template: rawTemplate, students, bra
     if (geometry) {
       const slot = index % geometry.slots.length;
       if (slot === 0) doc.addPage({ size: pageSize, margin: 0 });
-      paintCertificate(doc, scene, deps, { ...geometry.slots[slot], scale: geometry.scale });
+      paintCertificate(doc, scene, deps, { ...geometry.slots[slot], scale: geometry.scale, clip: true });
     } else {
       doc.addPage({ size: pageSize, margin: 0 });
-      paintCertificate(doc, scene, deps);
+      paintCertificate(doc, scene, deps, { scale: single.scale });
     }
     onProgress?.(index + 1, students.length);
     // Let the event loop breathe between pages (progress polling, cancellation, other requests).

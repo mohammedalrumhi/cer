@@ -102,3 +102,14 @@ test('a running job can be cancelled', async () => {
   assert.equal(job.status, 'cancelled');
   assert.ok(job.done < 400);
 });
+
+test('PDF pages are real paper sizes, so printing at actual size never crops', async () => {
+  const { renderCertificatesDocument } = require('../src/services/scenePdfRenderer');
+  const mediaBox = (pdf) => pdf.toString('latin1').match(/\/MediaBox \[([^\]]+)\]/)[1].trim().split(/\s+/).map(Number).slice(2);
+  const make = (width, height) => ({ id: 'p', width, height, background: { type: 'solid', color: '#fff' }, elements: [] });
+  const near = ([w, h], [ew, eh]) => Math.abs(w - ew) < 1.5 && Math.abs(h - eh) < 1.5;
+  assert.ok(near(mediaBox(await renderCertificatesDocument({ template: make(1123, 794), students: ['أ'] })), [842, 595]), 'A4 landscape');
+  assert.ok(near(mediaBox(await renderCertificatesDocument({ template: make(1414, 2000), students: ['أ'] })), [595, 842]), 'high-res portrait → A4');
+  assert.ok(near(mediaBox(await renderCertificatesDocument({ template: make(794, 559), students: ['أ'] })), [595.5, 419]), 'A5 stays A5');
+  assert.ok(near(mediaBox(await renderCertificatesDocument({ template: make(1123, 794), students: ['أ', 'ب'], layout: '2up' })), [595.5, 842]), '2-up on A4');
+});
