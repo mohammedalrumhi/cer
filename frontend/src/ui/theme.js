@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 
 /**
- * Light / dark / system theme. The choice is remembered per browser; "system" follows
+ * Light / dark / system theme (light by default). The choice is remembered per browser; "system" follows
  * prefers-color-scheme live. index.html applies the stored theme before first paint.
  */
 const KEY = 'cer:theme';
@@ -10,9 +10,9 @@ const MODES = ['light', 'dark', 'system'];
 function readMode() {
   try {
     const value = window.localStorage.getItem(KEY);
-    return MODES.includes(value) ? value : 'system';
+    return MODES.includes(value) ? value : 'light';
   } catch {
-    return 'system';
+    return 'light';
   }
 }
 
@@ -29,7 +29,7 @@ function apply(mode) {
 }
 
 export const useTheme = create((set) => ({
-  mode: typeof window === 'undefined' ? 'system' : readMode(),
+  mode: typeof window === 'undefined' ? 'light' : readMode(),
   setMode(mode) {
     try { window.localStorage.setItem(KEY, mode); } catch { /* storage unavailable */ }
     apply(mode);

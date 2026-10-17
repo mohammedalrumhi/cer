@@ -10,8 +10,8 @@
     <script>
       // Apply the saved theme before first paint (see src/ui/theme.js).
       (function () {
-        var mode = 'system';
-        try { mode = localStorage.getItem('cer:theme') || 'system'; } catch (e) {}
+        var mode = 'light';
+        try { mode = localStorage.getItem('cer:theme') || 'light'; } catch (e) {}
         var dark = mode === 'dark' || (mode === 'system' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
         document.documentElement.dataset.theme = dark ? 'dark' : 'light';
       })();
