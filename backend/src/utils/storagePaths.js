@@ -31,6 +31,23 @@ const fontsDir = ensureDir(normalizeDirPath(
   persistentBaseDir ? path.join(persistentBaseDir, 'fonts') : path.join(backendRoot, 'assets/fonts')
 ));
 
+// Images shipped with the app (built-in backgrounds, frames and colour variants) live in
+// backend/uploads. When uploads go elsewhere (PERSISTENT_STORAGE_DIR / UPLOADS_DIR) both folders
+// are read; a user's file overrides a bundled one with the same name. New uploads go to uploadsDir.
+const bundledUploadsDir = path.join(backendRoot, 'uploads');
+const uploadDirs = [...new Set([uploadsDir, bundledUploadsDir])];
+
+/** Absolute path of an uploads file (by name), or null when no folder has it. */
+function findUploadFile(fileName) {
+  const name = String(fileName || '').replace(/^\/+/, '');
+  if (!name) return null;
+  for (const dir of uploadDirs) {
+    const candidate = path.join(dir, name);
+    if (candidate.startsWith(dir) && fs.existsSync(candidate)) return candidate;
+  }
+  return null;
+}
+
 // Fonts shipped with the app. When uploads live elsewhere (PERSISTENT_STORAGE_DIR / FONTS_DIR),
 // both directories are used; an uploaded file overrides a bundled one with the same name.
 const bundledFontsDir = path.join(backendRoot, 'assets/fonts');
@@ -59,7 +76,8 @@ function resolveBackendAssetPath(assetPath) {
   if (!normalizedPath) return null;
 
   if (normalizedPath === 'uploads' || normalizedPath.startsWith('uploads/')) {
-    return path.join(uploadsDir, normalizedPath.replace(/^uploads\/?/, ''));
+    const fileName = normalizedPath.replace(/^uploads\/?/, '');
+    return findUploadFile(fileName) || path.join(uploadsDir, fileName);
   }
 
   if (normalizedPath === 'assets/fonts' || normalizedPath.startsWith('assets/fonts/')) {
@@ -75,6 +93,9 @@ module.exports = {
   backendRoot,
   dataDir,
   uploadsDir,
+  uploadDirs,
+  bundledUploadsDir,
+  findUploadFile,
   fontsDir,
   fontDirs,
   bundledFontsDir,

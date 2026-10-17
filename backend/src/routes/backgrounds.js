@@ -1,7 +1,5 @@
-const fs = require('fs');
-const path = require('path');
 const express = require('express');
-const { uploadsDir } = require('../utils/storagePaths');
+const { findUploadFile } = require('../utils/storagePaths');
 const { COLOR_VARIANTS } = require('../utils/templateVariants');
 
 /**
@@ -18,7 +16,7 @@ const FRAMES = [
 ];
 
 function exists(file) {
-  return fs.existsSync(path.join(uploadsDir, file));
+  return Boolean(findUploadFile(file));
 }
 
 function createBackgroundsRouter() {

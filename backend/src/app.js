@@ -16,7 +16,7 @@ const { createJobRunner, issueCertificates } = require('./services/jobs');
 const fontsRouter = require('./routes/fonts');
 const { createAuthRouter } = require('./routes/auth');
 const { requireAuth } = require('./middleware/auth');
-const { uploadsDir, fontDirs } = require('./utils/storagePaths');
+const { uploadDirs, fontDirs } = require('./utils/storagePaths');
 const { withTemplateMigrations } = require('./storage/withTemplateMigrations');
 
 function resolveFrontendDistDir() {
@@ -68,7 +68,7 @@ function createApp({ storage: rawStorage }) {
 
   app.use(cors({ exposedHeaders: ['Content-Disposition', 'Content-Type'] }));
   app.use(express.json({ limit: '10mb' }));
-  app.use('/uploads', express.static(uploadsDir));
+  for (const dir of uploadDirs) app.use('/uploads', express.static(dir));
   for (const dir of fontDirs) app.use('/assets/fonts', express.static(dir));
   if (frontendDistDir) {
     app.use(express.static(frontendDistDir));

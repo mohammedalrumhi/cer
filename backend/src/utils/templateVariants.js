@@ -1,6 +1,4 @@
-const fs = require('fs');
-const path = require('path');
-const { uploadsDir } = require('./storagePaths');
+const { findUploadFile } = require('./storagePaths');
 
 const BASE_TEMPLATE_VARIANTS = [
   {
@@ -83,7 +81,7 @@ function getVariantImagePath(key) {
 }
 
 function hasVariantAsset(key) {
-  return fs.existsSync(path.join(uploadsDir, `itqan-template-5-${key}.png`));
+  return Boolean(findUploadFile(`itqan-template-5-${key}.png`));
 }
 
 function buildVariantId(key, suffix) {
