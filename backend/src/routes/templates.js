@@ -1,8 +1,8 @@
 const fs = require('fs');
 const express = require('express');
 const { resolveBackendAssetPath } = require('../utils/storagePaths');
+const { loadModel } = require('../shared');
 const { v4: uuidv4 } = require('uuid');
-const { normalizeTemplateMetadata } = require('../utils/templateMetadata');
 const {
   collapseTemplatesWithBackgroundVariants,
   deleteTemplateFamily,
@@ -48,6 +48,13 @@ function withBackgroundStatus(template) {
   return file && fs.existsSync(file) ? template : { ...template, background: { ...template.background, missing: true } };
 }
 
+/** Shared (ESM) metadata helpers, loaded once. */
+let metadataModule = null;
+async function normalizeTemplateMetadata(template) {
+  if (!metadataModule) metadataModule = await loadModel();
+  return metadataModule.normalizeTemplateMetadata(template);
+}
+
 function createTemplatesRouter({ storage }) {
   const router = express.Router();
   const uploadOneImage = imageUpload.single('file');
@@ -72,7 +79,7 @@ function createTemplatesRouter({ storage }) {
 
   router.get('/', async (_req, res) => {
     const templates = collapseTemplatesWithBackgroundVariants(await storage.listTemplates());
-    res.json(templates.map((template) => withBackgroundStatus(normalizeTemplateMetadata(template))));
+    res.json(await Promise.all(templates.map(async (template) => withBackgroundStatus(await normalizeTemplateMetadata(template)))));
   });
 
   router.get('/:id', async (req, res) => {
@@ -83,7 +90,7 @@ function createTemplatesRouter({ storage }) {
     if (!template) {
       return res.status(404).json({ message: 'Template not found' });
     }
-    return res.json(withBackgroundStatus(normalizeTemplateMetadata(template)));
+    return res.json(withBackgroundStatus(await normalizeTemplateMetadata(template)));
   });
 
   router.post('/', async (req, res) => {
@@ -91,7 +98,7 @@ function createTemplatesRouter({ storage }) {
 
     // Keep every client field (detailLevel, audienceType, schemaVersion…); the storage layer
     // migrates and the server owns id and timestamps.
-    const template = normalizeTemplateMetadata({
+    const template = await normalizeTemplateMetadata({
       ...payload,
       id: uuidv4(),
       version: 1,
@@ -123,7 +130,7 @@ function createTemplatesRouter({ storage }) {
         return res.status(404).json({ message: 'Template not found' });
       }
 
-      const createdTemplate = normalizeTemplateMetadata({
+      const createdTemplate = await normalizeTemplateMetadata({
         ...generatedTemplate,
         ...body,
         id: generatedTemplate.id,
@@ -143,7 +150,7 @@ function createTemplatesRouter({ storage }) {
       return res.status(409).json({ message: 'Template was changed elsewhere', currentVersion, updatedAt: existing.updatedAt });
     }
 
-    const nextTemplate = normalizeTemplateMetadata({
+    const nextTemplate = await normalizeTemplateMetadata({
       ...existing,
       ...body,
       id: existing.id,
@@ -185,7 +192,7 @@ function createTemplatesRouter({ storage }) {
     const version = await storage.getRecord('templateVersions', req.params.versionId, { ownerId: req.params.id });
     if (!current || !version || version.ownerId !== req.params.id) return res.status(404).json({ message: 'Version not found' });
     await saveVersion(storage, current, { kind: 'beforeRestore', name: null });
-    const restored = normalizeTemplateMetadata({
+    const restored = await normalizeTemplateMetadata({
       ...version.template,
       id: current.id,
       name: current.name,

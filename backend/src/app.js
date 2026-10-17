@@ -10,6 +10,9 @@ const { createStudentsRouter } = require('./routes/students');
 const { createCertificatesRouter } = require('./routes/certificates');
 const { createAssetsRouter } = require('./routes/assets');
 const { createBackgroundsRouter } = require('./routes/backgrounds');
+const { createJobsRouter, requestOrigin } = require('./routes/jobs');
+const { createVerifyRouter } = require('./routes/verify');
+const { createJobRunner, issueCertificates } = require('./services/jobs');
 const fontsRouter = require('./routes/fonts');
 const { createAuthRouter } = require('./routes/auth');
 const { requireAuth } = require('./middleware/auth');
@@ -85,6 +88,20 @@ function createApp({ storage: rawStorage }) {
   app.use('/api/fonts', requireAuth, fontsRouter);
   app.use('/api/assets', requireAuth, createAssetsRouter({ storage }));
   app.use('/api/backgrounds', requireAuth, createBackgroundsRouter());
+  const runner = createJobRunner({ storage });
+  app.use('/api/jobs', requireAuth, createJobsRouter({ runner }));
+  app.use('/api/verify', createVerifyRouter({ storage }));
+  // Serials for certificates rendered in the browser (PNG/JPG output).
+  app.post('/api/certificates/serials', requireAuth, async (req, res, next) => {
+    try {
+      const { templateId, students } = req.body || {};
+      const template = (await storage.listTemplates()).find((item) => item.id === templateId) || { id: templateId, name: '' };
+      const list = (Array.isArray(students) ? students : []).filter((s) => s && s.name).slice(0, 5000);
+      res.json(await issueCertificates(storage, { students: list, template, branding: await storage.getBranding(), origin: process.env.PUBLIC_BASE_URL || requestOrigin(req) }));
+    } catch (error) {
+      next(error);
+    }
+  });
 
   if (frontendDistDir) {
     app.get(/^(?!\/api(?:\/|$)|\/uploads(?:\/|$)|\/assets\/fonts(?:\/|$)).*/, (_req, res) => {

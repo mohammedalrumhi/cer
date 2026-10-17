@@ -1,13 +1,12 @@
 const fs = require('fs');
 const path = require('path');
 const PDFDocument = require('pdfkit');
+const { loadModel, loadSharedModule } = require('../shared');
 const { convertArabicBack } = require('arabic-reshaper');
 const { fontsDir } = require('../utils/storagePaths');
 const {
-  buildDynamicFieldValues,
   loadImageAssets,
   normalizeUtf8,
-  renderDynamicTextTemplate,
   resolveElementImageSource,
   resolveImagePath,
 } = require('./certificateData');
@@ -73,9 +72,13 @@ function shapeText(value) {
   }
 }
 
+// Shared modules (ESM), loaded before rendering starts.
+let shared = null;
+
 function resolveDynamicTextValue(element, student, branding, template) {
-  const values = buildDynamicFieldValues(student, branding, template);
-  return renderDynamicTextTemplate(element.dynamicTextTemplate, values, element.field);
+  const recipient = { title: shared.model.getRecipientTitleForTemplate, sentence: shared.model.getRecipientAchievementSentenceForTemplate };
+  const values = shared.model.buildFieldValues(student, branding, template, recipient);
+  return shared.scene.renderTextTemplate(element.dynamicTextTemplate, values, element.field);
 }
 
 function getFontCandidates(fontFamily, isBold, isItalic) {
@@ -441,6 +444,10 @@ function drawTemplateElement(doc, template, element, student, branding, imageAss
 }
 
 async function renderCertificatesPdf({ template, students, branding }) {
+  if (!shared) {
+    const [model, scene] = await Promise.all([loadModel(), loadSharedModule('render/scene.js')]);
+    shared = { model, scene };
+  }
   const pageWidth = Number(template.width) || 1123;
   const pageHeight = Number(template.height) || 794;
   const arabicFontPath = findArabicFontPath();

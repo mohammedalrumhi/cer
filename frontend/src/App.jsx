@@ -1,8 +1,8 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import Dashboard from './pages/Dashboard';
-import Generate from './pages/Generate';
-import GenerateSimple from './pages/GenerateSimple';
+import GenerateWizard from './pages/generate/GenerateWizard';
+import Verify from './pages/Verify';
 import Students from './pages/Students';
 import TemplateNew from './pages/TemplateNew';
 import TemplateEdit from './pages/TemplateEdit';
@@ -37,6 +37,9 @@ function App() {
           )}
         />
 
+        {/* Public certificate verification (opened from the QR code) */}
+        <Route path="/verify/:serial" element={<Verify />} />
+
         {/* Full-screen canvas editor — no layout wrapper */}
         <Route
           path="/templates/:id/edit"
@@ -55,8 +58,8 @@ function App() {
               <Layout>
                 <Routes>
                   <Route path="/" element={<Dashboard />} />
-                  <Route path="/generate" element={<Generate />} />
-                  <Route path="/generate-simple" element={<GenerateSimple />} />
+                  <Route path="/generate" element={<GenerateWizard />} />
+                  <Route path="/generate-simple" element={<Navigate to="/generate" replace />} />
                   <Route path="/students" element={<Students />} />
                   <Route path="/templates/new" element={<TemplateNew />} />
                   <Route path="/404" element={<NotFound />} />

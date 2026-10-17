@@ -273,3 +273,66 @@ export async function fetchBackgrounds() {
   const { data } = await api.get('/backgrounds');
   return Array.isArray(data) ? data : [];
 }
+
+/* ── Bulk generation ─────────────────────────────────────────────────────── */
+
+export async function parseSheet(file) {
+  const formData = new FormData();
+  formData.append('file', file);
+  const { data } = await api.post('/students/parse-sheet', formData);
+  return data;
+}
+
+export async function createJob(payload) {
+  const { data } = await api.post('/jobs', payload);
+  return data;
+}
+
+export async function fetchJob(id) {
+  const { data } = await api.get(`/jobs/${id}`);
+  return data;
+}
+
+export async function fetchJobs() {
+  const { data } = await api.get('/jobs');
+  return Array.isArray(data) ? data : [];
+}
+
+export async function cancelJob(id) {
+  const { data } = await api.post(`/jobs/${id}/cancel`);
+  return data;
+}
+
+export async function deleteJob(id) {
+  await api.delete(`/jobs/${id}`);
+}
+
+export async function downloadJob(job) {
+  const response = await api.get(`/jobs/${job.id}/download`, { responseType: 'blob' });
+  const ext = job.output === 'zip' ? 'zip' : 'pdf';
+  return { blob: response.data, filename: getFilenameFromDisposition(response.headers['content-disposition'], `${job.fileName || 'certificates'}.${ext}`) };
+}
+
+export async function issueSerials(templateId, students) {
+  const { data } = await api.post('/certificates/serials', { templateId, students });
+  return data;
+}
+
+/** Public: no auth token needed (and a 401 must not redirect to the login page). */
+export async function verifyCertificate(serial) {
+  const response = await fetch(`${API_BASE}/verify/${encodeURIComponent(serial)}`);
+  if (response.status === 404) return { valid: false };
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  return response.json();
+}
+
+export function saveBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}

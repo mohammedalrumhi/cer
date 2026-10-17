@@ -7,6 +7,7 @@ import { confirm } from '../ui/confirm';
 import { cx } from '../ui/cx';
 import { Dialog } from '../ui/Dialog';
 import { Field, PageHeader } from '../ui/Field';
+import { Segmented } from '../ui/Segmented';
 import { formatNumber } from '../ui/format';
 import { EmptyState, ErrorState, Skeleton } from '../ui/States';
 import { toast } from '../ui/toast';
@@ -64,6 +65,22 @@ function StudentDialog({ open, onOpenChange, initial, onSubmit, busy }) {
             />
           </Field>
         ))}
+        <Field label={S.students.gender} className="sm:col-span-2">
+          <Segmented
+            value={form.gender || 'auto'}
+            onChange={(gender) => setForm((prev) => ({ ...prev, gender: gender === 'auto' ? undefined : gender }))}
+            options={[{ value: 'auto', label: `${S.students.genderAuto} (من الاسم)` }, { value: 'male', label: S.students.male }, { value: 'female', label: S.students.female }]}
+          />
+        </Field>
+        {form.fields && Object.keys(form.fields).length > 0 && (
+          <div className="grid gap-3 sm:col-span-2 sm:grid-cols-2">
+            {Object.entries(form.fields).map(([key, value]) => (
+              <Field key={key} label={key.replace(/_/g, ' ')}>
+                <input className="field" value={value} onChange={(event) => setForm((prev) => ({ ...prev, fields: { ...prev.fields, [key]: event.target.value } }))} />
+              </Field>
+            ))}
+          </div>
+        )}
         <button type="submit" className="hidden" aria-hidden tabIndex={-1} />
       </form>
     </Dialog>
@@ -116,6 +133,8 @@ export default function Students() {
 
   async function handleSubmit(form) {
     const student = Object.fromEntries(FIELDS.map((key) => [key, String(form[key] || '').trim()]));
+    student.gender = form.gender || '';
+    if (form.fields) student.fields = form.fields;
     if (!student.name) {
       toast.error(S.students.nameRequired);
       return;
@@ -232,6 +251,7 @@ export default function Students() {
               <thead className="bg-surface-2 text-xs text-fg-muted">
                 <tr>
                   {FIELDS.map((key) => <th key={key} scope="col" className="px-3 py-2.5 text-start font-semibold">{S.students.fields[key]}</th>)}
+                  <th scope="col" className="px-3 py-2.5 text-start font-semibold">حقول إضافية</th>
                   <th scope="col" className="w-24 px-3 py-2.5"><span className="sr-only">{S.common.edit}</span></th>
                 </tr>
               </thead>
@@ -241,6 +261,12 @@ export default function Students() {
                     {FIELDS.map((key) => (
                       <td key={key} className={cx('px-3 py-2.5', key === 'name' ? 'font-semibold' : 'text-fg-muted')}>{student[key] || '—'}</td>
                     ))}
+                    <td className="px-3 py-2.5">
+                      <div className="flex flex-wrap gap-1">
+                        {student.gender && <span className="rounded-full bg-gold-50 px-2 py-0.5 text-2xs font-semibold text-gold-600">{student.gender === 'female' ? S.students.female : S.students.male}</span>}
+                        {Object.entries(student.fields || {}).map(([key, value]) => <span key={key} className="rounded-full bg-surface-2 px-2 py-0.5 text-2xs">{`${key.replace(/_/g, ' ')}: ${value}`}</span>)}
+                      </div>
+                    </td>
                     <td className="px-2 py-1.5">
                       <div className="flex justify-end gap-1">
                         <IconButton icon={PenLine} label={S.common.edit} onClick={() => setDialog({ initial: student })} />

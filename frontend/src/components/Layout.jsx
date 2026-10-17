@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { FileStack, LayoutDashboard, LogOut, Menu, Plus, Sparkles, Users, X } from 'lucide-react';
+import { FileStack, LayoutDashboard, LogOut, Menu, Plus, Users, X } from 'lucide-react'; 
 import { clearAuthToken } from '../api/client';
 import { S } from '../strings.ar';
 import { cx } from '../ui/cx';
@@ -9,7 +9,6 @@ import { ThemeToggle } from '../ui/ThemeToggle';
 const LINKS = [
   { to: '/', label: S.nav.dashboard, icon: LayoutDashboard, end: true },
   { to: '/generate', label: S.nav.generate, icon: FileStack },
-  { to: '/generate-simple', label: S.nav.generateQuick, icon: Sparkles },
   { to: '/students', label: S.nav.students, icon: Users },
 ];
 

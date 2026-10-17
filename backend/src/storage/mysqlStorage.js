@@ -224,8 +224,16 @@ function createMysqlStorage() {
     };
   }
 
+  function studentExtraJson(student) {
+    const extra = {};
+    if (student.gender) extra.gender = student.gender;
+    if (student.fields && Object.keys(student.fields).length) extra.fields = student.fields;
+    return JSON.stringify(extra);
+  }
+
   function mapStudentRow(row) {
     return {
+      ...parseJsonColumn(row.extra_json, {}),
       id: row.id,
       name: row.name,
       issueDate: row.issue_date,
@@ -290,8 +298,8 @@ function createMysqlStorage() {
     async addStudents(students) {
       for (const student of students) {
         await pool.query(
-          `INSERT INTO students (id, name, issue_date, recital_type, surah_range, program_name, calendar, mistakes_count, teacher_name, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO students (id, name, issue_date, recital_type, surah_range, program_name, calendar, mistakes_count, teacher_name, updated_at, extra_json)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             student.id,
             student.name,
@@ -303,6 +311,7 @@ function createMysqlStorage() {
             student.mistakesCount || '',
             student.teacherName || '',
             new Date().toISOString(),
+            studentExtraJson(student),
           ]
         );
       }
@@ -311,7 +320,7 @@ function createMysqlStorage() {
     async updateStudent(student) {
       const [result] = await pool.query(
         `UPDATE students
-         SET name = ?, issue_date = ?, recital_type = ?, surah_range = ?, program_name = ?, calendar = ?, mistakes_count = ?, teacher_name = ?, updated_at = ?
+         SET name = ?, issue_date = ?, recital_type = ?, surah_range = ?, program_name = ?, calendar = ?, mistakes_count = ?, teacher_name = ?, updated_at = ?, extra_json = ?
          WHERE id = ?`,
         [
           student.name,
@@ -323,6 +332,7 @@ function createMysqlStorage() {
           student.mistakesCount || '',
           student.teacherName || '',
           new Date().toISOString(),
+          studentExtraJson(student),
           student.id,
         ]
       );
@@ -402,6 +412,10 @@ function createMysqlStorage() {
         [collection, record.id, record.ownerId ?? null, record.createdAt || new Date().toISOString(), JSON.stringify(record)]
       );
       return record;
+    },
+    async putRecords(collection, records) {
+      for (const record of records) await this.putRecord(collection, record);
+      return records.length;
     },
     async deleteRecord(collection, id) {
       const [result] = await pool.query('DELETE FROM records WHERE collection = ? AND id = ?', [collection, id]);

@@ -115,6 +115,26 @@ function createFileStorage() {
       owners.set(`${collection}:${record.id}`, record.ownerId);
       return clone(record);
     },
+    /** Many records in one write per file (bulk certificate issuing). */
+    async putRecords(collection, records) {
+      const byFile = new Map();
+      for (const record of records) {
+        const file = recordFile(collection, record.ownerId);
+        if (!byFile.has(file)) byFile.set(file, []);
+        byFile.get(file).push(record);
+      }
+      for (const [file, list] of byFile) {
+        const current = readJson(file, []);
+        const index = new Map(current.map((item, i) => [item.id, i]));
+        for (const record of list) {
+          if (index.has(record.id)) current[index.get(record.id)] = record;
+          else current.push(record);
+          owners.set(`${collection}:${record.id}`, record.ownerId);
+        }
+        writeJson(file, current, []);
+      }
+      return records.length;
+    },
     async deleteRecord(collection, id, { ownerId } = {}) {
       const owner = ownerId ?? locate(collection, id);
       const file = recordFile(collection, owner);

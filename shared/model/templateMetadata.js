@@ -1,9 +1,14 @@
-const TemplateDetailLevel = Object.freeze({
+/**
+ * Template profile (detail level, audience), recipient wording and display names. One copy for the
+ * editor, the generator and the backend (it used to be two hand-synced files).
+ */
+
+export const TemplateDetailLevel = Object.freeze({
   SIMPLE: 'simple',
   DETAILED: 'detailed',
 });
 
-const TemplateAudienceType = Object.freeze({
+export const TemplateAudienceType = Object.freeze({
   STUDENT: 'student',
   ADULT: 'adult',
 });
@@ -65,10 +70,20 @@ const COLOR_LABEL_BY_HEX = new Map([
   ['#c58b94', 'وردي'],
 ]);
 
-const RecipientGender = Object.freeze({
+export const RecipientGender = Object.freeze({
   MALE: 'male',
   FEMALE: 'female',
 });
+
+export const TEMPLATE_DETAIL_OPTIONS = [
+  { value: TemplateDetailLevel.SIMPLE, label: 'بسيط' },
+  { value: TemplateDetailLevel.DETAILED, label: 'مفصل' },
+];
+
+export const TEMPLATE_AUDIENCE_OPTIONS = [
+  { value: TemplateAudienceType.STUDENT, label: 'الطلاب' },
+  { value: TemplateAudienceType.ADULT, label: 'الدارسين' },
+];
 
 const DETAILED_TEMPLATE_FIELDS = new Set([
   'recitalType',
@@ -103,15 +118,14 @@ function normalizeArabicToken(value) {
 }
 
 function getLastNameToken(studentName) {
-  const parts = String(studentName || '')
+  return String(studentName || '')
     .split(/\s+/)
     .map((part) => normalizeArabicToken(part))
-    .filter(Boolean);
-
-  return parts.at(-1) || '';
+    .filter(Boolean)
+    .at(-1) || '';
 }
 
-function detectGenderFromName(studentName, rules = DEFAULT_FEMININE_RULES) {
+export function detectGenderFromName(studentName, rules = DEFAULT_FEMININE_RULES) {
   const lastToken = getLastNameToken(studentName);
   if (!lastToken) return RecipientGender.MALE;
 
@@ -159,22 +173,7 @@ function getFallbackColorLabel(template) {
     || 'مخصص';
 }
 
-function getTemplateDetailLabel(template) {
-  return TemplateProfile.fromTemplate(template).detailLevel === TemplateDetailLevel.DETAILED ? 'مفصل' : 'بسيط';
-}
-
-function getTemplateAudienceLabel(template) {
-  return TemplateProfile.fromTemplate(template).audienceType === TemplateAudienceType.ADULT ? 'الدارسين' : 'الطلاب';
-}
-
-function getTemplateDisplayName(template = {}) {
-  if (Array.isArray(template?.availableBackgroundVariants) && template.availableBackgroundVariants.length > 0) {
-    return `${getTemplateDetailLabel(template)} - ${getTemplateAudienceLabel(template)}`;
-  }
-  return `${getFallbackColorLabel(template)} - ${getTemplateDetailLabel(template)} - ${getTemplateAudienceLabel(template)}`;
-}
-
-class TemplateProfile {
+export class TemplateProfile {
   constructor(template = {}) {
     this.detailLevel = template.detailLevel === TemplateDetailLevel.DETAILED
       ? TemplateDetailLevel.DETAILED
@@ -196,7 +195,7 @@ class TemplateProfile {
   }
 }
 
-class RecipientDescriptor {
+export class RecipientDescriptor {
   constructor({ templateProfile, gender, title }) {
     this.templateProfile = templateProfile;
     this.gender = gender;
@@ -204,7 +203,7 @@ class RecipientDescriptor {
   }
 }
 
-function resolveRecipientDescriptor(template, studentName, options = {}) {
+export function resolveRecipientDescriptor(template, studentName, options = {}) {
   const templateProfile = TemplateProfile.fromTemplate(template);
   const gender = options.gender === RecipientGender.FEMALE || options.gender === RecipientGender.MALE
     ? options.gender
@@ -214,17 +213,17 @@ function resolveRecipientDescriptor(template, studentName, options = {}) {
   return new RecipientDescriptor({ templateProfile, gender, title });
 }
 
-function getRecipientTitleForTemplate(template, studentName, options = {}) {
+export function getRecipientTitleForTemplate(template, studentName, options = {}) {
   return resolveRecipientDescriptor(template, studentName, options).title;
 }
 
-function getRecipientAchievementSentenceForTemplate(template, studentName, options = {}) {
+export function getRecipientAchievementSentenceForTemplate(template, studentName, options = {}) {
   const title = getRecipientTitleForTemplate(template, studentName, options);
   const institutionName = String(options.institutionName || 'مؤسسة دار الإتقان العالي').trim();
   return `تبارك ${institutionName}\nبنجاح ${title} :`;
 }
 
-function normalizeTemplateMetadata(template = {}) {
+export function normalizeTemplateMetadata(template = {}) {
   // A name the user gave wins; the generated "colour - detail - audience" label is only a fallback.
   const ownName = typeof template.name === 'string' ? template.name.trim() : '';
   return {
@@ -234,18 +233,17 @@ function normalizeTemplateMetadata(template = {}) {
   };
 }
 
-module.exports = {
-  TemplateDetailLevel,
-  TemplateAudienceType,
-  RecipientGender,
-  TemplateProfile,
-  RecipientDescriptor,
-  detectGenderFromName,
-  getRecipientAchievementSentenceForTemplate,
-  getRecipientTitleForTemplate,
-  getTemplateAudienceLabel,
-  getTemplateDetailLabel,
-  getTemplateDisplayName,
-  normalizeTemplateMetadata,
-  resolveRecipientDescriptor,
-};
+export function getTemplateDetailLabel(template) {
+  return TemplateProfile.fromTemplate(template).detailLevel === TemplateDetailLevel.DETAILED ? 'مفصل' : 'بسيط';
+}
+
+export function getTemplateAudienceLabel(template) {
+  return TemplateProfile.fromTemplate(template).audienceType === TemplateAudienceType.ADULT ? 'الدارسين' : 'الطلاب';
+}
+
+export function getTemplateDisplayName(template = {}) {
+  if (Array.isArray(template?.availableBackgroundVariants) && template.availableBackgroundVariants.length > 0) {
+    return `${getTemplateDetailLabel(template)} - ${getTemplateAudienceLabel(template)}`;
+  }
+  return `${getFallbackColorLabel(template)} - ${getTemplateDetailLabel(template)} - ${getTemplateAudienceLabel(template)}`;
+}

@@ -74,6 +74,10 @@ function createMemoryStorage(seed = {}) {
       bucket(collection).set(record.id, clone(record));
       return clone(record);
     },
+    async putRecords(collection, records) {
+      for (const record of records) bucket(collection).set(record.id, clone(record));
+      return records.length;
+    },
     async deleteRecord(collection, id) {
       return bucket(collection).delete(id);
     },

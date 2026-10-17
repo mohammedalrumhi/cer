@@ -5,10 +5,6 @@ const jpeg = require('jpeg-js');
 const { loadSharedModule, loadModel } = require('../shared');
 const { listFontFiles } = require('../utils/storagePaths');
 const {
-  getRecipientAchievementSentenceForTemplate,
-  getRecipientTitleForTemplate,
-} = require('../utils/templateMetadata');
-const {
   loadImageAssets,
   normalizeUtf8,
   resolveElementImageSource,
@@ -20,11 +16,6 @@ const {
  * step for step: same paths, same paint order, same transforms. Text is laid out by the same
  * HarfBuzz engine and written as vector outlines. PDFKit is only a vector writer here.
  */
-
-const RECIPIENT = {
-  title: getRecipientTitleForTemplate,
-  sentence: getRecipientAchievementSentenceForTemplate,
-};
 
 let kitPromise = null;
 
@@ -271,7 +262,7 @@ async function prepareTemplate(rawTemplate, branding = {}) {
     registry,
     imageAssets,
     sceneFor(student, extra = {}) {
-      const values = model.buildFieldValues(student, branding, template, RECIPIENT, extra);
+      const values = model.buildFieldValues(student, branding, template, { title: model.getRecipientTitleForTemplate, sentence: model.getRecipientAchievementSentenceForTemplate }, extra);
       return render.buildScene(template, { engine, registry, values, qrcode });
     },
   };
