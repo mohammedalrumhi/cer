@@ -1,54 +1,60 @@
 # Certificate Studio Roadmap
 
-Each phase ends with commits on the `studio` branch, desktop and mobile screenshots in `docs/screenshots/phase-N/`,
-and a short report: what changed, known issues, and what's next. The audit and the rendering decision are in [AUDIT.md](AUDIT.md).
+The audit and the rendering decision are in [AUDIT.md](AUDIT.md). The studio rebuild (Lawha's editor brought
+into cer) is planned feature by feature in [STUDIO_PLAN.md](STUDIO_PLAN.md). The Arabic guide for teachers is
+[STUDIO_GUIDE.md](STUDIO_GUIDE.md). Screenshots for each phase are in `docs/screenshots/studio-phase-N/`.
 
-## Phase 1: Foundation
-- [x] Repo hygiene: untrack the committed `backend/node_modules` and fix the baseline ESLint errors
-- [x] `shared/model`: `schemaVersion`, pure and idempotent `migrateTemplate()` (v1 → v2), element factories, validation
-- [x] Backend: migrate on read and write for every storage type; MySQL `extra_json` column so new top-level fields survive
-- [x] Editor store (zustand): document, selection, viewport, ui, command history (coalescing, 200 steps)
-- [x] Split `CanvasEditor.jsx` into `editor/` with `EditorShell`, `canvas/` (Canvas, SceneNodes, TextEditOverlay, ContextMenu), `panels/`, `toolbar/`, `hooks/useKeyboardShortcuts`, `model/`, `render/` and `store/`. *`SelectionLayer`, `SnappingEngine` and `useGestures` land with their features in Phases 2 and 3.*
-- [x] `shared/render`: font registry, HarfBuzz text engine, scene display list
-- [x] Konva painter (editor) and PDFKit vector painter (backend) driven by the same display list
-- [x] Visual regression harness (editor vs rasterized PDF). All 18 templates and presets pass; see AUDIT §7 for the metric
-- [x] Vitest for store, history and migrations; node:test for migrations and routes
-- [x] Also fixed: imported students dropped on generate, POST dropping client fields, font directories, default asset fallbacks, PNG export offset
+## Foundation (done)
+- [x] Repo hygiene, `shared/model` with schema versions and pure migrations, migrate-on-read in every storage
+- [x] Zustand editor store with a 200-step command history (coalescing, named actions)
+- [x] `shared/render`: font registry, HarfBuzz text engine, scene display list; Konva and PDFKit painters
+- [x] Editor-vs-PDF visual regression suite
 
-## Phase 2: Canva core
-- [ ] Snapping engine: canvas center and edges, element edges and centers, equal spacing, pink guides with distance readout
-- [ ] Marquee and shift/tap multi-select; group and ungroup; align ×6, distribute, match size
-- [ ] Lock, hide, duplicate, cross-template copy and paste, nudge, z-order; rotation snapping; image crop in frame
-- [ ] Zoom to fit or selection, wheel and pinch zoom, space-drag pan; rulers and grid
-- [ ] Context menu (right-click and long-press); floating contextual toolbar; layers panel (dnd-kit)
-- [ ] Keyboard shortcuts; autosave with status indicator; draft recovery; guard against leaving with unsaved changes
+## Studio phase 1: design system and shell (done)
+- [x] Emerald/gold/ivory tokens, light/dark/system themes, IBM Plex Sans Arabic self-hosted, motion with
+      reduced-motion support
+- [x] UI kit (tooltips with shortcuts, toasts, dialogs, confirm, menus, sliders, segmented controls,
+      empty/error/loading states)
+- [x] Whole app RTL; all UI strings in `frontend/src/strings.ar.js`; Arabic-Indic digits in the UI
+- [x] Arabic only: the English preset is removed and Latin-only fonts are hidden
 
-## Phase 3: Mobile editor
-- [ ] Below 768 px: compact top bar, full-bleed canvas, bottom toolbar, and draggable sheets (half and full)
-- [ ] Contextual bottom toolbar for the selection; 44 px transformer handles; safe areas
-- [ ] Gestures: pinch or rotate the element, pinch or pan the canvas, double-tap to edit; keyboard-safe text overlay
-- [ ] Performance: layer caching, throttled transforms, lazy fonts; test matrix for 4 viewports in 2 orientations
+## Studio phase 2: the editor (done)
+- [x] Schema v3; every vector (shapes, ornaments, icons, codes, text) as normalized path ops, so the canvas and
+      the PDF draw identical curves (PDFKit's inexact quadratics fixed along the way)
+- [x] New element types: dateField, polygon, star, shapes, Islamic ornaments, icons, frames, QR, barcode
+- [x] Text: gradient fill, shadow, outline, highlight, strike, justify, vertical align, kashida, digit styles
+- [x] Images: crop mode, fit, flip, filters (shared pixel code), radius, border
+- [x] Layout: rail + panels (right), properties (left), context toolbar, bottom bar
+- [x] Eight side panels; colour picker; snapping with guides and distance labels; rulers, grid, margin/bleed
+      guides; marquee; groups; align/distribute; zoom 10–400 %; Radix context menu; full shortcut set
+- [x] Autosave with retry, status pill, 409 conflicts, leave guard, version history, preview with real students,
+      page setup
 
-## Phase 4: Content
-- [ ] Rich text with inline `{{chips}}`, sample-student switcher, and a "longest name" stress preview
-- [ ] Auto-fit, gradient, stroke, shadow, curved text, direction override
-- [ ] Shapes: star, polygon, arrow, dividers, dash, gradient fills
-- [ ] Image filters, flip, radius, and circle and arch masks
-- [ ] Islamic SVG asset library (recolorable, searchable, categorized)
-- [ ] 12 premium starter templates (A4 and Letter, portrait and landscape)
-- [ ] Brand kit, palette swap, duplicate, save as new, version history
+## Studio phase 3: templates (done)
+- [x] 22 starter templates built only from editor elements, in 12 palettes, across eight categories
+- [x] The master «شهادة إنجاز قرآنية» structure (from Certificate_09) as editable elements
+- [x] Gallery with real thumbnails, filters, favourites, duplicate/rename/delete, save-as-template
+- [x] Missing-background fix and flag; base64 images moved to upload files
 
-## Phase 5: Generation
-- [ ] Stepper (template → students → preview → generate), paste from Excel, and column mapping with validation
-- [ ] Pre-flight checks: missing fields, overflow (offer auto-shrink), duplicates
-- [ ] Outputs: single, merged, ZIP, PNG or JPG, print-ready with bleed, file-name patterns
-- [ ] Background jobs for 200+ students with a progress bar, persisted in storage; Web Share on mobile
+## Studio phase 4: bulk generation (done)
+- [x] One wizard (template → students → review → output); column mapping with custom fields; pasted lists
+- [x] Review grid with gender toggles and layout-engine pre-flight checks; live preview
+- [x] Merged PDF (1-up or 2-up on A4), ZIP of PDFs, ZIP of PNG/JPG; file-name patterns
+- [x] Background jobs with progress, cancel and history (500 certificates ≈ 5 s)
+- [x] Serials, QR `{{verifyUrl}}`, public `/verify/:serial`
+- [x] Single field and metadata logic for frontend and backend (`shared/model`)
 
-## Phase 6: Pro
-- [ ] Serial numbers, QR element, public `/verify/:serial`, `certificates` table
-- [ ] bcrypt (migrating plaintext passwords), login rate limit, CORS allowlist, helmet, zod validation, SVG sanitizing, upload limits
-- [ ] Roles: admin and teacher
-- [ ] Design tokens, IBM Plex Sans Arabic, skeleton loaders, empty states, toasts, dialogs, dark mode, accessibility
-- [ ] Code-split the editor, preload fonts, WebP thumbnails, PWA
-- [ ] Playwright E2E (desktop and mobile) and the full visual regression suite
-- [ ] Remove stray root files, update `.gitignore`, and update AGENTS.md and README.md
+## Studio phase 5: quality (done)
+- [x] e2e: snapping, multi-select + align, crop, 20-step undo/redo, autosave conflict, wizard with 200 rows,
+      Arabic-only UI scan; backend test for 500 students (time, pages, memory)
+- [x] Fidelity suite covers every element type, effect and starter (40 targets)
+- [x] 1280×720 laptops; panels become overlays below 1200 px
+
+## Next
+- [ ] Security: bcrypt with migration of plaintext passwords, login rate limit, CORS allowlist, helmet, request
+      validation, SVG sanitizing, upload size limits
+- [ ] Roles (admin, teacher) and per-teacher student lists
+- [ ] Phone editor: bottom toolbar and sheets, pinch/rotate gestures, 44 px handles
+- [ ] Curved text; glyph reuse (PDF form XObjects) to shrink very large merged PDFs
+- [ ] Physical page sizes in PDFs (px → pt) for exact print scaling without "fit to page"
+- [ ] PWA and code-splitting of the editor bundle

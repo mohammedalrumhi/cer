@@ -16,25 +16,40 @@ export const FEATURED_ICONS = [
   ['brush', 'فرشاة'], ['calculator', 'حساب رياضيات'], ['microscope', 'علوم'], ['dumbbell', 'رياضة'], ['bike', 'دراجة'],
 ];
 
-let namesPromise = null;
+const ARABIC_NAMES = new Map(FEATURED_ICONS.map(([name, keywords]) => [name, keywords.split(' ')[0]]));
+
+/** Arabic label for an icon (its first keyword), or a generic word for icons found by a Latin search. */
+export function iconLabel(name) {
+  return ARABIC_NAMES.get(name) || 'أيقونة';
+}
+
+let featuredPromise = null;
+let libraryPromise = null;
+const loadFeatured = () => {
+  if (!featuredPromise) featuredPromise = import('./featuredIcons.js').then((m) => m.FEATURED_NODES);
+  return featuredPromise;
+};
+// The full lucide set (thousands of icons) only loads when someone searches by Latin name.
 const loadLibrary = () => {
-  if (!namesPromise) namesPromise = import('./iconLibrary.js').then((m) => m.ICON_NODES);
-  return namesPromise;
+  if (!libraryPromise) libraryPromise = import('./iconLibrary.js').then((m) => m.ICON_NODES);
+  return libraryPromise;
 };
 
 export async function loadIconNodes(name) {
-  const library = await loadLibrary();
-  return library[name] || null;
+  const featured = await loadFeatured();
+  return featured[name] || (await loadLibrary())[name] || null;
 }
 
 /** Icon names for a query: Arabic keywords match the featured list, Latin queries the full set. */
 export function useIconSearch(query, limit = 60) {
   const [library, setLibrary] = useState(null);
+  const wantsFull = /[a-z]/i.test(query);
   useEffect(() => {
     let alive = true;
-    loadLibrary().then((lib) => { if (alive) setLibrary(lib); });
+    (wantsFull ? Promise.all([loadFeatured(), loadLibrary()]).then(([f, l]) => ({ ...l, ...f })) : loadFeatured())
+      .then((lib) => { if (alive) setLibrary(lib); });
     return () => { alive = false; };
-  }, []);
+  }, [wantsFull]);
   return useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return { library, names: FEATURED_ICONS.map(([name]) => name) };

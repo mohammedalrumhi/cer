@@ -9,7 +9,8 @@ import { ColorPicker } from '../color/ColorPicker';
 import { DraggableTile } from '../dnd/EditorDnd';
 import { useEditorData } from '../EditorDataContext';
 import { isTextElement } from '../model/elements';
-import { useEditor, useEditorStoreApi } from '../store/EditorStoreContext';
+import { useEditorStoreApi } from '../store/EditorStoreContext';
+import { useSelectedElements } from '../controls/selection';
 
 const ASSETS = [
   { field: 'logo', key: 'logoPath', label: S.branding.logo, upload: uploadLogo },
@@ -54,7 +55,7 @@ function AssetTile({ asset, branding, onUploaded }) {
 export default function BrandPanel() {
   const store = useEditorStoreApi();
   const { branding, setBranding } = useEditorData();
-  const selected = useEditor((state) => state.document.elements.filter((el) => state.selection.ids.includes(el.id)));
+  const selected = useSelectedElements();
   const colors = branding?.colors || [];
   const styles = branding?.textStyles || [];
   const selectedText = selected.find(isTextElement);

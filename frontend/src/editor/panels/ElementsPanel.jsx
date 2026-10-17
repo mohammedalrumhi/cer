@@ -3,7 +3,7 @@ import { createElement } from '@shared/model/index.js';
 import { ORNAMENT_CATEGORIES, ORNAMENTS, SHAPES } from '@shared/assets/ornaments.js';
 import { iconNodeToPaths } from '@shared/render/index.js';
 import { DraggableTile } from '../dnd/EditorDnd';
-import { useIconSearch } from './iconSearch';
+import { iconLabel, useIconSearch } from './iconSearch';
 import { OpPreview } from './OpPreview';
 
 const GREEN = '#0F6B52';
@@ -102,7 +102,7 @@ function IconTiles({ query }) {
             </svg>
           );
           return (
-            <DraggableTile key={name} id={`icon-${name}`} label={name} payload={{ make, preview: glyph }} className="grid aspect-square place-items-center rounded-sm text-fg hover:bg-primary-50 hover:text-primary">
+            <DraggableTile key={name} id={`icon-${name}`} label={iconLabel(name)} payload={{ make, preview: glyph }} className="grid aspect-square place-items-center rounded-sm text-fg hover:bg-primary-50 hover:text-primary">
               {glyph}
             </DraggableTile>
           );
