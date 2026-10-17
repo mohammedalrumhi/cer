@@ -10,6 +10,8 @@ import {
   uploadFontFile,
   uploadTemplateDesign,
 } from '../api/client';
+import { STARTERS, buildStarter } from '@shared/templates/index.js';
+import { createTemplate } from '../api/client';
 import { S } from '../strings.ar';
 import { IconButton } from '../ui/Button';
 import { toast } from '../ui/toast';
@@ -223,7 +225,20 @@ function EditorLayout({ templateId, branding: initialBranding }) {
     },
   };
 
+  async function handleSaveAsTemplate() {
+    try {
+      const { id: _id, version: _v, availableBackgroundVariants: _a, createdAt: _c, updatedAt: _u, ...rest } = store.getState().document;
+      const created = await createTemplate({ ...rest, name: `${rest.name || S.template.untitled} (قالب)` });
+      toast.success('حُفظ التصميم كقالب جديد في «قوالبي».', { action: { label: 'فتح', onClick: () => navigate(`/templates/${created.id}/edit`) } });
+    } catch {
+      toast.error(S.common.errorGeneric);
+    }
+  }
+
+  const starterTemplates = useMemo(() => STARTERS.map((starter) => ({ ...buildStarter(starter.id), id: `starter:${starter.id}` })), []);
+
   const data = {
+    starterTemplates,
     branding,
     setBranding,
     fontOptions,
@@ -244,6 +259,7 @@ function EditorLayout({ templateId, branding: initialBranding }) {
             onExportPng={handleExportPng}
             onImportDesign={handleImportDesign}
             onUploadFont={handleUploadFont}
+            onSaveAsTemplate={handleSaveAsTemplate}
             saveHandlers={saveHandlers}
           />
           <div className="relative flex min-h-0 flex-1">

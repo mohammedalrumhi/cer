@@ -57,3 +57,25 @@ test('uploads library stores images as files with their size, and deletes them',
   const { body: empty } = await request(app).get('/api/assets').set(auth);
   assert.equal(empty.length, 0);
 });
+
+test('inline base64 images are written to uploads on save', async () => {
+  const fs = require('fs');
+  const path = require('path');
+  const { uploadsDir } = require('../src/utils/storagePaths');
+  const { app, auth } = await setup();
+  const dataUrl = `data:image/png;base64,${PNG_1X1.toString('base64')}`;
+  const { body } = await request(app).post('/api/templates').set(auth).send({ name: 'صور', width: 500, height: 500, background: { type: 'solid', color: '#fff', customLayout: true }, elements: [{ id: 'img', type: 'image', x: 0, y: 0, width: 10, height: 10, src: dataUrl }] }).expect(201);
+  const { body: stored } = await request(app).get(`/api/templates/${body.id}`).set(auth).expect(200);
+  const src = stored.elements[0].src;
+  assert.match(src, /^uploads\/inline-[0-9a-f]+\.png$/);
+  assert.ok(fs.existsSync(path.join(uploadsDir, path.basename(src))));
+  fs.unlinkSync(path.join(uploadsDir, path.basename(src)));
+});
+
+test('a background whose file is missing is flagged for the editor', async () => {
+  const { app, auth, storage } = await setup();
+  const [template] = await storage.listTemplates();
+  await storage.updateTemplate({ ...template, background: { type: 'image', imagePath: 'uploads/does-not-exist.png' } });
+  const { body } = await request(app).get('/api/templates/t1').set(auth).expect(200);
+  assert.equal(body.background.missing, true);
+});

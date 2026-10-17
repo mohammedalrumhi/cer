@@ -1,4 +1,5 @@
 const { loadModel } = require('../shared');
+const { extractInlineImages } = require('../utils/inlineImages');
 
 /**
  * Wraps any storage implementation so templates are always upgraded to the current schema:
@@ -21,10 +22,10 @@ function withTemplateMigrations(storage) {
       return Promise.all(templates.map(migrate));
     },
     async createTemplate(template) {
-      return storage.createTemplate(await migrate(template));
+      return storage.createTemplate(extractInlineImages(await migrate(template)).template);
     },
     async updateTemplate(template) {
-      return storage.updateTemplate(await migrate(template));
+      return storage.updateTemplate(extractInlineImages(await migrate(template)).template);
     },
   };
 }

@@ -1,4 +1,4 @@
-import { ArrowRight, Download, Eye, FileCog, FileStack, FileText, History, ImageUp, MoreHorizontal, PanelLeft, PenLine, Redo2, Type, Undo2 } from 'lucide-react';
+import { ArrowRight, BookmarkPlus, Download, Eye, FileCog, FileStack, FileText, History, ImageUp, MoreHorizontal, PanelLeft, PenLine, Redo2, Type, Undo2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { S } from '../../strings.ar';
 import { IconButton } from '../../ui/Button';
@@ -9,7 +9,7 @@ import { selectCanRedo, selectCanUndo } from '../store/editorStore';
 import { useEditor, useEditorStoreApi } from '../store/EditorStoreContext';
 
 /** Top bar: back, name, undo/redo, design/preview, save status, file actions and "generate". */
-export default function TopBar({ onBack, onPreviewPdf, previewing, onExportPng, onImportDesign, onUploadFont, saveHandlers }) {
+export default function TopBar({ onBack, onPreviewPdf, previewing, onExportPng, onImportDesign, onUploadFont, onSaveAsTemplate, saveHandlers }) {
   const store = useEditorStoreApi();
   const name = useEditor((state) => state.document.name);
   const id = useEditor((state) => state.document.id);
@@ -63,6 +63,7 @@ export default function TopBar({ onBack, onPreviewPdf, previewing, onExportPng, 
             <DropdownSeparator />
             <DropdownItem icon={FileCog} onSelect={() => store.getState().setUi({ dialog: 'pageSetup' })}>{S.editor.pageSetup}</DropdownItem>
             <DropdownItem icon={History} onSelect={() => store.getState().setUi({ dialog: 'versions' })}>{S.editor.versions}</DropdownItem>
+            <DropdownItem icon={BookmarkPlus} onSelect={onSaveAsTemplate}>حفظ كقالب</DropdownItem>
             <DropdownSeparator />
             <DropdownItem icon={ImageUp} onSelect={onImportDesign}>{S.editor.importDesign}</DropdownItem>
             <DropdownItem icon={Type} onSelect={onUploadFont}>{S.editor.uploadFont}</DropdownItem>

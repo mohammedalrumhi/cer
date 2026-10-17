@@ -1,4 +1,6 @@
+const fs = require('fs');
 const express = require('express');
+const { resolveBackendAssetPath } = require('../utils/storagePaths');
 const { v4: uuidv4 } = require('uuid');
 const { normalizeTemplateMetadata } = require('../utils/templateMetadata');
 const {
@@ -38,6 +40,14 @@ async function snapshotIfDue(storage, previous) {
   }
 }
 
+/** Flag a background image whose file is gone, so the editor can ask for a new one. */
+function withBackgroundStatus(template) {
+  const imagePath = template?.background?.imagePath;
+  if (!imagePath) return template;
+  const file = resolveBackendAssetPath(imagePath);
+  return file && fs.existsSync(file) ? template : { ...template, background: { ...template.background, missing: true } };
+}
+
 function createTemplatesRouter({ storage }) {
   const router = express.Router();
   const uploadOneImage = imageUpload.single('file');
@@ -62,7 +72,7 @@ function createTemplatesRouter({ storage }) {
 
   router.get('/', async (_req, res) => {
     const templates = collapseTemplatesWithBackgroundVariants(await storage.listTemplates());
-    res.json(templates.map((template) => normalizeTemplateMetadata(template)));
+    res.json(templates.map((template) => withBackgroundStatus(normalizeTemplateMetadata(template))));
   });
 
   router.get('/:id', async (req, res) => {
@@ -73,7 +83,7 @@ function createTemplatesRouter({ storage }) {
     if (!template) {
       return res.status(404).json({ message: 'Template not found' });
     }
-    return res.json(normalizeTemplateMetadata(template));
+    return res.json(withBackgroundStatus(normalizeTemplateMetadata(template)));
   });
 
   router.post('/', async (req, res) => {

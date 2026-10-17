@@ -8,6 +8,7 @@ import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 import { templatePresets } from '../../frontend/src/data/presets.js';
 import { studioElementsTemplate } from './fixtures/studioElements.js';
+import { STARTERS, buildStarter } from '../../shared/templates/index.js';
 import { authed, authenticate, login } from '../support/api.js';
 import { rasterizePdf } from '../support/pdfRaster.js';
 import { inkIoU, pageDiff } from '../support/imageCompare.js';
@@ -15,9 +16,9 @@ import { inkIoU, pageDiff } from '../support/imageCompare.js';
 // Text is compared at print resolution (3 px per template px ≈ 216 dpi for A4 templates), where
 // the remaining differences between rasterisers (Skia vs pdf.js anti-aliasing) are negligible.
 const TEXT_SCALE = 3;
-// Small text is measured at a higher resolution (≥ 80 device px per em), so anti-aliased edge
+// Small text is measured at a higher resolution (≥ 100 device px per em), so anti-aliased edge
 // pixels don't dominate thin strokes; the thresholds stay the same.
-const textScale = (element) => Math.min(8, Math.max(TEXT_SCALE, Math.ceil(80 / (Number(element.fontSize) || 28))));
+const textScale = (element) => Math.min(8, Math.max(TEXT_SCALE, Math.ceil(100 / (Number(element.fontSize) || 28))));
 const MIN_TEXT_IOU = 0.95; // blurred ≥50 % coverage IoU; a ⅓ px shift already scores ≤ 0.87
 const MAX_TEXT_OFFSET = 0.1; // template px, best-fit sub-pixel offset between editor and PDF
 const MAX_INK_DIFFERENCE = 0.03;
@@ -32,8 +33,12 @@ const targets = [
   ...storedTemplates.map((template) => ({ key: template.id, label: template.id.slice(0, 34) })),
   ...templatePresets.map((preset) => ({ key: `preset:${preset.id}`, preset: preset.id, label: `preset:${preset.id}` })),
   { key: 'fixture:studio-elements', preset: 'studio-elements', label: 'fixture:studio-elements' },
+  ...STARTERS.map((starter) => ({ key: `starter:${starter.id}`, preset: `starter-${starter.id}`, label: `starter:${starter.id}` })),
 ];
-const FIXTURES = [{ id: 'studio-elements', payload: studioElementsTemplate }];
+const FIXTURES = [
+  { id: 'studio-elements', payload: studioElementsTemplate },
+  ...STARTERS.map((starter) => ({ id: `starter-${starter.id}`, payload: buildStarter(starter.id) })),
+];
 
 let token;
 let api;

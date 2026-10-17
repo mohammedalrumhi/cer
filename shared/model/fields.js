@@ -62,11 +62,12 @@ export function formatDate(date, { calendar = 'hijri', style = 'long' } = {}) {
       return `${get('day')} ${get('month')} ${get('year')}م`;
     }
     if (style === 'numeric') {
-      const parts = new Intl.DateTimeFormat('ar-SA-u-ca-islamic-umalqura-nu-arab', { day: '2-digit', month: '2-digit', year: 'numeric' }).formatToParts(date);
+      const parts = new Intl.DateTimeFormat('ar-SA-u-ca-islamic-nu-arab', { day: '2-digit', month: '2-digit', year: 'numeric' }).formatToParts(date);
       const get = (type) => parts.find((part) => part.type === type)?.value || '';
       return `${get('year').replace(/\s*هـ?$/, '')}/${get('month')}/${get('day')} هـ`;
     }
-    const parts = new Intl.DateTimeFormat('ar-SA-u-ca-islamic-umalqura-nu-arab', { day: 'numeric', month: 'long', year: 'numeric' }).formatToParts(date);
+    // Same calendar as formatHijriDate, so every Hijri date on a certificate agrees.
+    const parts = new Intl.DateTimeFormat('ar-SA-u-ca-islamic-nu-arab', { day: 'numeric', month: 'long', year: 'numeric' }).formatToParts(date);
     const get = (type) => parts.find((part) => part.type === type)?.value || '';
     return `${get('day')} ${get('month')} ${get('year').replace(/\s*هـ?$/, '').trim()} هـ`;
   } catch {

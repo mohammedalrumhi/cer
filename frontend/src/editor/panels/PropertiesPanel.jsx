@@ -1,4 +1,5 @@
 import { Eye, EyeOff, FileCog, Lock, LockOpen, PanelLeftClose } from 'lucide-react';
+import { CATEGORIES } from '@shared/templates/index.js';
 import { S, FIELD_LABELS } from '../../strings.ar';
 import { Button, IconButton } from '../../ui/Button';
 import { formatNumber } from '../../ui/format';
@@ -27,6 +28,12 @@ function DocumentProperties() {
           <span className="text-xs text-fg-muted">{S.editor.rename}</span>
           <input className="field field-sm" value={document.name || ''} onChange={(e) => update({ name: e.target.value }, 'اسم القالب')} onKeyDown={(e) => e.stopPropagation()} data-testid="doc-name" />
         </label>
+        <Row label="التصنيف">
+          <select className="field field-sm" value={document.category || ''} onChange={(e) => update({ category: e.target.value || undefined }, 'تصنيف القالب')} aria-label="التصنيف">
+            <option value="">بدون تصنيف</option>
+            {CATEGORIES.map((category) => <option key={category.id} value={category.id}>{category.label}</option>)}
+          </select>
+        </Row>
         <Row label="الفئة">
           <Segmented size="sm" fullWidth value={document.audienceType || 'student'} onChange={(audienceType) => update({ audienceType })} options={TEMPLATE_AUDIENCE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))} />
         </Row>

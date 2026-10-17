@@ -6,13 +6,30 @@
     "width": 2000,
     "height": 1414,
     "background": {
-      "type": "image",
-      "color": "#f8f4ea",
+      "type": "solid",
+      "color": "#FBF8F1",
       "accentColor": "#0f4a3c",
-      "imagePath": "uploads/878072d8-4dfb-49db-b2d7-558b85e9b696.png",
-      "customLayout": true
+      "customLayout": true,
+      "missingImagePath": "uploads/878072d8-4dfb-49db-b2d7-558b85e9b696.png"
     },
     "elements": [
+      {
+        "id": "restored-frame",
+        "name": "إطار بديل للخلفية المفقودة",
+        "type": "ornament",
+        "ornament": "frame-ornate",
+        "x": 30,
+        "y": 30,
+        "width": 1940,
+        "height": 1354,
+        "color": "#B8893C",
+        "accentColor": "#0F6B52",
+        "strokeWidth": 2,
+        "rotation": 0,
+        "opacity": 1,
+        "locked": false,
+        "visible": true
+      },
       {
         "id": "name-dynamic",
         "type": "dynamicText",
