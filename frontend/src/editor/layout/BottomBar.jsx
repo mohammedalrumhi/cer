@@ -42,10 +42,10 @@ export function BottomBar() {
       </span>
       <div className="ms-auto flex items-center gap-1">
         <ViewMenu />
-        <IconButton icon={Keyboard} label={S.editor.shortcuts} shortcut="?" tooltipSide="top" onClick={() => store.getState().setUi({ shortcutsOpen: true })} />
-        <span className="mx-1 h-5 w-px bg-border" />
+        <IconButton className="max-md:hidden" icon={Keyboard} label={S.editor.shortcuts} shortcut="?" tooltipSide="top" onClick={() => store.getState().setUi({ shortcutsOpen: true })} />
+        <span className="mx-1 h-5 w-px bg-border max-md:hidden" />
         <IconButton icon={Minus} label={S.editor.zoomOut} shortcut="MOD+-" tooltipSide="top" onClick={() => store.getState().stepZoom(-1)} />
-        <Slider className="w-32" label={S.editor.zoom} min={ZOOM_MIN * 100} max={ZOOM_MAX * 100} value={Math.round(zoom * 100)} onChange={(value) => store.getState().zoomTo(value / 100)} />
+        <Slider className="w-32 max-md:hidden" label={S.editor.zoom} min={ZOOM_MIN * 100} max={ZOOM_MAX * 100} value={Math.round(zoom * 100)} onChange={(value) => store.getState().zoomTo(value / 100)} />
         <IconButton icon={Plus} label={S.editor.zoomIn} shortcut="MOD+=" tooltipSide="top" onClick={() => store.getState().stepZoom(1)} />
         <Tooltip content={S.editor.zoom100} shortcut="MOD+1" side="top">
           <button type="button" onClick={() => store.getState().zoomTo(1)} className="h-8 min-w-14 rounded-sm px-2 font-semibold tabular-nums hover:bg-surface-2" data-testid="zoom-level">

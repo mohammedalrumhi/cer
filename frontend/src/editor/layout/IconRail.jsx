@@ -14,12 +14,12 @@ const RAIL_ITEMS = [
   { id: 'layers', icon: Layers },
 ];
 
-/** Panel rail on the right (RTL inline-start). */
+/** Panel rail on the right (RTL inline-start); a bottom tab bar on phones. */
 export function IconRail() {
   const store = useEditorStoreApi();
   const active = useEditor((state) => state.ui.activePanel);
   return (
-    <nav aria-label="لوحات المحرر" className="flex w-[72px] shrink-0 flex-col items-center gap-0.5 overflow-y-auto border-e border-border bg-surface py-2">
+    <nav aria-label="لوحات المحرر" className="flex w-[72px] shrink-0 flex-col items-center gap-0.5 overflow-y-auto border-e border-border bg-surface py-2 max-md:order-last max-md:h-[60px] max-md:w-full max-md:flex-row max-md:justify-between max-md:overflow-x-auto max-md:px-0.5 max-md:overflow-y-hidden max-md:border-e-0 max-md:border-t max-md:px-1 max-md:py-1">
       {RAIL_ITEMS.map(({ id, icon: Icon }) => {
         const isActive = active === id;
         return (
@@ -30,9 +30,9 @@ export function IconRail() {
             aria-controls="editor-side-panel"
             data-testid={`rail-${id}`}
             onClick={() => store.getState().togglePanel(id)}
-            className={cx('group flex w-[64px] flex-col items-center gap-1 rounded-md py-1.5 text-[11px] font-semibold transition-colors', isActive ? 'text-primary' : 'text-fg-muted hover:text-fg')}
+            className={cx('group flex w-[64px] shrink-0 flex-col items-center gap-1 rounded-md py-1.5 text-[11px] font-semibold transition-colors max-md:w-auto max-md:min-w-0 max-md:flex-1 max-md:gap-0.5 max-md:py-0.5 max-md:text-[10px]', isActive ? 'text-primary' : 'text-fg-muted hover:text-fg')}
           >
-            <span className={cx('grid size-9 place-items-center rounded-md transition-all duration-200', isActive ? 'bg-brand text-white shadow-md' : 'group-hover:scale-105 group-hover:bg-surface-2')}>
+            <span className={cx('grid size-9 place-items-center rounded-md transition-all duration-200 max-md:size-8', isActive ? 'bg-brand text-white shadow-md' : 'group-hover:scale-105 group-hover:bg-surface-2')}>
               <Icon size={19} strokeWidth={isActive ? 2.1 : 1.8} />
             </span>
             {S.editor.rail[id]}

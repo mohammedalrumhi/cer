@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { DndContext, DragOverlay, PointerSensor, useDraggable, useSensor, useSensors } from '@dnd-kit/core';
+import { DndContext, DragOverlay, MouseSensor, TouchSensor, useDraggable, useSensor, useSensors } from '@dnd-kit/core';
 import { cx } from '../../ui/cx';
+import { PHONE_QUERY } from '../../ui/useMediaQuery';
 import { useEditorStoreApi } from '../store/EditorStoreContext';
 import { clientToDocument } from '../canvas/coords';
 import { dropPayload } from './drop';
@@ -12,7 +13,11 @@ import { dropPayload } from './drop';
 export function EditorDnd({ children }) {
   const store = useEditorStoreApi();
   const [active, setActive] = useState(null);
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+  // Touch: a swipe scrolls the panel, a long press drags, a tap adds the item.
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
+  );
 
   return (
     <DndContext
@@ -53,10 +58,14 @@ export function DraggableTile({ id, payload, label, className, children, testId 
       aria-label={label}
       title={label}
       data-testid={testId}
-      onClick={() => dropPayload(store, payload)}
+      onClick={() => {
+        dropPayload(store, payload);
+        // On phones the panel is a sheet over the page: close it so the new item is visible.
+        if (window.matchMedia?.(PHONE_QUERY).matches) store.getState().setUi({ activePanel: null });
+      }}
       {...attributes}
       {...listeners}
-      className={cx(className, 'touch-none', isDragging && 'opacity-40')}
+      className={cx(className, 'touch-manipulation', isDragging && 'opacity-40')}
     >
       {children}
     </button>

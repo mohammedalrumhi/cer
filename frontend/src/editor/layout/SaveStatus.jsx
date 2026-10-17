@@ -27,10 +27,10 @@ export function SaveStatus({ onRetry, onReload, onKeepMine }) {
           data-testid="save-status"
           data-status={status}
           onClick={status === 'error' ? onRetry : undefined}
-          className={cx('inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-full px-3 text-xs font-semibold transition-colors', tone)}
+          className={cx('inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-full px-3 text-xs max-md:px-2 font-semibold transition-colors', tone)}
         >
           <Icon size={15} className={status === 'saving' ? 'animate-spin-slow' : ''} aria-hidden />
-          <span>{T[status]}</span>
+          <span className={status === 'saved' ? 'max-md:hidden' : undefined}>{T[status]}</span>
           {status === 'error' && <span className="underline">{T.retry}</span>}
         </button>
       </Tooltip>

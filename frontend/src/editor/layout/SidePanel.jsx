@@ -31,7 +31,7 @@ export function SidePanel({ overlay = false }) {
       key={active}
       aria-label={title}
       data-testid={`panel-${active}`}
-      className={`flex w-[320px] shrink-0 animate-panel-in flex-col border-e border-border bg-surface ${overlay ? 'absolute inset-y-0 start-[72px] z-30 shadow-lg' : ''}`}
+      className={`flex w-[320px] shrink-0 animate-panel-in flex-col border-e border-border bg-surface ${overlay ? 'absolute inset-y-0 start-[72px] z-30 shadow-lg max-md:inset-x-0 max-md:top-auto max-md:bottom-[60px] max-md:h-[62%] max-md:w-full max-md:rounded-t-xl max-md:border-e-0 max-md:border-s-0 max-md:border-t' : ''}`}
     >
       <div className="flex items-center justify-between px-4 pb-2 pt-3">
         <h2 className="text-md font-bold">{title}</h2>

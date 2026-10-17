@@ -59,6 +59,7 @@ export default function GenerateWizard() {
   const [step, setStep] = useState(0);
   const [templateId, setTemplateId] = useState(params.get('template') || '');
   const [variantKey, setVariantKey] = useState(null);
+  const [audience, setAudience] = useState(null);
   const [template, setTemplate] = useState(null);
   const [selectedSaved, setSelectedSaved] = useState(new Set());
   const [sheet, setSheet] = useState(null);
@@ -99,7 +100,9 @@ export default function GenerateWizard() {
   }, [saved, selectedSaved, imported, pastedStudents]);
   const unique = useMemo(() => dedupeStudents(combined), [combined]);
 
-  const effectiveTemplate = useMemo(() => (template ? withVariant(template, variantKey) : null), [template, variantKey]);
+  // The group printed for (students or adult learners); defaults to the template's own setting.
+  const audienceType = audience || (template?.audienceType === 'adult' ? 'adult' : 'student');
+  const effectiveTemplate = useMemo(() => (template ? { ...withVariant(template, variantKey), audienceType } : null), [template, variantKey, audienceType]);
 
   const startReview = useCallback(async (nextRows) => {
     abortRef.current?.abort();
@@ -154,7 +157,7 @@ export default function GenerateWizard() {
     <div className="flex flex-col gap-6">
       <PageHeader eyebrow="الإصدار الجماعي" title="إصدار الشهادات" subtitle="اختر القالب والطلاب، راجع الشهادات، ثم نزّلها دفعة واحدة." />
       <Stepper step={step} onStep={goTo} canReach={canReach} />
-      {template && step > 0 && <Banner tone="info">{`القالب: ${template.name}${unique.length ? ` · ${formatNumber(step >= 2 ? rows.length : unique.length)} طالبًا` : ''}`}</Banner>}
+      {template && step > 0 && <Banner tone="info">{`القالب: ${template.name} · ${audienceType === 'adult' ? 'الدارسون' : 'الطلاب'}${unique.length ? ` · ${formatNumber(step >= 2 ? rows.length : unique.length)} طالبًا` : ''}`}</Banner>}
 
       <div className="min-h-[360px]">
         {step === 0 && (
@@ -163,7 +166,9 @@ export default function GenerateWizard() {
             branding={branding}
             selectedId={templateId}
             variantKey={variantKey}
-            onSelect={(id) => { setTemplateId(id); setVariantKey(null); }}
+            audienceType={template ? audienceType : null}
+            onAudience={setAudience}
+            onSelect={(id) => { setTemplateId(id); setVariantKey(null); setAudience(null); }}
             onVariant={setVariantKey}
             onCreated={(created) => { setTemplates((prev) => [created, ...prev]); setTemplateId(created.id); }}
           />

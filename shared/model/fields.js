@@ -1,3 +1,5 @@
+import { detectGenderFromName } from './templateMetadata.js';
+
 /**
  * Dynamic field values for one certificate. Used by the editor preview and the PDF renderer so
  * both print exactly the same strings.
@@ -123,6 +125,9 @@ export function buildFieldValues(student, branding, template, recipient, { today
     verifyUrl: str(student?.verifyUrl || verifyUrl),
     // Machine-readable issue date for dateField elements (not a placeholder users type).
     __issueDateIso: issueIso,
+    // Recipient gender and audience for {{مذكر|مؤنث}} wording.
+    __gender: gender || detectGenderFromName(studentName),
+    __audience: template?.audienceType === 'adult' ? 'adult' : 'student',
   };
 
   if (student && typeof student === 'object') {

@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
+import { ISLAMIC_ICONS } from './islamicIcons';
 
 /** Featured icons with Arabic keywords, shown before searching and matched by Arabic queries. */
 export const FEATURED_ICONS = [
+  ...ISLAMIC_ICONS,
   ['award', 'جائزة وسام'], ['trophy', 'كأس فوز بطولة'], ['medal', 'ميدالية'], ['star', 'نجمة'], ['crown', 'تاج'],
   ['book-open', 'كتاب مصحف قراءة'], ['book', 'كتاب'], ['notebook-pen', 'دفتر كتابة'], ['graduation-cap', 'تخرج قبعة'], ['school', 'مدرسة'],
   ['moon', 'هلال قمر'], ['moon-star', 'هلال نجمة رمضان'], ['sun', 'شمس'], ['sparkles', 'لمعان تألق'], ['heart', 'قلب حب'],
@@ -14,6 +16,20 @@ export const FEATURED_ICONS = [
   ['phone', 'هاتف'], ['mail', 'بريد'], ['message-circle', 'رسالة'], ['smile', 'ابتسامة'], ['party-popper', 'احتفال'],
   ['gift', 'هدية'], ['cake', 'كعكة'], ['balloon', 'بالون أطفال'], ['candy', 'حلوى'], ['palette', 'ألوان رسم'],
   ['brush', 'فرشاة'], ['calculator', 'حساب رياضيات'], ['microscope', 'علوم'], ['dumbbell', 'رياضة'], ['bike', 'دراجة'],
+  ['book-marked', 'مصحف كتاب علامة'], ['book-open-check', 'إتمام ختم قراءة'], ['book-heart', 'كتاب محبوب'], ['book-check', 'كتاب مكتمل'], ['book-a', 'لغة عربية حروف'],
+  ['library', 'مكتبة'], ['library-big', 'مكتبة كبيرة'], ['scroll-text', 'لفافة نص وثيقة'], ['notebook-text', 'دفتر ملاحظات'], ['pencil', 'قلم رصاص'],
+  ['pen-line', 'قلم كتابة'], ['pencil-ruler', 'أدوات هندسة'], ['ruler', 'مسطرة'], ['backpack', 'حقيبة مدرسية'], ['presentation', 'عرض سبورة درس'],
+  ['laptop', 'حاسوب'], ['languages', 'لغات ترجمة'], ['brain', 'عقل ذكاء حفظ'], ['puzzle', 'لغز تفكير'], ['atom', 'ذرة علوم'],
+  ['flask-conical', 'مختبر تجربة'], ['sigma', 'رياضيات مجموع'], ['pi', 'باي رياضيات'], ['hourglass', 'ساعة رملية وقت'], ['badge', 'شارة'],
+  ['circle-star', 'نجمة دائرة تميز'], ['star-half', 'نصف نجمة'], ['sparkle', 'بريق'], ['goal', 'هدف مرمى'],
+  ['zap', 'طاقة'], ['flame', 'شعلة حماس'], ['shield', 'درع'], ['key', 'مفتاح'], ['bell', 'جرس'],
+  ['megaphone', 'مكبر صوت إعلان'], ['hand-helping', 'مساعدة تطوع'], ['heart-handshake', 'تعاون محبة'], ['hand-coins', 'صدقة تبرع'], ['hand-platter', 'ضيافة تقديم'],
+  ['heart-pulse', 'صحة'], ['user-check', 'حضور موثق'], ['users-round', 'فريق جماعة'], ['baby', 'طفل روضة'], ['footprints', 'خطوات تقدم'],
+  ['sunrise', 'شروق فجر'], ['sunset', 'غروب مغرب'], ['sun-moon', 'ليل ونهار'], ['cloud-moon', 'ليلة قمر'], ['cloud', 'غيمة سحابة'],
+  ['rainbow', 'قوس قزح'], ['droplet', 'قطرة ماء'], ['waves', 'موج بحر'], ['trees', 'أشجار حديقة'], ['tree-pine', 'شجرة'],
+  ['flower-2', 'زهرة ربيع'], ['clover', 'برسيم حظ'], ['bird', 'طائر عصفور'], ['fish', 'سمكة'], ['shell', 'صدفة'],
+  ['mountain-snow', 'جبل ثلج'], ['tent', 'خيمة رحلة'], ['compass', 'بوصلة اتجاه'], ['map', 'خريطة'], ['plane', 'طائرة سفر'],
+  ['bus', 'حافلة رحلة مدرسية'], ['house', 'بيت منزل'], ['landmark', 'مبنى مؤسسة'], ['apple', 'تفاحة معلم'], ['volleyball', 'كرة رياضة'],
 ];
 
 const ARABIC_NAMES = new Map(FEATURED_ICONS.map(([name, keywords]) => [name, keywords.split(' ')[0]]));

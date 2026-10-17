@@ -30,7 +30,7 @@ export const STYLES = {
 const INK = '#1B2A23';
 const MUTED = '#6B756F';
 const WHITE = '#FFFFFF';
-const BLESSING_M = 'بارك الله فيه، ونفع به الإسلام والمسلمين';
+const BLESSING_M = 'بارك الله {{فيه|فيها}}، ونفع {{به|بها}} الإسلام والمسلمين';
 const ACHIEVEMENT = 'recipientAchievementSentence';
 
 /* ── 1–2. The Itqan Quran-achievement structure (from Certificate_09) ─────────── */
@@ -86,7 +86,7 @@ function khatmOrnate({ primary, secondary, paper }) {
   p.ornament('divider', 'divider-star', { y: 222, w: 380, h: 30, color: secondary, accent: primary });
   p.field('lead', 'recipientTitle', { y: 268, w: 700, size: 30, font: 'Amiri-Regular', color: INK, template: 'تتشرّف إدارة {{schoolName}} بمنح {{recipientTitle}}', fit: true });
   p.field('student-name', 'studentName', { y: 322, w: 820, size: 54, font: 'Cairo-Bold', color: primary });
-  p.text('body', 'هذه الشهادة بمناسبة إتمامه ختم القرآن الكريم حفظًا وتلاوة، سائلين الله أن يجعله من أهل القرآن الذين هم أهل الله وخاصّته.', { y: 410, w: 820, size: 25, font: 'Amiri-Regular', color: INK, lineHeight: 1.75 });
+  p.text('body', 'هذه الشهادة بمناسبة {{إتمامه|إتمامها}} ختم القرآن الكريم حفظًا وتلاوة، سائلين الله أن {{يجعله|يجعلها}} من أهل القرآن الذين هم أهل الله وخاصّته.', { y: 410, w: 820, size: 25, font: 'Amiri-Regular', color: INK, lineHeight: 1.75 });
   p.text('verse', '﴿ وَرَتِّلِ الْقُرْآنَ تَرْتِيلًا ﴾', { y: 520, w: 520, size: 28, font: 'Amiri-Regular', color: secondary });
   p.date('date', { y: 600, x: 760, w: 260, color: MUTED });
   p.signatures('sign', { y: 640, labels: ['المعلّم/ة', 'مدير/ة الدار'], color: MUTED, lineColor: tint(secondary, 0.4) });
@@ -107,7 +107,7 @@ function khatmMihrab({ primary, secondary, paper }) {
   p.ornament('star', 'star8', { y: 426, w: 50, color: secondary, accent: primary });
   p.field('lead', 'recipientTitle', { y: 492, w: 560, size: 28, font: 'Amiri-Regular', color: INK, template: 'يسرّنا أن نهنّئ {{recipientTitle}}' });
   p.field('student-name', 'studentName', { y: 545, w: 600, size: 46, font: 'Cairo-Bold', color: secondary });
-  p.text('body', 'على إتمام حفظ كتاب الله تعالى كاملًا،\nجعله الله حجّة له، ورفع به درجته في الدنيا والآخرة.', { y: 635, w: 560, size: 24, font: 'Amiri-Regular', color: INK, lineHeight: 1.8 });
+  p.text('body', 'على إتمام حفظ كتاب الله تعالى كاملًا،\n{{جعله|جعلها}} الله حجّة {{له|لها}}، ورفع به {{درجته|درجتها}} في الدنيا والآخرة.', { y: 635, w: 560, size: 24, font: 'Amiri-Regular', color: INK, lineHeight: 1.8 });
   p.text('verse', '﴿ إِنَّ هَٰذَا الْقُرْآنَ يَهْدِي لِلَّتِي هِيَ أَقْوَمُ ﴾', { y: 760, w: 560, size: 24, font: 'Amiri-Regular', color: primary });
   p.date('date', { y: 840, w: 360, color: MUTED });
   p.brand('signature', 'signature', { x: 470, y: 900, w: 130, h: 70 });
@@ -174,7 +174,7 @@ function excellenceFormal({ primary, secondary, paper }) {
   p.ornament('laurel', 'laurel', { y: 222, w: 200, h: 84, color: secondary, weight: 2.5 });
   p.field('lead', 'recipientTitle', { y: 312, w: 700, size: 28, font: 'Amiri-Regular', color: INK, template: 'تفخر {{schoolName}} بتكريم {{recipientTitle}}' });
   p.field('student-name', 'studentName', { y: 362, w: 800, size: 56, font: 'Cairo-Bold', color: secondary });
-  p.text('body', 'لتفوّقه الدراسي وتميّزه في التحصيل العلمي والانضباط،\nمتمنّين له دوام التوفيق والنجاح.', { y: 452, w: 760, size: 25, font: 'Amiri-Regular', color: INK, lineHeight: 1.8 });
+  p.text('body', '{{لتفوّقه|لتفوّقها}} الدراسي {{وتميّزه|وتميّزها}} في التحصيل العلمي والانضباط،\nمتمنّين {{له|لها}} دوام التوفيق والنجاح.', { y: 452, w: 760, size: 25, font: 'Amiri-Regular', color: INK, lineHeight: 1.8 });
   p.date('date', { y: 572, w: 320, color: MUTED });
   p.signatures('sign', { y: 625, labels: ['المعلّم/ة', 'المدير/ة'], color: MUTED, lineColor: tint(primary, 0.6) });
   p.brand('stamp', 'stamp', { x: 500, y: 620, w: 116 });
@@ -198,7 +198,7 @@ function excellenceKids({ primary, secondary }) {
   p.text('title', 'أحسنت يا بطل!', { y: 166, w: 520, size: 52, font: 'Marhey-VariableFont_wght', color: WHITE });
   p.field('lead', 'recipientTitle', { y: 300, w: 600, size: 28, font: 'Cairo-SemiBold', color: MUTED, template: 'شهادة تفوّق مقدّمة إلى {{recipientTitle}}' });
   p.field('student-name', 'studentName', { y: 345, w: 760, size: 58, font: 'Marhey-VariableFont_wght', color: secondary });
-  p.text('body', 'لأنك مجتهد ومتميّز في دروسك وحفظك،\nنفخر بك ونتمنّى لك المزيد من النجاح!', { y: 445, w: 700, size: 27, font: 'Cairo-Regular', color: INK, lineHeight: 1.7 });
+  p.text('body', '{{لأنك مجتهد ومتميّز|لأنكِ مجتهدة ومتميّزة}} في دروسك وحفظك،\nنفخر بك ونتمنّى لك المزيد من النجاح!', { y: 445, w: 700, size: 27, font: 'Cairo-Regular', color: INK, lineHeight: 1.7 });
   p.date('date', { y: 575, w: 320, color: MUTED });
   p.brand('signature', 'signature', { x: 480, y: 620, w: 160, h: 80 });
   return p.done({ background: { type: 'solid', color: '#FFFDF6', fill: gradient(180, '#FFFDF6', tint(primary, 0.93)), accentColor: primary, customLayout: true } });
@@ -217,7 +217,7 @@ function attendanceRibbon({ primary, secondary, paper }) {
   p.text('title', 'شهادة حضور ومواظبة', { y: 210, w: 560, size: 44, font: 'Cairo-Bold', color: WHITE });
   p.field('lead', 'recipientTitle', { y: 320, w: 700, size: 27, font: 'Amiri-Regular', color: INK, template: 'تُقدَّم هذه الشهادة إلى {{recipientTitle}}' });
   p.field('student-name', 'studentName', { y: 370, w: 800, size: 54, font: 'Cairo-Bold', color: secondary });
-  p.text('body', 'تقديرًا لانتظامه في الحضور ومواظبته على حلقات القرآن الكريم،\nزاده الله حرصًا وثباتًا.', { y: 465, w: 800, size: 25, font: 'Amiri-Regular', color: INK, lineHeight: 1.8 });
+  p.text('body', 'تقديرًا {{لانتظامه|لانتظامها}} في الحضور {{ومواظبته|ومواظبتها}} على حلقات القرآن الكريم،\n{{زاده|زادها}} الله حرصًا وثباتًا.', { y: 465, w: 800, size: 25, font: 'Amiri-Regular', color: INK, lineHeight: 1.8 });
   p.date('date', { y: 565, w: 320, color: MUTED });
   p.signatures('sign', { y: 615, labels: ['المعلّم/ة', 'الإدارة'], color: MUTED, lineColor: tint(primary, 0.6), w: 200 });
   return p.done({ background: { type: 'solid', color: paper, accentColor: primary, customLayout: true } });
@@ -234,7 +234,7 @@ function attendanceMinimal({ primary, secondary }) {
   p.field('lead', 'recipientTitle', { y: 410, w: 600, size: 26, font: 'Cairo-Regular', color: MUTED, template: 'نشهد بأنّ {{recipientTitle}}' });
   p.field('student-name', 'studentName', { y: 458, w: 680, size: 50, font: 'Cairo-Bold', color: primary });
   p.line('accent-line', { y: 545, w: 120, color: secondary, width: 4 });
-  p.text('body', 'التزم بالحضور طوال الفصل الدراسي دون غياب،\nفاستحقّ هذه الشهادة تقديرًا وتشجيعًا.', { y: 580, w: 640, size: 25, font: 'Cairo-Regular', color: INK, lineHeight: 1.8 });
+  p.text('body', '{{التزم|التزمت}} بالحضور طوال الفصل الدراسي دون غياب،\n{{فاستحقّ|فاستحقّت}} هذه الشهادة تقديرًا وتشجيعًا.', { y: 580, w: 640, size: 25, font: 'Cairo-Regular', color: INK, lineHeight: 1.8 });
   p.field('program', 'programName', { y: 700, w: 560, size: 22, font: 'Cairo-SemiBold', color: secondary });
   p.date('date', { y: 760, w: 340, color: MUTED });
   p.signatures('sign', { y: 900, labels: ['المعلّم/ة', 'الإدارة'], color: MUTED, lineColor: tint(primary, 0.6), w: 220 });
@@ -255,7 +255,7 @@ function thanksFloral({ primary, secondary }) {
   p.ornament('divider', 'divider-flourish', { y: 268, w: 360, h: 30, color: tint(primary, 0.3), accent: secondary });
   p.field('lead', 'recipientTitle', { y: 312, w: 700, size: 27, font: 'Amiri-Regular', color: INK, template: 'تتقدّم {{schoolName}} بخالص الشكر إلى {{recipientTitle}}' });
   p.field('student-name', 'studentName', { y: 365, w: 800, size: 54, font: 'Cairo-Bold', color: secondary });
-  p.text('body', 'تقديرًا لجهوده المميّزة وعطائه الدائم،\nسائلين الله أن يجزيه خير الجزاء.', { y: 455, w: 720, size: 26, font: 'Amiri-Regular', color: INK, lineHeight: 1.8 });
+  p.text('body', 'تقديرًا {{لجهوده|لجهودها}} المميّزة {{وعطائه|وعطائها}} الدائم،\nسائلين الله أن {{يجزيه|يجزيها}} خير الجزاء.', { y: 455, w: 720, size: 26, font: 'Amiri-Regular', color: INK, lineHeight: 1.8 });
   p.date('date', { y: 570, w: 320, color: MUTED });
   p.signatures('sign', { y: 620, labels: ['المعلّم/ة', 'الإدارة'], color: MUTED, lineColor: tint(primary, 0.55), w: 200 });
   return p.done({ background: { type: 'solid', color: '#FFFBFA', fill: gradient(180, '#FFFFFF', tint(primary, 0.94)), accentColor: primary, customLayout: true } });
@@ -272,7 +272,7 @@ function thanksFormal({ primary, secondary, paper }) {
   p.text('title', 'شكر وعرفان', { y: 175, w: 600, size: 66, font: 'Rakkas-Regular', color: primary });
   p.field('lead', 'recipientTitle', { y: 275, w: 760, size: 27, font: 'Amiri-Regular', color: INK, template: 'يسرّ إدارة {{schoolName}} أن تتقدّم بالشكر الجزيل إلى {{recipientTitle}}' });
   p.field('student-name', 'studentName', { y: 330, w: 820, size: 54, font: 'Cairo-Bold', color: secondary });
-  p.text('body', 'تقديرًا لإسهاماته القيّمة وجهوده المخلصة في خدمة كتاب الله،\nجعل الله ذلك في موازين حسناته.', { y: 425, w: 800, size: 25, font: 'Amiri-Regular', color: INK, lineHeight: 1.8 });
+  p.text('body', 'تقديرًا {{لإسهاماته|لإسهاماتها}} القيّمة {{وجهوده|وجهودها}} المخلصة في خدمة كتاب الله،\nجعل الله ذلك في موازين {{حسناته|حسناتها}}.', { y: 425, w: 800, size: 25, font: 'Amiri-Regular', color: INK, lineHeight: 1.8 });
   p.date('date', { y: 550, w: 320, color: MUTED });
   p.signatures('sign', { y: 600, labels: ['المشرف/ة', 'المدير/ة'], color: MUTED, lineColor: tint(secondary, 0.4), w: 220 });
   p.brand('stamp', 'stamp', { x: 500, y: 595, w: 116 });
@@ -292,7 +292,7 @@ function participationModern({ primary, secondary }) {
   p.text('title', 'مشاركة', { y: 180, w: 600, size: 84, font: 'Cairo-Black', color: primary });
   p.field('lead', 'recipientTitle', { y: 315, w: 700, size: 26, font: 'Cairo-Regular', color: MUTED, template: 'تُمنح هذه الشهادة إلى {{recipientTitle}}' });
   p.field('student-name', 'studentName', { y: 360, w: 800, size: 54, font: 'Cairo-Bold', color: INK });
-  p.field('program', 'programName', { y: 450, w: 800, size: 25, font: 'Cairo-Regular', color: INK, template: 'لمشاركته المتميّزة في {{programName}}' });
+  p.field('program', 'programName', { y: 450, w: 800, size: 25, font: 'Cairo-Regular', color: INK, template: '{{لمشاركته|لمشاركتها}} المتميّزة في {{programName}}' });
   p.date('date', { y: 540, w: 320, color: MUTED });
   p.signatures('sign', { y: 610, labels: ['المنسّق/ة', 'الإدارة'], color: MUTED, lineColor: tint(primary, 0.6), w: 200 });
   return p.done({ background: { type: 'solid', color: '#FFFFFF', accentColor: primary, customLayout: true } });
@@ -309,9 +309,9 @@ function participationKids({ primary, secondary }) {
   p.shape('heart', 'heart', { x: 100, y: 900, w: 80, h: 72, fill: tint(secondary, 0.4) });
   p.brand('logo', 'logo', { y: 120, w: 96 });
   p.text('title', 'شكرًا لمشاركتك!', { y: 260, w: 640, size: 58, font: 'Marhey-VariableFont_wght', color: primary });
-  p.field('lead', 'recipientTitle', { y: 370, w: 600, size: 28, font: 'Cairo-SemiBold', color: MUTED, template: 'إلى {{recipientTitle}} المتميّز' });
+  p.field('lead', 'recipientTitle', { y: 370, w: 600, size: 28, font: 'Cairo-SemiBold', color: MUTED, template: 'إلى {{recipientTitle}} {{المتميّز|المتميّزة}}' });
   p.field('student-name', 'studentName', { y: 420, w: 660, size: 52, font: 'Marhey-VariableFont_wght', color: secondary });
-  p.field('program', 'programName', { y: 525, w: 620, size: 27, font: 'Cairo-Regular', color: INK, template: 'شاركت معنا في {{programName}}\nوكنت رائعًا!', lineHeight: 1.7 });
+  p.field('program', 'programName', { y: 525, w: 620, size: 27, font: 'Cairo-Regular', color: INK, template: '{{شاركتَ|شاركتِ}} معنا في {{programName}}\n{{وكنتَ رائعًا|وكنتِ رائعة}}!', lineHeight: 1.7 });
   p.star('star-1', { x: 160, y: 690, w: 70, fill: '#F2C14E' });
   p.star('star-2', { y: 670, w: 90, fill: '#F2C14E' });
   p.star('star-3', { x: 564, y: 690, w: 70, fill: '#F2C14E' });
@@ -332,8 +332,8 @@ function competitionWinner({ primary, secondary }) {
   p.field('program', 'programName', { x: 420, y: 210, w: 640, size: 28, font: 'Cairo-SemiBold', color: secondary, template: 'في {{programName}}' });
   p.field('lead', 'recipientTitle', { x: 420, y: 285, w: 640, size: 26, font: 'Amiri-Regular', color: INK, template: 'نبارك لـ{{recipientTitle}}' });
   p.field('student-name', 'studentName', { x: 420, y: 335, w: 640, size: 52, font: 'Cairo-Bold', color: primary });
-  p.field('rank-text', 'calendar', { x: 420, y: 420, w: 640, size: 30, font: 'Cairo-Bold', color: secondary, template: 'وحصوله على {{calendar}}' });
-  p.text('body', 'سائلين الله له مزيدًا من التفوّق والتميّز.', { x: 420, y: 480, w: 640, size: 24, font: 'Amiri-Regular', color: INK });
+  p.field('rank-text', 'calendar', { x: 420, y: 420, w: 640, size: 30, font: 'Cairo-Bold', color: secondary, template: '{{وحصوله|وحصولها}} على {{calendar}}' });
+  p.text('body', 'سائلين الله {{له|لها}} مزيدًا من التفوّق والتميّز.', { x: 420, y: 480, w: 640, size: 24, font: 'Amiri-Regular', color: INK });
   p.date('date', { x: 420, y: 560, w: 640, color: MUTED });
   p.brand('signature', 'signature', { x: 820, y: 620, w: 150, h: 80 });
   p.brand('stamp', 'stamp', { x: 520, y: 610, w: 110 });
@@ -366,8 +366,8 @@ function teacherAppreciation({ primary, secondary, paper }) {
   p.brand('logo', 'logo', { y: 76, w: 96 });
   p.text('title', 'شهادة تقدير', { y: 175, w: 600, size: 64, font: 'alfont_com_ArefRuqaaswashesfixed-Bold', color: primary });
   p.text('lead', 'تتقدّم الإدارة بأسمى عبارات الشكر والتقدير إلى', { y: 275, w: 760, size: 27, font: 'Amiri-Regular', color: INK });
-  p.field('student-name', 'studentName', { y: 325, w: 800, size: 54, font: 'Cairo-Bold', color: secondary, template: 'الأستاذ/ة {{studentName}}' });
-  p.text('body', 'تقديرًا لعطائه المتميّز وجهوده المخلصة في تعليم كتاب الله،\n«خيركم من تعلّم القرآن وعلّمه».', { y: 420, w: 800, size: 25, font: 'Amiri-Regular', color: INK, lineHeight: 1.8 });
+  p.field('student-name', 'studentName', { y: 325, w: 800, size: 54, font: 'Cairo-Bold', color: secondary, template: '{{الأستاذ|الأستاذة}} {{studentName}}' });
+  p.text('body', 'تقديرًا {{لعطائه|لعطائها}} المتميّز {{وجهوده|وجهودها}} المخلصة في تعليم كتاب الله،\n«خيركم من تعلّم القرآن وعلّمه».', { y: 420, w: 800, size: 25, font: 'Amiri-Regular', color: INK, lineHeight: 1.8 });
   p.date('date', { y: 545, w: 320, color: MUTED });
   p.signatures('sign', { y: 610, labels: ['المشرف/ة العام/ة', 'المدير/ة'], color: MUTED, lineColor: tint(primary, 0.5), w: 220 });
   p.brand('stamp', 'stamp', { x: 500, y: 600, w: 116 });
@@ -408,7 +408,7 @@ function ramadanProgram({ primary, secondary }) {
   p.text('title', 'برنامج رمضان القرآني', { y: 240, w: 700, size: 52, font: 'Rakkas-Regular', color: primary });
   p.field('lead', 'recipientTitle', { y: 330, w: 660, size: 26, font: 'Amiri-Regular', color: INK, template: 'تُمنح هذه الشهادة إلى {{recipientTitle}}' });
   p.field('student-name', 'studentName', { y: 378, w: 700, size: 50, font: 'Cairo-Bold', color: secondary });
-  p.text('body', 'لمشاركته في برنامج رمضان القرآني وحرصه على التلاوة والحفظ،\nتقبّل الله منّا ومنكم صالح الأعمال.', { y: 465, w: 700, size: 24, font: 'Amiri-Regular', color: INK, lineHeight: 1.8 });
+  p.text('body', '{{لمشاركته|لمشاركتها}} في برنامج رمضان القرآني {{وحرصه|وحرصها}} على التلاوة والحفظ،\nتقبّل الله منّا ومنكم صالح الأعمال.', { y: 465, w: 700, size: 24, font: 'Amiri-Regular', color: INK, lineHeight: 1.8 });
   p.date('date', { y: 580, w: 320, color: MUTED });
   return p.done({ background: { type: 'solid', color: night, accentColor: primary, customLayout: true } });
 }
@@ -424,7 +424,7 @@ function tajweedCourse({ primary, secondary }) {
   p.field('program', 'programName', { y: 225, w: 800, size: 40, font: 'Cairo-Bold', color: secondary, template: '«{{programName}}»' });
   p.field('lead', 'recipientTitle', { y: 305, w: 700, size: 26, font: 'Cairo-Regular', color: MUTED, template: 'نشهد بأنّ {{recipientTitle}}' });
   p.field('student-name', 'studentName', { y: 350, w: 800, size: 54, font: 'Cairo-Bold', color: primary });
-  p.text('body', 'قد أتمّ متطلبات الدورة بنجاح، واجتاز اختبارها النهائي،\nنسأل الله له التوفيق والسداد.', { y: 445, w: 780, size: 25, font: 'Cairo-Regular', color: INK, lineHeight: 1.8 });
+  p.text('body', 'قد {{أتمّ|أتمّت}} متطلبات الدورة بنجاح، {{واجتاز|واجتازت}} اختبارها النهائي،\nنسأل الله {{له|لها}} التوفيق والسداد.', { y: 445, w: 780, size: 25, font: 'Cairo-Regular', color: INK, lineHeight: 1.8 });
   p.field('grade', 'calendar', { y: 545, w: 400, size: 26, font: 'Cairo-SemiBold', color: secondary, template: 'التقدير: {{calendar}}' });
   p.signatures('sign', { y: 620, labels: ['مدرّب/ة الدورة', 'الإدارة'], color: MUTED, lineColor: tint(primary, 0.6), w: 220 });
   p.qr('verify', { x: 511, y: 612, w: 100, color: primary });
@@ -442,7 +442,7 @@ function memorizationMushaf({ primary, secondary, paper }) {
   p.text('title', 'شهادة حفظ', { y: 270, w: 560, size: 60, font: 'alfont_com_ArefRuqaaswashesfixed-Bold', color: primary });
   p.field('surah', 'surahRange', { y: 365, w: 620, size: 30, font: 'Cairo-SemiBold', color: secondary });
   p.ornament('divider', 'divider-diamond', { y: 425, w: 360, h: 26, color: tint(primary, 0.3), accent: secondary });
-  p.field('lead', 'recipientTitle', { y: 470, w: 600, size: 26, font: 'Amiri-Regular', color: INK, template: 'أتمّ {{recipientTitle}}' });
+  p.field('lead', 'recipientTitle', { y: 470, w: 600, size: 26, font: 'Amiri-Regular', color: INK, template: '{{أتمّ|أتمّت}} {{recipientTitle}}' });
   p.field('student-name', 'studentName', { y: 518, w: 640, size: 48, font: 'Cairo-Bold', color: primary });
   p.field('recital', 'recitalType', { y: 605, w: 600, size: 24, font: 'Amiri-Regular', color: INK });
   p.field('teacher', 'teacherName', { y: 660, w: 600, size: 22, font: 'Cairo-Regular', color: MUTED, template: 'على يد المعلّم/ة: {{teacherName}}' });
@@ -466,8 +466,8 @@ function littleHafiz({ primary, secondary }) {
   p.text('title', 'الحافظ الصغير', { y: 170, w: 640, size: 66, font: 'Marhey-VariableFont_wght', color: primary });
   p.field('lead', 'recipientTitle', { y: 285, w: 600, size: 28, font: 'Cairo-SemiBold', color: MUTED, template: 'مبارك يا {{recipientTitle}}' });
   p.field('student-name', 'studentName', { y: 335, w: 760, size: 56, font: 'Marhey-VariableFont_wght', color: secondary });
-  p.field('surah', 'surahRange', { y: 430, w: 640, size: 28, font: 'Cairo-Regular', color: INK, template: 'لقد حفظت {{surahRange}}' });
-  p.text('body', 'استمر يا بطل، فأنت من أهل القرآن!', { y: 485, w: 600, size: 26, font: 'Cairo-SemiBold', color: primary });
+  p.field('surah', 'surahRange', { y: 430, w: 640, size: 28, font: 'Cairo-Regular', color: INK, template: '{{لقد حفظتَ|لقد حفظتِ}} {{surahRange}}' });
+  p.text('body', '{{استمر يا بطل، فأنت|استمري يا بطلة، فأنتِ}} من أهل القرآن!', { y: 485, w: 600, size: 26, font: 'Cairo-SemiBold', color: primary });
   p.date('date', { y: 580, w: 320, color: MUTED });
   p.brand('signature', 'signature', { x: 480, y: 625, w: 160, h: 80 });
   return p.done({ detailLevel: 'detailed', background: { type: 'solid', color: tint(secondary, 0.9), accentColor: primary, customLayout: true } });

@@ -36,20 +36,10 @@ import { EditorStoreContext, useEditor, useEditorStoreApi } from './store/Editor
 import { useKeyboardShortcuts } from './shortcuts';
 import { ContextToolbar } from './toolbar/ContextToolbar';
 import TopBar from './toolbar/TopBar';
+import { useMediaQuery } from '../ui/useMediaQuery';
 
 const NARROW_QUERY = '(max-width: 1199px)';
 
-function useNarrowLayout() {
-  const [narrow, setNarrow] = useState(() => typeof window !== 'undefined' && window.matchMedia?.(NARROW_QUERY).matches);
-  useEffect(() => {
-    const query = window.matchMedia?.(NARROW_QUERY);
-    if (!query) return undefined;
-    const update = (event) => setNarrow(event.matches);
-    query.addEventListener('change', update);
-    return () => query.removeEventListener('change', update);
-  }, []);
-  return narrow;
-}
 
 function readImageSize(file) {
   return new Promise((resolve, reject) => {
@@ -75,7 +65,7 @@ function EditorLayout({ templateId, branding: initialBranding }) {
   const navigate = useNavigate();
   const stageRef = useRef(null);
   const store = useEditorStoreApi();
-  const narrow = useNarrowLayout();
+  const narrow = useMediaQuery(NARROW_QUERY);
   const [branding, setBranding] = useState(initialBranding || {});
   const [fonts, setFonts] = useState([]);
   const [students, setStudents] = useState([]);
@@ -262,7 +252,7 @@ function EditorLayout({ templateId, branding: initialBranding }) {
             onSaveAsTemplate={handleSaveAsTemplate}
             saveHandlers={saveHandlers}
           />
-          <div className="relative flex min-h-0 flex-1">
+          <div className="relative flex min-h-0 flex-1 max-md:flex-col">
             <IconRail />
             {activePanel && <SidePanel overlay={narrow} />}
             <main className="relative flex min-w-0 flex-1 flex-col">

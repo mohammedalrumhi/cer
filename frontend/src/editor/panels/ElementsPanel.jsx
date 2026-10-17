@@ -86,28 +86,39 @@ function Tiles({ title, presets, query, cols = 'grid-cols-3' }) {
   );
 }
 
+function IconTile({ name, nodes }) {
+  const paths = iconNodeToPaths(nodes);
+  const make = () => createElement('icon', { iconName: name, paths, width: 96, height: 96, color: GREEN });
+  const glyph = (
+    <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      {paths.map((d) => <path key={d} d={d} />)}
+    </svg>
+  );
+  return (
+    <DraggableTile id={`icon-${name}`} testId={`icon-${name}`} label={iconLabel(name)} payload={{ make, preview: glyph }} className="grid aspect-square place-items-center rounded-sm text-fg hover:bg-primary-50 hover:text-primary">
+      {glyph}
+    </DraggableTile>
+  );
+}
+
 function IconTiles({ query }) {
   const { names, library } = useIconSearch(query);
   if (!library) return null;
+  const available = names.filter((name) => library[name]);
+  // Without a search, the Islamic set gets its own heading above the general icons.
+  const groups = query
+    ? [['أيقونات', available]]
+    : [['أيقونات إسلامية', available.filter((name) => name.startsWith('islamic-'))], ['أيقونات', available.filter((name) => !name.startsWith('islamic-'))]];
   return (
-    <section>
-      <h3 className="mb-2 text-xs font-bold text-fg-subtle">أيقونات</h3>
-      <div className="grid grid-cols-5 gap-1.5">
-        {names.filter((name) => library[name]).map((name) => {
-          const paths = iconNodeToPaths(library[name]);
-          const make = () => createElement('icon', { iconName: name, paths, width: 96, height: 96, color: GREEN });
-          const glyph = (
-            <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              {paths.map((d) => <path key={d} d={d} />)}
-            </svg>
-          );
-          return (
-            <DraggableTile key={name} id={`icon-${name}`} label={iconLabel(name)} payload={{ make, preview: glyph }} className="grid aspect-square place-items-center rounded-sm text-fg hover:bg-primary-50 hover:text-primary">
-              {glyph}
-            </DraggableTile>
-          );
-        })}
-      </div>
+    <section className="flex flex-col gap-4">
+      {groups.map(([title, list]) => list.length > 0 && (
+        <div key={title}>
+          <h3 className="mb-2 text-xs font-bold text-fg-subtle">{title}</h3>
+          <div className="grid grid-cols-5 gap-1.5">
+            {list.map((name) => <IconTile key={name} name={name} nodes={library[name]} />)}
+          </div>
+        </div>
+      ))}
       {query && names.length === 0 && <p className="py-3 text-center text-xs text-fg-muted">لا توجد أيقونات بهذا الاسم. جرّب كلمة أخرى.</p>}
     </section>
   );

@@ -1,4 +1,4 @@
-import { CalendarDays, GripVertical, Image as ImageIcon, Info } from 'lucide-react';
+import { CalendarDays, GripVertical, Image as ImageIcon, Info, Venus } from 'lucide-react';
 import { createElement } from '@shared/model/index.js';
 import { FIELD_LABELS } from '../../strings.ar';
 import { DraggableTile } from '../dnd/EditorDnd';
@@ -50,6 +50,17 @@ export default function FieldsPanel({ query }) {
           {custom.filter(match).map((field) => <FieldChip key={field.key} field={field} />)}
         </section>
       )}
+      <section className="flex flex-col gap-1.5" data-testid="gender-wording">
+        <h3 className="text-xs font-bold text-fg-subtle">كلمات تتغير مع الجنس</h3>
+        <p className="text-xs leading-6 text-fg-muted">
+          اكتب الصيغتين بين قوسين مزدوجين: <bdi className="font-semibold text-fg">{'{{المتميّز|المتميّزة}}'}</bdi>، فتُكتب الأولى للذكور والثانية للإناث.
+          وللفئتين معًا أربع صيغ: <bdi className="font-semibold text-fg">{'{{الطالب|الطالبة|الدارس|الدارسة}}'}</bdi>.
+        </p>
+        <DraggableTile id="field-gender-text" testId="field-gender-text" label="نص حسب الجنس" payload={{ make: () => createElement('text', { text: '{{المتميّز|المتميّزة}}', fontSize: 32, width: 400 }), preview: <Venus /> }} className={chip}>
+          <Venus size={15} className="text-primary" aria-hidden />
+          <span className="flex-1 font-semibold">نص حسب الجنس</span>
+        </DraggableTile>
+      </section>
       <section className="flex flex-col gap-1.5">
         <h3 className="text-xs font-bold text-fg-subtle">التاريخ</h3>
         <DraggableTile id="field-date-hijri" label="تاريخ هجري تلقائي" payload={{ make: () => createElement('dateField', { date: { calendar: 'hijri', style: 'long', source: 'issue' } }), preview: <CalendarDays /> }} className={chip}>

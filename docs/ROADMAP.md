@@ -54,7 +54,10 @@ into cer) is planned feature by feature in [STUDIO_PLAN.md](STUDIO_PLAN.md). The
 - [ ] Security: bcrypt with migration of plaintext passwords, login rate limit, CORS allowlist, helmet, request
       validation, SVG sanitizing, upload size limits
 - [ ] Roles (admin, teacher) and per-teacher student lists
-- [ ] Phone editor: bottom toolbar and sheets, pinch/rotate gestures, 44 px handles
+- [x] Phone editor: bottom tab bar and sheets, tap/pan/pinch, larger touch handles, tap-to-add (long press drags)
+- [ ] Phone editor: two-finger rotate, phone-specific context toolbar
+- [x] Students vs adult learners per batch; `{{مذكر|مؤنث}}` and four-form wording; editable congratulation sentence
+- [x] Islamic icon set (12 drawn icons) and ~70 more featured icons with Arabic keywords
 - [ ] Curved text; glyph reuse (PDF form XObjects) to shrink very large merged PDFs
 - [ ] Physical page sizes in PDFs (px → pt) for exact print scaling without "fit to page"
 - [ ] PWA and code-splitting of the editor bundle

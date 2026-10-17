@@ -19,7 +19,7 @@ export default function TopBar({ onBack, onPreviewPdf, previewing, onExportPng, 
   const canRedo = useEditor(selectCanRedo);
 
   return (
-    <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border bg-surface px-3 shadow-xs" style={{ userSelect: 'none', zIndex: 40 }}>
+    <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border bg-surface px-3 shadow-xs max-md:gap-1 max-md:px-1.5" style={{ userSelect: 'none', zIndex: 40 }}>
       <IconButton icon={ArrowRight} label={S.editor.back} onClick={onBack} />
       <img src="/assets/logo.png" alt="" className="hidden size-8 rounded-sm bg-white object-contain p-0.5 ring-1 ring-black/5 sm:block" />
       <label className="group relative flex min-w-0 items-center">
@@ -30,15 +30,15 @@ export default function TopBar({ onBack, onPreviewPdf, previewing, onExportPng, 
           onBlur={() => store.getState().sealHistory()}
           aria-label={S.editor.rename}
           placeholder={S.editor.untitled}
-          className="w-40 rounded-sm border border-transparent bg-transparent px-2 py-1 text-sm font-bold outline-none transition hover:border-border focus:border-primary lg:w-56"
+          className="w-24 rounded-sm border sm:w-40 border-transparent bg-transparent px-2 py-1 text-sm font-bold outline-none transition hover:border-border focus:border-primary lg:w-56"
           data-testid="editor-name"
         />
         <PenLine size={13} className="pointer-events-none absolute end-2 text-fg-subtle opacity-0 group-hover:opacity-100" aria-hidden />
       </label>
-      <span className="mx-1 h-6 w-px bg-border" />
+      <span className="mx-1 h-6 w-px bg-border max-md:hidden" />
       <IconButton icon={Undo2} label={S.editor.undo} shortcut="MOD+Z" disabled={!canUndo} onClick={() => store.getState().undo()} data-testid="undo" />
       <IconButton icon={Redo2} label={S.editor.redo} shortcut="MOD+Shift+Z" disabled={!canRedo} onClick={() => store.getState().redo()} data-testid="redo" />
-      <span className="mx-1 h-6 w-px bg-border" />
+      <span className="mx-1 h-6 w-px bg-border max-md:hidden" />
       <Segmented
         size="sm"
         label="وضع العرض"
@@ -47,13 +47,16 @@ export default function TopBar({ onBack, onPreviewPdf, previewing, onExportPng, 
           store.getState().setUi({ mode: next, editingTextId: null, cropId: null });
           if (next === 'preview') store.getState().clearSelection();
         }}
-        options={[{ value: 'design', label: S.editor.design, icon: PenLine }, { value: 'preview', label: S.editor.preview, icon: Eye }]}
+        options={[
+          { value: 'design', label: <span className="max-md:hidden">{S.editor.design}</span>, tooltip: S.editor.design, icon: PenLine },
+          { value: 'preview', label: <span className="max-md:hidden">{S.editor.preview}</span>, tooltip: S.editor.preview, icon: Eye },
+        ]}
       />
-      <div className="ms-auto flex items-center gap-2">
+      <div className="ms-auto flex items-center gap-2 max-md:gap-1">
         <SaveStatus {...saveHandlers} />
         <Dropdown>
           <DropdownTrigger asChild>
-            <button type="button" aria-label={S.editor.more} className="inline-flex h-9 items-center gap-1.5 rounded-sm border border-border px-3 text-xs font-semibold hover:bg-surface-2" data-testid="editor-more">
+            <button type="button" aria-label={S.editor.more} className="inline-flex h-9 items-center gap-1.5 rounded-sm border border-border px-3 text-xs max-md:px-2 font-semibold hover:bg-surface-2" data-testid="editor-more">
               <MoreHorizontal size={16} /> <span className="hidden md:inline">{S.editor.more}</span>
             </button>
           </DropdownTrigger>
@@ -71,7 +74,7 @@ export default function TopBar({ onBack, onPreviewPdf, previewing, onExportPng, 
             <DropdownItem icon={PanelLeft} onSelect={() => store.getState().setUi({ propertiesOpen: !propertiesOpen })}>{propertiesOpen ? S.editor.hideProperties : S.editor.showProperties}</DropdownItem>
           </DropdownContent>
         </Dropdown>
-        <Link to={`/generate?template=${encodeURIComponent(id)}`} className="inline-flex h-9 items-center gap-1.5 rounded-sm bg-gold px-3 text-xs font-bold text-white shadow-sm transition hover:-translate-y-px hover:shadow-md" data-testid="editor-generate">
+        <Link to={`/generate?template=${encodeURIComponent(id)}`} className="inline-flex h-9 items-center gap-1.5 rounded-sm bg-gold px-3 max-md:px-2.5 text-xs font-bold text-white shadow-sm transition hover:-translate-y-px hover:shadow-md" data-testid="editor-generate">
           <FileStack size={16} /> <span className="hidden sm:inline">{S.editor.generate}</span>
         </Link>
       </div>

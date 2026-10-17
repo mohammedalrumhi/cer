@@ -17,6 +17,8 @@ import CropOverlay from './CropOverlay';
 import TextEditOverlay from './TextEditOverlay';
 import Rulers, { RULER_SIZE } from './Rulers';
 import { clientToDocument } from './coords';
+import { COARSE_POINTER_QUERY, PHONE_QUERY, useMediaQuery } from '../../ui/useMediaQuery';
+import { ZOOM_MAX, ZOOM_MIN } from '../store/editorStore';
 
 const WHEEL_ZOOM_SPEED = 0.0025;
 const SIDE_ANCHORS = new Set(['middle-left', 'middle-right']);
@@ -52,6 +54,10 @@ export default function Canvas({ stageRef, branding, previewStudent = null, onFi
   const anchorRef = useRef(null);
   const transformTargetsRef = useRef([]);
   const fittedRef = useRef(false);
+  const touchesRef = useRef(new Map());
+  const pinchRef = useRef(null);
+  const phone = useMediaQuery(PHONE_QUERY);
+  const coarse = useMediaQuery(COARSE_POINTER_QUERY);
   const [spaceDown, setSpaceDown] = useState(false);
   const [shiftDown, setShiftDown] = useState(false);
   const [panning, setPanning] = useState(false);
@@ -100,7 +106,7 @@ export default function Canvas({ stageRef, branding, previewStudent = null, onFi
       store.getState().setViewport({ width: w, height: h });
       if (!fittedRef.current && w > 0 && h > 0) {
         fittedRef.current = true;
-        store.getState().zoomToFit(null, { maxZoom: 1, padding: 48 });
+        store.getState().zoomToFit(null, { maxZoom: 1, padding: window.matchMedia?.(PHONE_QUERY).matches ? 16 : 48 });
       }
     });
     observer.observe(node);
@@ -248,6 +254,7 @@ export default function Canvas({ stageRef, branding, previewStudent = null, onFi
   function handlePointerDown(event) {
     const evt = event.evt;
     const state = store.getState();
+    if (touchesRef.current.size > 1) return;
     if (spaceDown || evt.button === 1) {
       const { x, y } = state.viewport;
       panRef.current = { startX: evt.clientX, startY: evt.clientY, x, y };
@@ -263,6 +270,15 @@ export default function Canvas({ stageRef, branding, previewStudent = null, onFi
     const point = pointerFromEvent(evt);
     const id = elementIdFromTarget(event.target);
     const element = id ? elementsById.get(id) : null;
+
+    // On touch screens one finger on empty space (or a locked element) pans; a tap clears or selects.
+    if (evt.pointerType === 'touch' && (!element || element.locked)) {
+      if (element) state.select([element.id]);
+      else state.clearSelection();
+      const { x, y } = state.viewport;
+      panRef.current = { startX: evt.clientX, startY: evt.clientY, x, y };
+      return;
+    }
 
     // Empty space and locked elements start a marquee; a plain click on a locked element selects it.
     if (!element || element.locked) {
@@ -302,6 +318,55 @@ export default function Canvas({ stageRef, branding, previewStudent = null, onFi
       clickedIds: clicked,
     };
   }
+
+  /* ── two-finger pinch zoom and pan (touch) ────────────────────── */
+  useEffect(() => {
+    const node = containerRef.current;
+    if (!node) return undefined;
+    const touches = touchesRef.current;
+    const local = () => {
+      const rect = node.getBoundingClientRect();
+      const [a, b] = [...touches.values()];
+      return { mid: { x: (a.x + b.x) / 2 - rect.left, y: (a.y + b.y) / 2 - rect.top }, dist: Math.hypot(a.x - b.x, a.y - b.y) || 1 };
+    };
+    const down = (event) => {
+      if (event.pointerType !== 'touch') return;
+      touches.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      if (touches.size !== 2) return;
+      // A second finger cancels any one-finger gesture and starts a pinch.
+      const session = sessionRef.current;
+      if (session?.kind === 'drag') for (const item of session.items) item.node.position({ x: item.x, y: item.y });
+      sessionRef.current = null;
+      panRef.current = null;
+      setOverlay({ guides: [], distances: [], marquee: null });
+      const { zoom, x, y } = store.getState().viewport;
+      const { mid, dist } = local();
+      pinchRef.current = { dist, zoom, doc: { x: (mid.x - x) / zoom, y: (mid.y - y) / zoom } };
+    };
+    const move = (event) => {
+      if (!touches.has(event.pointerId)) return;
+      touches.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      const pinch = pinchRef.current;
+      if (!pinch || touches.size < 2) return;
+      const { mid, dist } = local();
+      const zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, pinch.zoom * (dist / pinch.dist)));
+      store.getState().setViewport({ zoom, x: mid.x - pinch.doc.x * zoom, y: mid.y - pinch.doc.y * zoom });
+    };
+    const up = (event) => {
+      touches.delete(event.pointerId);
+      if (touches.size < 2) pinchRef.current = null;
+    };
+    node.addEventListener('pointerdown', down, true);
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', up);
+    return () => {
+      node.removeEventListener('pointerdown', down, true);
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', up);
+    };
+  }, [store]);
 
   function handleWheel(event) {
     event.evt.preventDefault();
@@ -459,8 +524,7 @@ export default function Canvas({ stageRef, branding, previewStudent = null, onFi
           ref={stageRef}
           width={viewport.width || 1}
           height={viewport.height || 1}
-          onMouseDown={handlePointerDown}
-          onTouchStart={handlePointerDown}
+          onPointerDown={handlePointerDown}
           onWheel={handleWheel}
           onDblClick={handleDoubleClick}
           onDblTap={handleDoubleClick}
@@ -534,13 +598,13 @@ export default function Canvas({ stageRef, branding, previewStudent = null, onFi
               enabledAnchors={anchors}
               flipEnabled={false}
               ignoreStroke
-              anchorSize={9}
+              anchorSize={coarse ? 18 : 9}
               anchorCornerRadius={5}
               anchorStroke={colors.selection}
               anchorFill="#ffffff"
               borderStroke={colors.selection}
               borderStrokeWidth={1.5}
-              rotateAnchorOffset={26}
+              rotateAnchorOffset={coarse ? 36 : 26}
               rotationSnaps={shiftDown ? SNAP_15 : [0, 90, 180, 270]}
               rotationSnapTolerance={shiftDown ? 7.5 : 4}
               boundBoxFunc={(oldBox, newBox) => (Math.abs(newBox.width) < 4 || Math.abs(newBox.height) < 1 ? oldBox : newBox)}
@@ -552,12 +616,12 @@ export default function Canvas({ stageRef, branding, previewStudent = null, onFi
           </Layer>
         </Stage>
 
-        {rulers && <Rulers viewport={viewport} boxes={boxes} selectedIds={selectedIds} />}
+        {rulers && !phone && <Rulers viewport={viewport} boxes={boxes} selectedIds={selectedIds} />}
 
         {editingElement && <TextEditOverlay element={editingElement} op={opsById.get(editingElement.id)} viewport={viewport} />}
 
         {missingBackground && (
-          <div className="pointer-events-none absolute inset-x-0 top-3 z-10 flex justify-center" style={{ top: rulers ? RULER_SIZE + 12 : 12 }}>
+          <div className="pointer-events-none absolute inset-x-0 top-3 z-10 flex justify-center" style={{ top: rulers && !phone ? RULER_SIZE + 12 : 12 }}>
             <span className="rounded-full bg-warning-bg px-4 py-1.5 text-xs font-semibold text-warning shadow-sm">{'صورة الخلفية مفقودة. اختر خلفية جديدة من لوحة «الخلفيات».'}</span>
           </div>
         )}

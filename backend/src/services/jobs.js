@@ -89,8 +89,10 @@ function createJobRunner({ storage }) {
     fs.mkdirSync(JOB_DIR, { recursive: true });
     const [model, scene] = await Promise.all([loadModel(), loadSharedModule('render/scene.js')]);
     const templates = await storage.listTemplates();
-    const template = resolveTemplateWithBackgroundVariant(templates, spec.templateId, spec.backgroundVariantKey);
-    if (!template) throw new Error('Template not found');
+    const resolved = resolveTemplateWithBackgroundVariant(templates, spec.templateId, spec.backgroundVariantKey);
+    if (!resolved) throw new Error('Template not found');
+    // The wizard may print a template for the other group (students ↔ adult learners).
+    const template = spec.audienceType ? { ...resolved, audienceType: spec.audienceType } : resolved;
     const branding = await storage.getBranding();
     const prepared = await prepareTemplate(template, branding);
     const students = spec.students;
@@ -191,6 +193,7 @@ function createJobRunner({ storage }) {
       const spec = {
         templateId: input.templateId,
         backgroundVariantKey: input.backgroundVariantKey || null,
+        audienceType: ['student', 'adult'].includes(input.audienceType) ? input.audienceType : null,
         students,
         output: input.output === 'zip' ? 'zip' : 'pdf',
         layout: input.layout === '2up' ? '2up' : '1up',

@@ -27,11 +27,23 @@ import { applyKashida, convertDigits } from './textTransforms.js';
 
 const PLACEHOLDER = /\{\{\s*([\p{L}\p{N}_]+)\s*\}\}/gu;
 
+// Wording that follows the recipient: {{مذكر|مؤنث}} picks by gender; {{طالب|طالبة|دارس|دارسة}} also by audience.
+const CHOICE = /\{\{([^{}|]*(?:\|[^{}|]*)+)\}\}/gu;
+
+function resolveChoice(body, values) {
+  const forms = body.split('|').map((form) => form.trim());
+  const female = values.__gender === 'female' ? 1 : 0;
+  if (forms.length >= 4) return forms[(values.__audience === 'adult' ? 2 : 0) + female];
+  return forms[female] ?? forms[0];
+}
+
 /** Resolve `{{token}}` placeholders; `{{value}}` means the element's own field. */
 export function renderTextTemplate(templateText, values, fallbackField) {
   const raw = String(templateText ?? '');
   if (!raw) return String(values[fallbackField] ?? '');
-  return raw.replace(PLACEHOLDER, (_match, token) => String((token === 'value' ? values[fallbackField] : values[token]) ?? ''));
+  return raw
+    .replace(CHOICE, (_match, body) => resolveChoice(body, values))
+    .replace(PLACEHOLDER, (_match, token) => String((token === 'value' ? values[fallbackField] : values[token]) ?? ''));
 }
 
 /** `{{tokens}}` used in a string (for the "fields" checks in the generator). */

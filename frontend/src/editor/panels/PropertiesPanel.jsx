@@ -116,7 +116,20 @@ function TextContentSection({ element }) {
         data-testid="prop-text"
         aria-label="النص"
       />
-      <p className="text-2xs text-fg-subtle">اسحب حقلًا من لوحة «الحقول» وأفلته فوق النص لإدراجه، أو اكتب الحقل بين قوسين مزدوجين.</p>
+      <div className="flex flex-wrap gap-1.5">
+        <Button
+          size="xs"
+          disabled={!source.value.includes('\n')}
+          onClick={() => patch({ [source.key]: source.value.replace(/\s*\n\s*/g, ' ') }, { label: 'سطر واحد', coalesce: false })}
+          data-testid="text-one-line"
+        >
+          جعله سطرًا واحدًا
+        </Button>
+      </div>
+      <p className="text-2xs leading-5 text-fg-subtle">
+        لنزول كلمة إلى السطر التالي: ضع المؤشر قبلها واضغط Enter (هنا أو بالنقر المزدوج على النص في الصفحة).
+        اسحب حقلًا من لوحة «الحقول» وأفلته فوق النص لإدراجه، أو اكتب الحقل بين قوسين مزدوجين.
+      </p>
       <Row label="الارتفاع">
         <NumberField value={Number(element.height) || 0} min={0} onChange={(height) => patch({ height: height || undefined }, { label: 'ارتفاع الصندوق' })} />
         <Segmented size="sm" value={element.verticalAlign || 'top'} onChange={(verticalAlign) => patch({ verticalAlign }, { label: 'المحاذاة الرأسية', coalesce: false })} options={[{ value: 'top', label: 'أعلى' }, { value: 'middle', label: 'وسط' }, { value: 'bottom', label: 'أسفل' }]} />
@@ -171,7 +184,7 @@ export default function PropertiesPanel({ overlay = false }) {
     <aside
       aria-label={S.editor.properties}
       data-testid="properties-panel"
-      className={`flex w-[280px] shrink-0 animate-panel-in-start flex-col border-s border-border bg-surface ${overlay ? 'absolute inset-y-0 end-0 z-30 shadow-lg' : ''}`}
+      className={`flex w-[280px] shrink-0 animate-panel-in-start flex-col border-s border-border bg-surface ${overlay ? 'absolute inset-y-0 end-0 z-30 shadow-lg max-md:inset-x-0 max-md:top-auto max-md:bottom-[60px] max-md:h-[62%] max-md:w-full max-md:rounded-t-xl max-md:border-e-0 max-md:border-s-0 max-md:border-t' : ''}`}
     >
       <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
         <h2 className="text-sm font-bold">{S.editor.properties}</h2>

@@ -16,6 +16,8 @@ export function toDisplayTemplate(text) {
 
 export function fromDisplayTemplate(text) {
   return String(text ?? '').replace(/\{\{\s*([^{}]+?)\s*\}\}/g, (match, token) => {
+    // {{مذكر|مؤنث}} wording is not a field; keep it as typed.
+    if (token.includes('|')) return match;
     const key = LABEL_TO_KEY.get(token.trim());
     return key ? `{{${key}}}` : `{{${token.trim().replace(/\s+/g, '_')}}}`;
   });

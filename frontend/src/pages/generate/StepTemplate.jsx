@@ -12,7 +12,7 @@ import { EmptyState } from '../../ui/States';
 import { toast } from '../../ui/toast';
 
 /** Step 1: choose a saved template (or start from a ready one) and, if offered, its colour. */
-export function StepTemplate({ templates, branding, selectedId, variantKey, onSelect, onVariant, onCreated }) {
+export function StepTemplate({ templates, branding, selectedId, variantKey, audienceType, onAudience, onSelect, onVariant, onCreated }) {
   const [tab, setTab] = useState('mine');
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [busy, setBusy] = useState(null);
@@ -75,6 +75,24 @@ export function StepTemplate({ templates, branding, selectedId, variantKey, onSe
             />
           ))}
         </div>
+      )}
+
+      {selected && audienceType && (
+        <section className="card flex flex-col gap-2 p-4" data-testid="wizard-audience">
+          <h3 className="text-sm font-bold">لمن هذه الشهادات؟</h3>
+          <Segmented
+            value={audienceType}
+            onChange={onAudience}
+            label="الفئة"
+            options={[{ value: 'student', label: 'الطلاب' }, { value: 'adult', label: 'الدارسون' }]}
+          />
+          <p className="text-xs text-fg-muted">
+            {audienceType === 'adult'
+              ? 'يُكتب «الدارس» للرجال و«الدارسة» للنساء تلقائيًا.'
+              : 'يُكتب «الطالب» للأولاد و«الطالبة» للبنات تلقائيًا.'}
+            {' '}يُعرف الجنس من الاسم، ويمكنك تعديله لأي شخص في خطوة المراجعة.
+          </p>
+        </section>
       )}
 
       {selected?.availableBackgroundVariants?.length > 0 && (

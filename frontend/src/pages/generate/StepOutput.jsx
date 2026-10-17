@@ -87,6 +87,7 @@ export function StepOutput({ template, templateId, variantKey, branding, rows, v
     const job = await createJob({
       templateId,
       backgroundVariantKey: variantKey || undefined,
+      audienceType: template.audienceType,
       students: rows.map(({ key: _key, ...student }) => student),
       output: format,
       layout,
