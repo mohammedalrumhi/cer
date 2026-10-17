@@ -79,3 +79,13 @@ test('a background whose file is missing is flagged for the editor', async () =>
   const { body } = await request(app).get('/api/templates/t1').set(auth).expect(200);
   assert.equal(body.background.missing, true);
 });
+
+test('a student keeps their own group (student / adult learner), and it can be cleared', async () => {
+  const { app, auth } = await setup();
+  const { body } = await request(app).post('/api/students').set(auth).send({ students: [{ name: 'مريم أحمد', الفئة: 'دارسة' }] }).expect(201);
+  const saved = body.students.find((s) => s.name === 'مريم أحمد');
+  assert.equal(saved.audienceType, 'adult');
+  assert.equal(saved.gender, 'female');
+  const { body: cleared } = await request(app).put(`/api/students/${saved.id}`).set(auth).send({ ...saved, audienceType: '' }).expect(200);
+  assert.equal(cleared.audienceType, undefined);
+});

@@ -227,6 +227,7 @@ function createMysqlStorage() {
   function studentExtraJson(student) {
     const extra = {};
     if (student.gender) extra.gender = student.gender;
+    if (student.audienceType) extra.audienceType = student.audienceType;
     if (student.fields && Object.keys(student.fields).length) extra.fields = student.fields;
     return JSON.stringify(extra);
   }

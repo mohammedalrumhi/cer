@@ -14,3 +14,19 @@ test('choosing the group changes the wording for the whole batch', async ({ cont
   await page.getByTestId('wizard-next').click();
   await expect(page.getByText(/· الدارسون/)).toBeVisible();
 });
+
+test('each person can have their own group in the review step', async ({ context, page }) => {
+  await authenticate(context, await login());
+  await page.goto(`/generate?template=${SOURCE_ID}`);
+  await page.getByTestId('wizard-next').click();
+  await page.getByRole('radio', { name: /لصق قائمة/ }).click();
+  await page.getByTestId('wizard-paste').fill('مريم أحمد\nخالد سعيد');
+  await page.getByTestId('wizard-next').click();
+  const rows = page.getByTestId('review-row');
+  await expect(rows).toHaveCount(2);
+  const first = rows.first().getByRole('radiogroup', { name: 'الفئة' });
+  await expect(first.getByRole('radio', { name: 'طالب' })).toBeChecked();
+  await first.getByRole('radio', { name: 'دارس' }).click();
+  await expect(first.getByRole('radio', { name: 'دارس' })).toBeChecked();
+  await expect(rows.nth(1).getByRole('radiogroup', { name: 'الفئة' }).getByRole('radio', { name: 'طالب' })).toBeChecked();
+});

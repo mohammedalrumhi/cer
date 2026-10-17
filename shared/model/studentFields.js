@@ -2,7 +2,8 @@
  * Student records and spreadsheet columns, shared by the generator wizard and the backend.
  *
  * A student is { id?, name, issueDate?, recitalType?, surahRange?, programName?, calendar?,
- * mistakesCount?, teacherName?, gender?: 'male'|'female', fields?: { [column]: value } }.
+ * mistakesCount?, teacherName?, gender?: 'male'|'female', audienceType?: 'student'|'adult',
+ * fields?: { [column]: value } }. audienceType overrides the batch's group for this person.
  * `fields` keeps every custom spreadsheet column, so templates can use them as {{column}}.
  */
 
@@ -19,6 +20,7 @@ export const STUDENT_FIELD_ALIASES = {
   mistakesCount: ['عدد الاخطاء', 'عدد الأخطاء', 'الأخطاء', 'الاخطاء', 'mistakescount', 'mistakes_count', 'errorscount'],
   teacherName: ['المعلم', 'المعلمة', 'اسم المعلم', 'اسم المعلمة', 'المعلم/ة', 'teachername', 'teacher_name', 'teacher'],
   gender: ['الجنس', 'النوع', 'ذكر/أنثى', 'gender', 'sex'],
+  audienceType: ['الفئة', 'فئة', 'طالب/دارس', 'طالب او دارس', 'الصفة', 'نوع المستفيد', 'التصنيف', 'category', 'audience'],
 };
 
 export function normalizeKey(value) {
@@ -80,20 +82,48 @@ export function normalizeGender(value) {
   return undefined;
 }
 
+const ADULT_WORDS = ['دارس', 'دارسه', 'دارسين', 'دارسون', 'دارسات', 'كبار', 'بالغ', 'بالغين', 'adult', 'adults'];
+const STUDENT_WORDS = ['طالب', 'طالبه', 'طلاب', 'طالبات', 'طلبه', 'صغار', 'student', 'students'];
+
+/** "دارس" / "طالبة" … → 'adult' | 'student' (undefined when unclear). */
+const audienceKey = (value) => normalizeKey(value).replace(/^ال(?=..)/, '');
+
+export function normalizeAudience(value) {
+  const v = audienceKey(value);
+  if (!v) return undefined;
+  if (ADULT_WORDS.includes(v)) return 'adult';
+  if (STUDENT_WORDS.includes(v)) return 'student';
+  return undefined;
+}
+
+/** "دارسة" / "طالبة" also say the gender. */
+function genderFromAudienceWord(value) {
+  const v = audienceKey(value);
+  if (v === 'دارسه' || v === 'طالبه') return 'female';
+  if (v === 'دارس' || v === 'طالب') return 'male';
+  return undefined;
+}
+
 /** One sheet row → student, using a header mapping (see autoMapHeaders). */
 export function rowToStudent(row, mapping) {
   const student = {};
   const fields = {};
+  let impliedGender;
   for (const [header, target] of Object.entries(mapping)) {
     const value = clean(row[header]);
     if (target === 'ignore' || value === '') continue;
     if (target === 'custom') fields[customFieldKey(header)] = value;
-    else if (target === 'gender') {
+    else if (target === 'audienceType') {
+      const audience = normalizeAudience(value);
+      if (audience) student.audienceType = audience;
+      impliedGender = genderFromAudienceWord(value);
+    } else if (target === 'gender') {
       const gender = normalizeGender(value);
       if (gender) student.gender = gender;
     } else student[target] = value;
   }
   if (!student.name) return null;
+  if (!student.gender && impliedGender) student.gender = impliedGender;
   if (Object.keys(fields).length) student.fields = fields;
   return student;
 }
@@ -110,16 +140,23 @@ export function normalizeStudent(input, existing = {}) {
   if (!input || typeof input !== 'object') return null;
   const student = { ...existing };
   const fields = { ...(existing.fields || {}), ...(input.fields && typeof input.fields === 'object' ? input.fields : {}) };
+  let impliedGender;
   for (const [key, raw] of Object.entries(input)) {
     if (key === 'fields' || key === 'id') continue;
-    const canonical = CORE_STUDENT_FIELDS.includes(key) || key === 'gender' ? key : matchHeader(key);
-    if (canonical === 'gender' || key === 'gender') {
+    const canonical = CORE_STUDENT_FIELDS.includes(key) || key === 'gender' || key === 'audienceType' ? key : matchHeader(key);
+    if (canonical === 'audienceType') {
+      const audience = raw === 'adult' || raw === 'student' ? raw : normalizeAudience(raw);
+      if (audience) student.audienceType = audience;
+      else delete student.audienceType;
+      impliedGender = genderFromAudienceWord(raw);
+    } else if (canonical === 'gender' || key === 'gender') {
       const gender = normalizeGender(raw) ?? (raw === 'male' || raw === 'female' ? raw : undefined);
       if (gender) student.gender = gender;
       else delete student.gender;
     } else if (canonical) student[canonical] = clean(raw);
     else if (raw !== null && raw !== undefined && typeof raw !== 'object' && !['createdAt', 'updatedAt', 'studentName', 'fullName', 'serial', 'verifyUrl'].includes(key)) fields[customFieldKey(key)] = clean(raw);
   }
+  if (!student.gender && impliedGender) student.gender = impliedGender;
   if (!student.name) student.name = clean(input.studentName ?? input.fullName ?? '');
   if (!student.name) return null;
   if (input.id || existing.id) student.id = String(input.id || existing.id);

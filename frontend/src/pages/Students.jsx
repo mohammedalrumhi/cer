@@ -72,6 +72,14 @@ function StudentDialog({ open, onOpenChange, initial, onSubmit, busy }) {
             options={[{ value: 'auto', label: `${S.students.genderAuto} (من الاسم)` }, { value: 'male', label: S.students.male }, { value: 'female', label: S.students.female }]}
           />
         </Field>
+        <Field label={S.students.audience} hint={S.students.audienceHint} className="sm:col-span-2">
+          <Segmented
+            value={form.audienceType || 'batch'}
+            onChange={(audienceType) => setForm((prev) => ({ ...prev, audienceType: audienceType === 'batch' ? undefined : audienceType }))}
+            options={[{ value: 'batch', label: S.students.audienceBatch }, { value: 'student', label: S.students.audienceStudent }, { value: 'adult', label: S.students.audienceAdult }]}
+            label={S.students.audience}
+          />
+        </Field>
         {form.fields && Object.keys(form.fields).length > 0 && (
           <div className="grid gap-3 sm:col-span-2 sm:grid-cols-2">
             {Object.entries(form.fields).map(([key, value]) => (
@@ -91,6 +99,7 @@ export default function Students() {
   const [students, setStudents] = useState([]);
   const [status, setStatus] = useState('loading');
   const [query, setQuery] = useState('');
+  const [audience, setAudience] = useState('all');
   const [dialog, setDialog] = useState(null); // null | { initial }
   const [busy, setBusy] = useState(false);
   const [dragActive, setDragActive] = useState(false);
@@ -134,6 +143,7 @@ export default function Students() {
   async function handleSubmit(form) {
     const student = Object.fromEntries(FIELDS.map((key) => [key, String(form[key] || '').trim()]));
     student.gender = form.gender || '';
+    student.audienceType = form.audienceType || '';
     if (form.fields) student.fields = form.fields;
     if (!student.name) {
       toast.error(S.students.nameRequired);
@@ -179,17 +189,19 @@ export default function Students() {
   }
 
   function handleExportCsv() {
-    const header = FIELDS.map((key) => S.students.fields[key]);
-    const rows = students.map((student) => FIELDS.map((key) => escapeCsv(student[key])));
+    const audienceLabel = (student) => (student.audienceType === 'adult' ? S.students.audienceAdult : student.audienceType === 'student' ? S.students.audienceStudent : '');
+    const header = [...FIELDS.map((key) => S.students.fields[key]), S.students.audience];
+    const rows = students.map((student) => [...FIELDS.map((key) => escapeCsv(student[key])), audienceLabel(student)]);
     const csv = `${String.fromCharCode(0xfeff)}${[header, ...rows].map((row) => row.join(',')).join('\n')}`;
     downloadBlob(new Blob([csv], { type: 'text/csv;charset=utf-8' }), 'الطلاب.csv');
   }
 
   const filtered = useMemo(() => {
     const q = normalizeSearch(query);
-    if (!q) return students;
-    return students.filter((student) => normalizeSearch(FIELDS.map((key) => student[key]).join(' ')).includes(q));
-  }, [students, query]);
+    return students.filter((student) => (audience === 'all' || student.audienceType === audience)
+      && (!q || normalizeSearch(FIELDS.map((key) => student[key]).join(' ')).includes(q)));
+  }, [students, query, audience]);
+  const hasAudience = students.some((student) => student.audienceType);
 
   return (
     <div className="flex flex-col gap-6">
@@ -230,7 +242,15 @@ export default function Students() {
             <h2 className="text-lg font-bold">{S.students.listTitle}</h2>
             {status === 'ready' && <span className="rounded-full bg-primary-50 px-2.5 py-0.5 text-xs font-semibold text-primary">{S.students.count(formatNumber(students.length))}</span>}
           </div>
-          <div className="flex w-full items-center gap-2 sm:w-auto">
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+            {hasAudience && (
+              <Segmented
+                value={audience}
+                onChange={setAudience}
+                label={S.students.audience}
+                options={[{ value: 'all', label: S.students.audienceAll }, { value: 'student', label: S.students.audienceStudents }, { value: 'adult', label: S.students.audienceAdults }]}
+              />
+            )}
             <label className="relative flex-1 sm:w-72">
               <Search size={16} className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 text-fg-subtle" aria-hidden />
               <input type="search" className="field ps-9" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={S.students.searchPlaceholder} aria-label={S.common.search} />
@@ -263,6 +283,7 @@ export default function Students() {
                     ))}
                     <td className="px-3 py-2.5">
                       <div className="flex flex-wrap gap-1">
+                        {student.audienceType && <span className="rounded-full bg-primary-50 px-2 py-0.5 text-2xs font-semibold text-primary" data-testid="student-audience">{student.audienceType === 'adult' ? S.students.audienceAdult : S.students.audienceStudent}</span>}
                         {student.gender && <span className="rounded-full bg-gold-50 px-2 py-0.5 text-2xs font-semibold text-gold-600">{student.gender === 'female' ? S.students.female : S.students.male}</span>}
                         {Object.entries(student.fields || {}).map(([key, value]) => <span key={key} className="rounded-full bg-surface-2 px-2 py-0.5 text-2xs">{`${key.replace(/_/g, ' ')}: ${value}`}</span>)}
                       </div>

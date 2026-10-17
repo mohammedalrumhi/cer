@@ -47,6 +47,7 @@ function Preview({ template, branding, student }) {
 
 /** Step 3: editable grid, gender per student, pre-flight checks and a live preview. */
 export function StepReview({ template, branding, rows, onRows, issues, checking, checkProgress }) {
+  const batchAudience = template?.audienceType === 'adult' ? 'adult' : 'student';
   const [filter, setFilter] = useState('all');
   const [page, setPage] = useState(0);
   const [selected, setSelected] = useState(0);
@@ -80,6 +81,7 @@ export function StepReview({ template, branding, rows, onRows, issues, checking,
               <tr>
                 <th className="w-10 px-2 py-2">#</th>
                 {columns.map((field) => <th key={field} className="px-2 py-2 text-start font-semibold">{FIELD_LABELS[field] || field.replace(/_/g, ' ')}</th>)}
+                <th className="px-2 py-2 text-start font-semibold">الفئة</th>
                 <th className="px-2 py-2 text-start font-semibold">الصيغة</th>
                 <th className="px-2 py-2 text-start font-semibold">الفحص</th>
                 <th className="w-10" />
@@ -113,6 +115,15 @@ export function StepReview({ template, branding, rows, onRows, issues, checking,
                         </td>
                       );
                     })}
+                    <td className="px-1 py-1">
+                      <Segmented
+                        size="sm"
+                        label="الفئة"
+                        value={row.audienceType || batchAudience}
+                        onChange={(audienceType) => update(index, { ...row, audienceType })}
+                        options={[{ value: 'student', label: 'طالب' }, { value: 'adult', label: 'دارس' }]}
+                      />
+                    </td>
                     <td className="px-1 py-1">
                       <Segmented
                         size="sm"

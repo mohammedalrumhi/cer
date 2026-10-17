@@ -38,7 +38,9 @@ function sendStudentsTemplate(res) {
         'اسم البرنامج': 'مثال: برنامج الإتقان',
         'التقويم': 'مثال: ممتاز',
         'عدد الأخطاء': 'مثال: 2',
-        'المعلم': 'مثال: الأستاذ خالد'
+        'المعلم': 'مثال: الأستاذ خالد',
+        'الفئة': 'طالب أو دارس (اختياري)',
+        'الجنس': 'ذكر أو أنثى (اختياري)'
       }
     ];
 
@@ -47,7 +49,7 @@ function sendStudentsTemplate(res) {
     XLSX.utils.book_append_sheet(workbook, worksheet, 'الطلاب');
     worksheet['!cols'] = [
       { wch: 25 }, { wch: 35 }, { wch: 35 },
-      { wch: 25 }, { wch: 15 }, { wch: 15 }, { wch: 25 }
+      { wch: 25 }, { wch: 15 }, { wch: 15 }, { wch: 25 }, { wch: 22 }, { wch: 22 }
     ];
 
     const fileBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });

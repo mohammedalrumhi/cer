@@ -29,3 +29,13 @@ describe('gender and audience wording', () => {
     expect(renderTextTemplate(text, values('خالد', 'student'), null)).toBe('الطالب');
   });
 });
+
+describe('per-person group (student / adult learner)', () => {
+  it('a person’s own group overrides the batch', () => {
+    const values = buildFieldValues({ name: 'مريم أحمد', gender: 'female', audienceType: 'adult' }, {}, { audienceType: 'student' }, recipient);
+    expect(values.recipientTitle).toBe('الدارسة');
+    expect(values.recipientAchievementSentence).toContain('بنجاح الدارسة');
+    expect(renderTextTemplate('{{الطالب|الطالبة|الدارس|الدارسة}}', values, null)).toBe('الدارسة');
+    expect(buildFieldValues({ name: 'خالد', audienceType: 'student' }, {}, { audienceType: 'adult' }, recipient).recipientTitle).toBe('الطالب');
+  });
+});

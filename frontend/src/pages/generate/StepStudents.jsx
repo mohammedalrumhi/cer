@@ -20,13 +20,17 @@ const MAPPING_OPTIONS = [
   ['teacherName', 'المعلّم'],
   ['issueDate', 'تاريخ الإصدار'],
   ['gender', 'الجنس'],
+  ['audienceType', 'الفئة (طالب / دارس)'],
   ['custom', 'حقل إضافي (يُحفظ باسم العمود)'],
   ['ignore', 'تجاهل هذا العمود'],
 ];
 
 function SavedStudents({ students, selected, onChange }) {
   const [query, setQuery] = useState('');
-  const shown = students.filter((s) => !query || String(s.name).includes(query) || String(s.teacherName || '').includes(query) || String(s.programName || '').includes(query));
+  const [audience, setAudience] = useState('all');
+  const hasAudience = students.some((s) => s.audienceType);
+  const shown = students.filter((s) => (audience === 'all' || s.audienceType === audience)
+    && (!query || String(s.name).includes(query) || String(s.teacherName || '').includes(query) || String(s.programName || '').includes(query)));
   const allShown = shown.length > 0 && shown.every((s) => selected.has(s.id));
   const toggle = (ids, on) => {
     const next = new Set(selected);
@@ -41,6 +45,15 @@ function SavedStudents({ students, selected, onChange }) {
           <Search size={15} className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 text-fg-subtle" />
           <input className="field ps-9" type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={S.students.searchPlaceholder} aria-label={S.common.search} />
         </label>
+        {hasAudience && (
+          <Segmented
+            size="sm"
+            value={audience}
+            onChange={setAudience}
+            label={S.students.audience}
+            options={[{ value: 'all', label: S.students.audienceAll }, { value: 'student', label: S.students.audienceStudents }, { value: 'adult', label: S.students.audienceAdults }]}
+          />
+        )}
         <Button size="sm" onClick={() => toggle(shown.map((s) => s.id), !allShown)} data-testid="select-all-saved">{allShown ? 'إلغاء تحديد الظاهرين' : 'تحديد الظاهرين'}</Button>
       </div>
       <div className="max-h-[360px] overflow-y-auto rounded-md border border-border">
@@ -48,7 +61,7 @@ function SavedStudents({ students, selected, onChange }) {
           <label key={student.id} className="flex cursor-pointer items-center gap-3 border-b border-border px-3 py-2 text-sm last:border-b-0 hover:bg-surface-2">
             <input type="checkbox" className="size-4 accent-[var(--primary)]" checked={selected.has(student.id)} onChange={(e) => toggle([student.id], e.target.checked)} />
             <span className="flex-1 font-semibold">{student.name}</span>
-            <span className="text-xs text-fg-muted">{[student.programName, student.teacherName].filter(Boolean).join(' · ')}</span>
+            <span className="text-xs text-fg-muted">{[student.audienceType === 'adult' ? S.students.audienceAdult : student.audienceType === 'student' ? S.students.audienceStudent : '', student.programName, student.teacherName].filter(Boolean).join(' · ')}</span>
           </label>
         ))}
       </div>

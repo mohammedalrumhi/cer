@@ -102,6 +102,8 @@ export function buildFieldValues(student, branding, template, recipient, { today
   const issueDate = withHijriSuffix(student?.issueDate || formatHijriDate(today));
   // A per-student gender overrides the name heuristic (the "ة" rule only pre-fills it).
   const gender = student?.gender === 'female' || student?.gender === 'male' ? student.gender : undefined;
+  // A person's own group (student / adult learner) overrides the template's or the batch's.
+  if (student?.audienceType === 'adult' || student?.audienceType === 'student') template = { ...template, audienceType: student.audienceType };
   const issueIso = toIsoDate(parseIsoDate(student?.issueDate) || today);
   const values = {
     studentName,
